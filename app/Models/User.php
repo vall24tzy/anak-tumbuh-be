@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,47 +11,59 @@ class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'name',
+        'uuid',
+        'username',
         'email',
         'password',
+        'level',
+        'is_active',
+        'access_token',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
-        'remember_token',
+        'access_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'integer',
+            'level' => 'integer',
         ];
     }
 
-    public function getJWTIdentifier()
+    // ----- JWTSubject -----
+    public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
     public function getJWTCustomClaims(): array
     {
-        return[];
+        return [];
+    }
+
+    // ----- Relasi -----
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class);
+    }
+
+    public function headmaster()
+    {
+        return $this->hasOne(Headmaster::class);
+    }
+
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    public function qrUser()
+    {
+        return $this->hasOne(QrUser::class);
     }
 }
