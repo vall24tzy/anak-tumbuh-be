@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\V1\School\SchoolController;
 use App\Http\Controllers\V1\User\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,3 +19,13 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+
+Route::prefix('v1/schools')
+    ->middleware(['jwt', 'role:1,2'])
+    ->group(function () {
+        Route::get('/', [SchoolController::class, 'index']);
+        Route::post('/', [SchoolController::class, 'store']);
+        Route::get('/{id}', [SchoolController::class, 'show']);
+        Route::put('/{id}', [SchoolController::class, 'update']);
+        Route::delete('/{id}', [SchoolController::class, 'destroy']);
+    });
