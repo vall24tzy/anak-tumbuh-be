@@ -55,7 +55,11 @@ class SchoolService
     public function show(int $id)
     {
         $user = $this->currentUser();
-        $school = School::withCount(['teachers', 'students'])->findOrFail($id);
+        $school = School::withCount(['teachers', 'students'])->find($id);
+
+        if (!$school) {
+            throw new HttpException(404, 'Sekolah tidak ditemukan');
+        }
 
         if ($this->isHeadmaster($user) && $school->id !== $this->headmasterSchoolId($user)) {
             throw new HttpException(403, 'Anda tidak berhak mengakses sekolah ini');
@@ -67,7 +71,11 @@ class SchoolService
     public function update(int $id, array $data)
     {
         $user = $this->currentUser();
-        $school = School::findOrFail($id);
+        $school = School::find($id);
+
+        if (!$school) {
+            throw new HttpException(404, 'Sekolah tidak ditemukan');
+        }
 
         if ($this->isHeadmaster($user) && $school->id !== $this->headmasterSchoolId($user)) {
             throw new HttpException(403, 'Anda hanya boleh mengubah sekolah sendiri');
@@ -85,7 +93,11 @@ class SchoolService
             throw new HttpException(403, 'Hanya Super Admin yang boleh menghapus sekolah');
         }
 
-        $school = School::findOrFail($id);
+        $school = School::find($id);
+
+        if (!$school) {
+            throw new HttpException(404, 'Sekolah tidak ditemukan');
+        }
 
         $teacherCount = $school->teachers()->count();
         $studentCount = $school->students()->count();
