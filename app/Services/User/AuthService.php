@@ -3,11 +3,9 @@
 namespace App\Services\User;
 
 use App\Http\Resources\User\UserResource;
-use App\Models\PasswordResetToken;
 use App\Models\User;
 use App\Traits\ApiResponseTraits;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -96,52 +94,5 @@ class AuthService
         return $this->successResponse([
             'access_token' => $newToken,
         ], 'Berhasil refresh token', 200);
-    }
-
-    /**
-     * Beda dari kegiatanku-be: TIDAK benar-benar kirim email dulu (SMTP/Mail
-     * belum di-setup di scope task ini). Token dikembalikan langsung di response
-     * supaya bisa dites manual. Gampang disambungin ke Mail::send() nanti tinggal
-     * uncomment bagian yang ditandai TODO.
-     */
-    public function forgotPassword(array $data)
-    {
-        $token = Str::random(60);
-
-        PasswordResetToken::updateOrCreate(
-            ['email' => $data['email']],
-            ['token' => $token, 'created_at' => now()]
-        );
-
-        // TODO (di luar scope AUTH-001): ganti balikin token di response dengan
-        // beneran kirim email begitu Mail/SMTP sudah di-setup, misal:
-        // Mail::to($data['email'])->send(new ResetPasswordMail($token));
-
-        return $this->successResponse([
-            'reset_token' => $token,
-        ], 'Token reset password dibuat', 200);
-    }
-
-    public function resetPassword(array $data)
-    {
-        $resetToken = PasswordResetToken::where('token', $data['token'])
-            ->where('email', $data['email'])
-            ->first();
-
-        if (!$resetToken) {
-            return $this->errorResponse('Token reset password tidak valid', 404);
-        }
-
-        $user = User::where('email', $data['email'])->first();
-        if (!$user) {
-            return $this->errorResponse('User tidak ditemukan', 404);
-        }
-
-        $user->password = Hash::make($data['password']);
-        $user->save();
-
-        PasswordResetToken::where('email', $data['email'])->delete();
-
-        return $this->successResponse(null, 'Berhasil reset password', 200);
     }
 }

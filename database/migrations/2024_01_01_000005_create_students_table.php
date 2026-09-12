@@ -17,9 +17,7 @@ return new class extends Migration
             $table->string('gender'); // 'laki-laki' | 'perempuan'
             $table->string('photo')->nullable();
             $table->string('classroom')->nullable();
-            // Sengaja varchar (bukan integer) sesuai keputusan tim: poin bisa saja
-            // bukan cuma angka murni di masa depan. Cast eksplisit dibutuhkan saat sorting/agregasi.
-            $table->string('poin')->default('0');
+            $table->integer('poin')->default(0);
             $table->timestamps();
         });
     }
