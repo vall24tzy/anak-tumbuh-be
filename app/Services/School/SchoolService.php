@@ -4,10 +4,14 @@ namespace App\Services\School;
 
 use App\Models\School;
 use App\Models\Headmaster;
+use App\Services\Upload\UploadService;
+use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SchoolService
 {
+    public function __construct(protected UploadService $uploadService) {}
+
     protected function currentUser()
     {
         return auth('api')->user();
@@ -49,7 +53,17 @@ class SchoolService
             throw new HttpException(403, 'Hanya Super Admin yang boleh membuat sekolah baru');
         }
 
-        return School::create($data);
+        $logoFile = $data['logo'] ?? null;
+        unset($data['logo']);
+
+        $school = School::create($data);
+
+        if ($logoFile instanceof UploadedFile) {
+            $path = $this->uploadService->upload($logoFile, 'logos', $school->id);
+            $school->update(['logo' => $path]);
+        }
+
+        return $school->fresh();
     }
 
     public function show(int $id)
@@ -81,7 +95,16 @@ class SchoolService
             throw new HttpException(403, 'Anda hanya boleh mengubah sekolah sendiri');
         }
 
+        $logoFile = $data['logo'] ?? null;
+        unset($data['logo']);
+
         $school->update($data);
+
+        if ($logoFile instanceof UploadedFile) {
+            $path = $this->uploadService->upload($logoFile, 'logos', $school->id, $school->logo);
+            $school->update(['logo' => $path]);
+        }
+
         return $school->fresh()->loadCount(['teachers', 'students']);
     }
 
@@ -112,6 +135,7 @@ class SchoolService
             );
         }
 
+        $this->uploadService->delete($school->logo);
         $school->delete();
         return true;
     }

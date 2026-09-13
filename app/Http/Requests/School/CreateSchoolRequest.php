@@ -16,7 +16,7 @@ class CreateSchoolRequest extends FormRequest
         return [
             'name'    => ['required', 'string', 'max:255'],
             'address' => ['required', 'string'],
-            'logo'    => ['nullable', 'string'],
+            'logo'    => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }

@@ -16,7 +16,7 @@ class UpdateSchoolRequest extends FormRequest
         return [
             'name'    => ['sometimes', 'string', 'max:255'],
             'address' => ['sometimes', 'string'],
-            'logo'    => ['sometimes', 'nullable', 'string'],
+            'logo'    => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }
