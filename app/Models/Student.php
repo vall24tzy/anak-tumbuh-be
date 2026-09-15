@@ -17,6 +17,7 @@ class Student extends Model
         'gender',
         'photo',
         'classroom',
+        'grade_level',
         'poin',
     ];
 

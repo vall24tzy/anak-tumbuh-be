@@ -11,18 +11,10 @@ class QrUser extends Model
 
     protected $table = 'qr_user';
 
-    // Tabel ini PUNYA created_at/updated_at (beda dari qr_auth versi lama
-    // yang tidak punya) — jadi tidak perlu override $timestamps = false.
-
     protected $fillable = [
         'user_id',
-        'username',
-        'password',
+        'token',
         'link_qr',
-    ];
-
-    protected $hidden = [
-        'password',
     ];
 
     public function user()
