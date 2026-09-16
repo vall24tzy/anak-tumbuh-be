@@ -9,6 +9,7 @@
         "intervention/image": "^4.3",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
+        "maatwebsite/excel": "^3.1",
         "tymon/jwt-auth": "^2.3"
     },
     "require-dev": {
