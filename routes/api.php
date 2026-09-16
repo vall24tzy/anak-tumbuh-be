@@ -10,4 +10,5 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/v1/headmaster.php');
     require base_path('routes/v1/teacher.php');
     require base_path('routes/v1/student.php');
+    require base_path('routes/v1/habit.php');
 });
