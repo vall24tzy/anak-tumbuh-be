@@ -16,7 +16,7 @@ trait ApiResponseTraits
      * Hapus parameter ini nanti setelah semua pemanggil lama selesai direvisi
      * di task masing-masing.
      */
-    protected function successResponse($data = null, ?string $message = null, int $code = 200, ?array $meta = null): JsonResponse
+    public function successResponse($data = null, ?string $message = null, int $code = 200, ?array $meta = null): JsonResponse
     {
         $payload = ['data' => $data];
 
@@ -34,7 +34,7 @@ trait ApiResponseTraits
      * lama yang cuma kirim (message, httpCode) tetap jalan — code diturunkan
      * otomatis dari HTTP status lewat defaultErrorCode().
      */
-    protected function errorResponse(string $message = 'Error', int $code = 400, $details = null, ?string $errorCode = null): JsonResponse
+    public function errorResponse(string $message = 'Error', int $code = 400, $details = null, ?string $errorCode = null): JsonResponse
     {
         return response()->json([
             'error' => [

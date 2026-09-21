@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\ApiException;
 use App\Traits\ApiResponseTraits;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -26,53 +27,67 @@ return Application::configure(basePath: dirname(__DIR__))
             return $request->is('api/*') || $request->expectsJson();
         });
 
+        // Satu "responder" yang pakai ApiResponseTraits, supaya SEMUA render()
+        // di bawah bentuk response-nya lewat trait yang sama dengan
+        // Controller/Service (hasil SETUP-001 rework) - bukan JSON manual lagi.
+        $responder = new class {
+            use ApiResponseTraits;
+        };
+
         // Urutan register PENTING: dari yang paling spesifik ke paling umum.
         // Laravel cek satu-satu sesuai urutan ini, berhenti di yang pertama cocok.
 
-        $exceptions->render(function (ModelNotFoundException $e, $request) {
+        $exceptions->render(function (ModelNotFoundException $e, $request) use ($responder) {
             if ($request->is('api/*')) {
-                return response()->json([
-                    'code'    => 404,
-                    'status'  => 'error',
-                    'message' => 'Data tidak ditemukan',
-                    'data'    => null,
-                ], 404);
+                return $responder->errorResponse('Data tidak ditemukan', 404, [], 'not_found');
             }
         });
 
-        $exceptions->render(function (ValidationException $e, $request) {
+        $exceptions->render(function (ValidationException $e, $request) use ($responder) {
             if ($request->is('api/*')) {
-                return response()->json([
-                    'code'    => 422,
-                    'status'  => 'error',
-                    'message' => collect($e->errors())->flatten()->first(),
-                    'data'    => $e->errors(),
-                ], 422);
+                $details = [];
+                foreach ($e->errors() as $field => $messages) {
+                    foreach ($messages as $message) {
+                        $details[] = [
+                            'field'   => $field,
+                            'reason'  => 'validation_failed',
+                            'message' => $message,
+                        ];
+                    }
+                }
+
+                return $responder->errorResponse(
+                    collect($e->errors())->flatten()->first(),
+                    422,
+                    $details,
+                    'validation_failed'
+                );
             }
         });
 
-        $exceptions->render(function (HttpExceptionInterface $e, $request) {
+        $exceptions->render(function (ApiException $e, $request) use ($responder) {
             if ($request->is('api/*')) {
-                $status = $e->getStatusCode();
-                return response()->json([
-                    'code'    => $status,
-                    'status'  => 'error',
-                    'message' => $e->getMessage() ?: 'Terjadi kesalahan',
-                    'data'    => null,
-                ], $status);
+                return $responder->errorResponse($e->getMessage(), $e->status(), $e->details(), $e->errorCode());
             }
         });
 
-        $exceptions->render(function (Throwable $e, $request) {
+        $exceptions->render(function (HttpExceptionInterface $e, $request) use ($responder) {
             if ($request->is('api/*')) {
-                return response()->json([
-                    'code'    => 500,
-                    'status'  => 'error',
-                    'message' => app()->environment('production')
+                return $responder->errorResponse(
+                    $e->getMessage() ?: 'Terjadi kesalahan',
+                    $e->getStatusCode()
+                );
+            }
+        });
+
+        $exceptions->render(function (Throwable $e, $request) use ($responder) {
+            if ($request->is('api/*')) {
+                return $responder->errorResponse(
+                    app()->environment('production')
                         ? 'Terjadi kesalahan pada server'
                         : $e->getMessage(),
-                    'data'    => null,
-                ], 500);
+                    500
+                );
             }
         });
     })->create();
