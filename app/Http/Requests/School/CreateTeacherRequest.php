@@ -8,20 +8,16 @@ class CreateTeacherRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // otorisasi role & scoping sekolah dihandle di Service
+        return true; // otorisasi role dihandle middleware, scoping own-school dihandle Service
     }
 
     public function rules(): array
     {
         return [
             'school_id' => ['required', 'integer', 'exists:schools,id'],
-            'fullname'  => ['required', 'string', 'max:255'],
-            'nip'       => ['required', 'string', 'max:50', 'unique:teachers,nip'],
+            'name'      => ['required', 'string', 'max:150'],
+            'nip'       => ['required', 'string', 'max:30', 'unique:teachers,nip'],
             'gender'    => ['required', 'in:laki-laki,perempuan'],
-            'classroom' => ['nullable', 'string', 'max:50'],
-            'username'  => ['required', 'string', 'max:255', 'unique:users,username'],
-            'email'     => ['required', 'email', 'unique:users,email'],
-            'photo'     => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }
