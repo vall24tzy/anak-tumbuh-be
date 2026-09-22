@@ -10,12 +10,19 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'uuid' => $this->uuid,
-            'username' => $this->username,
-            'email' => $this->email,
-            'level' => $this->level,
-            'is_active' => $this->is_active,
+            'id'   => $this->id,
+            'role' => $this->role,
+            'name' => $this->resolveName(),
         ];
+    }
+
+    private function resolveName(): ?string
+    {
+        return match ($this->role) {
+            'headmaster' => $this->headmaster?->fullname,
+            'teacher'    => $this->teacher?->fullname,
+            'student'    => $this->student?->fullname,
+            default      => $this->username, // super_admin belum punya tabel profil sendiri
+        };
     }
 }

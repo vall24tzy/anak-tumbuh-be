@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\V1\User;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\User\SigninRequest;
+use App\Http\Requests\User\StaffLoginRequest;
+use App\Http\Requests\User\StudentPasswordLoginRequest;
 use App\Services\User\AuthService;
 
 class AuthController extends Controller
@@ -12,18 +13,18 @@ class AuthController extends Controller
     {
     }
 
-    public function signin(SigninRequest $request)
+    public function loginStaff(StaffLoginRequest $request)
     {
-        return $this->authService->authSignin($request->only('username', 'password'));
+        return $this->authService->loginStaff($request->only('username', 'password'));
     }
 
-    public function signout()
+    public function loginStudentPassword(StudentPasswordLoginRequest $request)
     {
-        return $this->authService->authSignout();
+        return $this->authService->loginStudentPassword($request->only('nisn', 'password'));
     }
 
-    public function refresh()
+    public function logout()
     {
-        return $this->authService->refreshToken();
+        return $this->authService->logout();
     }
 }
