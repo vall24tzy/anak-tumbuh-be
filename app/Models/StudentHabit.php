@@ -34,8 +34,6 @@ class StudentHabit extends Model
         return $this->belongsTo(Indicator::class);
     }
 
-    public function backup()
-    {
-        return $this->hasOne(StudentHabitBackup::class);
-    }
+    // Relasi ke StudentHabitBackup dihapus — tabel student_habit_backups di-DROP
+    // (MIGRATION-002, DB Design v1.5: entity ini tidak ada di Final Entity List §4).
 }

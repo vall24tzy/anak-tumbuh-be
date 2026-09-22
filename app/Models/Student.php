@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+// classroom & grade_level DIHAPUS (DB Design v1.5 Risk #1) — digantikan sepenuhnya
+// oleh student_class_assignments + rombels.grade_level. level/gamification_level
+// tidak disimpan sebagai kolom — dihitung real-time (LEVEL-RANKING-001).
+
 class Student extends Model
 {
     use HasFactory;
@@ -15,10 +19,9 @@ class Student extends Model
         'fullname',
         'nisn',
         'gender',
-        'photo',
-        'classroom',
-        'grade_level',
+        'photo_path',
         'poin',
+        'status',
     ];
 
     public function user()
@@ -36,8 +39,9 @@ class Student extends Model
         return $this->hasMany(StudentHabit::class);
     }
 
-    public function studentHabitBackups()
+    // QR token terikat ke Student (bukan User generik) — DB Design v1.5 §5.15.
+    public function qrToken()
     {
-        return $this->hasMany(StudentHabitBackup::class);
+        return $this->hasOne(QrToken::class);
     }
 }

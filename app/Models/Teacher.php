@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+// classroom DIHAPUS — scope Teacher berasal dari teacher_class_assignments
+// (TEACHERCLASSASSIGNMENT-001), bukan kolom mentah di sini.
+
 class Teacher extends Model
 {
     use HasFactory;
@@ -15,8 +18,8 @@ class Teacher extends Model
         'fullname',
         'nip',
         'gender',
-        'photo',
-        'classroom',
+        'photo_path',
+        'status',
     ];
 
     public function user()

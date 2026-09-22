@@ -7,31 +7,27 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
+// DB Design v1.5 §5.1 — role menggantikan level; uuid/email/is_active/access_token
+// tidak ada di skema final (identity & auth murni: role, username, password).
+
 class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'uuid',
+        'role',
         'username',
-        'email',
         'password',
-        'level',
-        'is_active',
-        'access_token',
     ];
 
     protected $hidden = [
         'password',
-        'access_token',
     ];
 
     protected function casts(): array
     {
         return [
             'password' => 'hashed',
-            'is_active' => 'integer',
-            'level' => 'integer',
         ];
     }
 
@@ -60,10 +56,5 @@ class User extends Authenticatable implements JWTSubject
     public function student()
     {
         return $this->hasOne(Student::class);
-    }
-
-    public function qrUser()
-    {
-        return $this->hasOne(QrUser::class);
     }
 }

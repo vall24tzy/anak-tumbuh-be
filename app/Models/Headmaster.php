@@ -5,13 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+// Nama tabel PLURAL "headmasters" (DB Design v1.5 §5.3) — koreksi dari skema
+// legacy yang singular. Default Eloquent snake_case-plural sudah cocok,
+// tapi tetap dituliskan eksplisit untuk kejelasan.
+
 class Headmaster extends Model
 {
     use HasFactory;
 
-    // Nama tabel di ERD singular ("headmaster"), Eloquent defaultnya akan menebak
-    // "headmasters" kalau tidak dituliskan eksplisit di sini.
-    protected $table = 'headmaster';
+    protected $table = 'headmasters';
 
     protected $fillable = [
         'user_id',
@@ -19,7 +21,8 @@ class Headmaster extends Model
         'fullname',
         'nip',
         'gender',
-        'photo',
+        'photo_path',
+        'status',
     ];
 
     public function user()
