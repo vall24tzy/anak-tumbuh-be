@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('habit_id')->constrained('habits')->cascadeOnDelete();
             $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
-            $table->foreignId('indicator_id')->constrained('indicator')->cascadeOnDelete();
+            $table->foreignId('indicator_id')->constrained('indicators')->cascadeOnDelete();
             // Diisi OTOMATIS dari students.classroom saat entri dibuat (snapshot untuk histori kenaikan kelas).
             // Logic pengisiannya dikerjakan di task berikutnya (BACKEND-003), di sini cukup kolomnya.
             $table->string('classroom')->nullable();

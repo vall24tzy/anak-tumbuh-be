@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Sengaja kosong — lihat catatan di atas.
+        $this->call([
+            HabitIndicatorSeeder::class, // HABIT-001 — 7 habit x 4 indicator FIXED
+        ]);
     }
 }
