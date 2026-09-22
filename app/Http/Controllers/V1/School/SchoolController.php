@@ -4,7 +4,6 @@ namespace App\Http\Controllers\V1\School;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\CreateSchoolRequest;
-use App\Http\Requests\School\UpdateSchoolRequest;
 use App\Http\Resources\School\SchoolResource;
 use App\Services\School\SchoolService;
 use App\Traits\ApiResponseTraits;
@@ -31,17 +30,5 @@ class SchoolController extends Controller
     {
         $school = $this->service->show($id);
         return $this->successResponse(new SchoolResource($school), 'Detail sekolah berhasil diambil');
-    }
-
-    public function update(UpdateSchoolRequest $request, int $id)
-    {
-        $school = $this->service->update($id, $request->validated());
-        return $this->successResponse(new SchoolResource($school), 'Sekolah berhasil diperbarui');
-    }
-
-    public function destroy(int $id)
-    {
-        $this->service->destroy($id);
-        return $this->successResponse(null, 'Sekolah berhasil dihapus');
     }
 }
