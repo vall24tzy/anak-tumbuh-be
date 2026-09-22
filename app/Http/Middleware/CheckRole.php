@@ -10,11 +10,11 @@ class CheckRole
 {
     use ApiResponseTraits;
 
-    public function handle(Request $request, Closure $next, ...$allowedLevels)
+    public function handle(Request $request, Closure $next, ...$allowedRoles)
     {
         $user = auth('api')->user();
 
-        if (!$user || !in_array((string) $user->level, $allowedLevels)) {
+        if (!$user || !in_array((string) $user->role, $allowedRoles, true)) {
             return $this->errorResponse('Anda tidak memiliki akses ke resource ini', 403);
         }
 

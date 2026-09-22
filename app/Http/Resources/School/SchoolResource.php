@@ -13,7 +13,7 @@ class SchoolResource extends JsonResource
             'id'             => $this->id,
             'name'           => $this->name,
             'address'        => $this->address,
-            'logo'           => $this->logo ? Storage::disk('public')->url($this->logo) : null,
+            'logo'           => $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null,
             'teachers_count' => $this->whenCounted('teachers'),
             'students_count' => $this->whenCounted('students'),
         ];
