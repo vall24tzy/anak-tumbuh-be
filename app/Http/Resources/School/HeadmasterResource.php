@@ -3,7 +3,6 @@
 namespace App\Http\Resources\School;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class HeadmasterResource extends JsonResource
 {
@@ -11,17 +10,11 @@ class HeadmasterResource extends JsonResource
     {
         return [
             'id'        => $this->id,
-            'fullname'  => $this->fullname,
+            'school_id' => $this->school_id,
+            'name'      => $this->fullname,
             'nip'       => $this->nip,
             'gender'    => $this->gender,
-            'photo'     => $this->photo ? Storage::disk('public')->url($this->photo) : null,
-            'school'    => [
-                'id'   => $this->school->id,
-                'name' => $this->school->name,
-            ],
-            'username'  => $this->user->username,
-            'email'     => $this->user->email,
-            'is_active' => (bool) $this->user->is_active,
+            'status'    => $this->status,
         ];
     }
 }

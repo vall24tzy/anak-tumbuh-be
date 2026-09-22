@@ -15,12 +15,9 @@ class CreateHeadmasterRequest extends FormRequest
     {
         return [
             'school_id' => ['required', 'integer', 'exists:schools,id'],
-            'fullname'  => ['required', 'string', 'max:255'],
-            'nip'       => ['required', 'string', 'max:50', 'unique:headmaster,nip'],
+            'name'      => ['required', 'string', 'max:150'],
+            'nip'       => ['required', 'string', 'max:30', 'unique:headmasters,nip'],
             'gender'    => ['required', 'in:laki-laki,perempuan'],
-            'username'  => ['required', 'string', 'max:255', 'unique:users,username'],
-            'email'     => ['required', 'email', 'unique:users,email'],
-            'photo'     => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }
