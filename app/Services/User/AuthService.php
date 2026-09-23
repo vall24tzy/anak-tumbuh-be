@@ -2,6 +2,7 @@
 
 namespace App\Services\User;
 
+use App\Http\Resources\User\MeResource;
 use App\Http\Resources\User\UserResource;
 use App\Models\User;
 use App\Traits\ApiResponseTraits;
@@ -69,5 +70,13 @@ class AuthService
         JWTAuth::invalidate(JWTAuth::getToken());
 
         return $this->successResponse(null);
+    }
+
+    /**
+     * GET /auth/me — identitas dari token, bukan dari input. Scope: Own data.
+     */
+    public function me(User $user)
+    {
+        return $this->successResponse(new MeResource($user));
     }
 }

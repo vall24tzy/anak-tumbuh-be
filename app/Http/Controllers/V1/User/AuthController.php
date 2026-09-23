@@ -27,4 +27,9 @@ class AuthController extends Controller
     {
         return $this->authService->logout();
     }
+
+    public function me()
+    {
+        return $this->authService->me(auth('api')->user());
+    }
 }
