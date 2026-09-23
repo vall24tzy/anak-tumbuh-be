@@ -44,4 +44,18 @@ class Student extends Model
     {
         return $this->hasOne(QrToken::class);
     }
+
+    // Histori lengkap (current + past) — student_class_assignments SATU-SATUNYA
+    // source of truth placement (DB Design v1.5 §5.9, STUDENT-ASSIGNMENT-001).
+    public function studentClassAssignments()
+    {
+        return $this->hasMany(StudentClassAssignment::class);
+    }
+
+    // Current placement saja (status='active') — dipakai ulang di STUDENT-001,
+    // IMPORT-001, STUDENT-LIFECYCLE-001. JANGAN duplikasi query ini di tempat lain.
+    public function activeClassAssignment()
+    {
+        return $this->hasOne(StudentClassAssignment::class)->where('status', 'active');
+    }
 }

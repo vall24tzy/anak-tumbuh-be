@@ -42,3 +42,49 @@ Boundary: field lain `student_habits` (classroom, description, note, inisiative,
 - Tabel `habits`, `indicator`, `student_habits`, `student_habit_backups` terkait (di luar `student_habit_backups` yang di-DROP) **tidak diubah** di task ini — milik HABIT-001/STUDENTHABIT-001.
 - Service/Controller/Request/Resource yang masih membaca kolom lama (`level`, `is_active`, `classroom` di Teacher/Student, `QrUser`, tabel `headmaster` singular) **tidak diubah** di task ini — masing-masing milik AUTH-001, SCHOOL-001, HEADMASTER-001, TEACHER-001, STUDENT-001. File-file itu akan error terhadap skema baru sampai task REWORK masing-masing dikerjakan; ini sudah diketahui dan dicatat di Dependency Task Board ("mendarat sebagai satu batch sebelum migrate:fresh dijalankan di DB dev bersama").
 - `migrate:fresh` **belum dijalankan** dari sandbox ini (tidak ada koneksi PostgreSQL live di sini). Perlu dijalankan manual di environment dev oleh Anda/tim setelah review.
+
+## STUDENT-ASSIGNMENT-001 (dependency: ROMBEL-001, TEACHER-ASSIGNMENT-001, MIGRATION-002 — semua ✅)
+
+Migration `student_class_assignments` + Model + `StudentClassAssignmentService` (reusable, dipakai ulang
+nanti oleh STUDENT-001/IMPORT-001/STUDENT-LIFECYCLE-001 via `createAssignment()` & `closeActiveAssignment()`)
++ Controller + Route, sesuai API Contract v1.2 §19 & DB Design v1.5 §5.9.
+
+**NOTE-05 — RESOLVED via Keputusan Tim eksplisit (23 Sep 2026, bukan tertulis literal di SoT asli)**
+
+Gap semula:
+
+```
+CONFLICT
+SOURCE A: API Contract v1.2 §19 mendaftarkan "PATCH /api/v1/student-class-assignments/{id} —
+          Update assignment (Matrix #24). Tidak ada auto-move." tanpa request body/skema field.
+SOURCE B: DB Design v1.5 §5.9 hanya menjelaskan proses konseptual "pindah kelas" (UPDATE baris
+          lama status='ended' + INSERT baris baru status='active') sebagai APA YANG TERJADI saat
+          pindah kelas — bukan definisi payload PATCH endpoint tersebut.
+IMPACT: Tidak ada dasar tertulis field apa yang boleh diubah oleh PATCH ini.
+```
+
+**Keputusan Tim (ditetapkan user, divalidasi bersama tim, 23 Sep 2026)** — bukan hasil pembacaan
+literal SoT, melainkan inferensi tim atas 3 petunjuk tidak langsung di SoT (dicatat supaya jejaknya
+jelas ini keputusan tambahan, bukan aturan yang sudah tertulis eksplisit):
+1. API Contract §19 eksplisit "Tidak ada auto-move" → PATCH tidak boleh menerima `rombel_id`.
+2. API Contract §19 (Validation & Errors, assignment_conflict) menyebut caller harus "resolve secara
+   eksplisit (mis. deactivate assignment lama lebih dulu, sebagai request terpisah)" — tapi tidak ada
+   endpoint deactivate terpisah untuk Student Class Assignment (beda dari Teacher Class Assignment
+   yang punya `POST .../deactivate` sendiri) → PATCH ini yang mengisi peran itu.
+3. DB Design §5.9 menjelaskan "pindah kelas" sebagai 2 operasi terpisah (tutup lama via UPDATE
+   status='ended', lalu POST baris baru) — bukan 1 endpoint otomatis.
+
+Ditetapkan:
+- Body PATCH **hanya** `{ "status": "ended" }`.
+- Field lain (`rombel_id`, `student_id`, `academic_year_id`, `school_id`, dst.) → **422**, code
+  `field_not_accepted` (konsisten vocabulary dengan API Contract §21 utk kasus field yang eksplisit
+  ditolak, bukan silent-drop).
+- Hanya transisi `active` → `ended`; tidak ada reactivation (konsisten prinsip Teacher Lifecycle,
+  Matrix #61).
+- Idempotent: assignment yang sudah `ended`, PATCH ulang → 200 tanpa efek tambahan (pola sama
+  seperti `POST /teachers/{id}/inactive`).
+- Scope: Teacher only, own active rombel (Dokumen v4.0 §5.4) — assignment di luar scope → 403
+  (bukan 404; ini operasi WRITE dengan scope jelas dari path, sesuai API Contract §26: "Untuk
+  operasi write... digunakan 403"). Assignment id yang benar-benar tidak ada → 404.
+
+Endpoint final: POST, GET (list, scope-based), GET /students/{id}/class-assignments, **PATCH** (hanya `status: ended`).
