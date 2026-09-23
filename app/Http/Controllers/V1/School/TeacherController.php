@@ -31,4 +31,10 @@ class TeacherController extends Controller
         $teacher = $this->service->show($id);
         return $this->successResponse(new TeacherResource($teacher));
     }
+
+    public function inactive(int $id)
+    {
+        $teacher = $this->service->inactive($id);
+        return $this->successResponse(new TeacherResource($teacher));
+    }
 }

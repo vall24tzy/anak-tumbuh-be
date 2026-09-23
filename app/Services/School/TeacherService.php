@@ -2,6 +2,7 @@
 
 namespace App\Services\School;
 
+use App\Models\TeacherClassAssignment;
 use App\Models\Headmaster;
 use App\Models\Teacher;
 use App\Models\User;
@@ -67,6 +68,21 @@ class TeacherService
                 'gender'    => $data['gender'],
                 'status'    => 'active',
             ])->load('school');
+        });
+    }
+
+    public function inactive(int $id): Teacher
+    {
+        $teacher = $this->show($id); // reuse: scope own-school + 404 kalau di luar
+
+        return DB::transaction(function () use ($teacher) {
+            $teacher->update(['status' => 'inactive']);
+
+            TeacherClassAssignment::where('teacher_id', $teacher->id)
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+
+            return $teacher->fresh('school');
         });
     }
 }
