@@ -2,88 +2,78 @@
 
 namespace App\Services\Student;
 
+use App\Exceptions\ApiException;
 use App\Models\Headmaster;
-use App\Models\QrUser;
+use App\Models\QrToken;
 use App\Models\Student;
-use App\Models\Teacher;
 use App\Models\User;
+use App\Services\School\TeacherScopeService;
 use App\Services\Upload\UploadService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+
+// API Contract v1.2 §17, DB Design v1.5 §5.5. Student = permanent identity;
+// Teacher operator dalam own active rombel. Reuse TeacherScopeService (School
+// domain) & StudentClassAssignmentService — JANGAN duplikasi query scope/assignment
+// di sini.
 
 class StudentService
 {
-    public function __construct(protected UploadService $uploadService) {}
+    public function __construct(
+        protected UploadService $uploadService,
+        protected TeacherScopeService $teacherScope,
+        protected StudentClassAssignmentService $assignmentService,
+    ) {}
 
     protected function currentUser()
     {
         return auth('api')->user();
     }
 
-    protected function isSuperAdmin($user): bool
-    {
-        return (string) $user->level === '1';
-    }
-
-    protected function isHeadmaster($user): bool
-    {
-        return (string) $user->level === '2';
-    }
-
-    protected function isTeacher($user): bool
-    {
-        return (string) $user->level === '3';
-    }
-
     protected function headmasterSchoolId($user): ?int
     {
-        return Headmaster::where('user_id', $user->id)->first()?->school_id;
+        return Headmaster::where('user_id', $user->id)->value('school_id');
     }
 
-    protected function currentTeacher($user): ?Teacher
-    {
-        return Teacher::where('user_id', $user->id)->first();
-    }
-
-    protected function canAccess($user, Student $student): bool
-    {
-        if ($this->isSuperAdmin($user)) {
-            return true;
-        }
-
-        if ($this->isHeadmaster($user)) {
-            return $student->school_id === $this->headmasterSchoolId($user);
-        }
-
-        if ($this->isTeacher($user)) {
-            $teacher = $this->currentTeacher($user);
-            return $teacher
-                && $student->school_id === $teacher->school_id
-                && $student->classroom === $teacher->classroom;
-        }
-
-        return false;
-    }
-
+    /**
+     * GET /api/v1/students — scope Matrix #9: SA global, HM own school,
+     * Teacher own active rombel, Student OWN (tanpa classmates list).
+     */
     public function index()
     {
         $user = $this->currentUser();
-        $query = Student::with(['school', 'user']);
 
-        if ($this->isHeadmaster($user)) {
-            $query->where('school_id', $this->headmasterSchoolId($user));
-        } elseif ($this->isTeacher($user)) {
-            $teacher = $this->currentTeacher($user);
-            $query->where('school_id', $teacher?->school_id)
-                  ->where('classroom', $teacher?->classroom);
-        }
-
-        return $query->get();
+        return match ($user->role) {
+            'super_admin' => Student::with(['school', 'user'])->get(),
+            'headmaster'  => Student::with(['school', 'user'])
+                                ->where('school_id', $this->headmasterSchoolId($user))->get(),
+            'teacher'     => $this->indexForTeacher($user),
+            'student'     => Student::with(['school', 'user'])
+                                ->where('id', $user->student?->id)->get(),
+            default       => collect(),
+        };
     }
 
+    protected function indexForTeacher($user)
+    {
+        $assignment = $this->teacherScope->activeAssignment($user);
+
+        if (!$assignment) {
+            return collect();
+        }
+
+        return Student::with(['school', 'user'])
+            ->whereHas('activeClassAssignment', fn ($q) => $q->where('rombel_id', $assignment->rombel_id))
+            ->get();
+    }
+
+    /**
+     * GET /api/v1/students/{id} — scope mismatch -> 404 (resource existence
+     * leak, API Contract §26), bukan 403.
+     */
     public function show(int $id)
     {
         $user = $this->currentUser();
@@ -93,75 +83,117 @@ class StudentService
             throw new HttpException(404, 'Siswa tidak ditemukan');
         }
 
-        if (!$this->canAccess($user, $student)) {
-            throw new HttpException(403, 'Anda tidak berhak mengakses siswa ini');
+        if (!$this->canView($user, $student)) {
+            throw new HttpException(404, 'Siswa tidak ditemukan');
         }
 
         return $student;
     }
 
+    protected function canView($user, Student $student): bool
+    {
+        return match ($user->role) {
+            'super_admin' => true,
+            'headmaster'  => $student->school_id === $this->headmasterSchoolId($user),
+            'teacher'     => $this->studentInTeacherActiveRombel($user, $student),
+            'student'     => $user->student?->id === $student->id,
+            default       => false,
+        };
+    }
+
+    protected function studentInTeacherActiveRombel($user, Student $student): bool
+    {
+        $teacherRombelId = $this->teacherScope->activeAssignment($user)?->rombel_id;
+        $studentRombelId = $student->activeClassAssignment?->rombel_id;
+
+        return $teacherRombelId !== null && $teacherRombelId === $studentRombelId;
+    }
+
+    /**
+     * POST /api/v1/students — Teacher only, own active rombel (Matrix #7).
+     * 1 DB transaction: user + student (+ qr_tokens kalau Student baru) +
+     * student_class_assignments. NISN existing (sekolah sama) -> reuse Student,
+     * TIDAK membuat identity baru; cross-school -> 403 (Dokumen v4.0 §5.4/§12).
+     */
     public function store(array $data): Student
     {
         $user = $this->currentUser();
+        $assignment = $this->teacherScope->activeAssignment($user);
 
-        if ($this->isHeadmaster($user) && (int) $data['school_id'] !== $this->headmasterSchoolId($user)) {
-            throw new HttpException(403, 'Anda hanya boleh menambahkan siswa ke sekolah sendiri');
+        if (!$assignment) {
+            throw new HttpException(403, 'Anda belum memiliki active rombel');
         }
 
-        if ($this->isTeacher($user)) {
-            $teacher = $this->currentTeacher($user);
-
-            if (!$teacher
-                || (int) $data['school_id'] !== $teacher->school_id
-                || $data['classroom'] !== $teacher->classroom) {
-                throw new HttpException(403, 'Kamu cuma boleh menambahkan siswa di rombelmu sendiri');
-            }
+        if ((int) $data['rombel_id'] !== $assignment->rombel_id) {
+            throw new HttpException(403, 'Anda hanya boleh create Student pada own active rombel');
         }
 
         $logoFile = $data['photo'] ?? null;
         unset($data['photo']);
 
-        $student = DB::transaction(function () use ($data) {
-            $newUser = User::create([
-                'uuid'      => (string) Str::uuid(),
-                'username'  => $data['nisn'],
-                'email'     => $data['nisn'] . '@siswa.anaktumbuh.id',
-                'password'  => $data['nisn'], // Opsi B1: password = NISN, otomatis ke-hash
-                'level'     => 4,
-                'is_active' => 1,
-            ]);
+        $existing = Student::where('nisn', $data['nisn'])->first();
 
-            $student = Student::create([
-                'user_id'     => $newUser->id,
-                'school_id'   => $data['school_id'],
-                'fullname'    => $data['fullname'],
-                'nisn'        => $data['nisn'],
-                'gender'      => $data['gender'],
-                'classroom'   => $data['classroom'],
-                'grade_level' => $data['grade_level'],
-                'poin'        => 0,
-            ]);
+        if ($existing && $existing->school_id !== $assignment->school_id) {
+            throw new ApiException('cross_school_nisn', 403, 'NISN sudah terdaftar di sekolah lain');
+        }
 
-            // Token QR: independen total dari NISN/password di atas
-            $token = (string) Str::uuid();
+        $student = DB::transaction(function () use ($data, $assignment, $existing) {
+            if ($existing) {
+                // Reuse — identity permanent, field administratif TIDAK ditimpa
+                // diam-diam (mencegah data loss dari kesamaan NISN yang tidak
+                // disengaja saat re-import/re-create).
+                $student = $existing;
+            } else {
+                $newUser = User::create([
+                    'role'     => 'student',
+                    'username' => $data['nisn'],
+                    'password' => $data['nisn'], // auto-hash via cast 'hashed' (User model)
+                ]);
 
-            QrUser::create([
-                'user_id' => $newUser->id,
-                'token'   => $token,
-                'link_qr' => rtrim(config('app.url'), '/') . '/qr?token=' . $token,
-            ]);
+                $student = Student::create([
+                    'user_id'   => $newUser->id,
+                    'school_id' => $assignment->school_id,
+                    'fullname'  => $data['name'],
+                    'nisn'      => $data['nisn'],
+                    'gender'    => $data['gender'],
+                    'poin'      => 0,
+                    'status'    => 'active',
+                ]);
+
+                // QR token SYSTEM-generated saat create (DB Design v1.5 §5.15).
+                // Raw token TIDAK di-expose di response ini (NOTE-04) — hanya
+                // hash yang disimpan; raw token didapat lewat regenerate (QR-001).
+                QrToken::create([
+                    'student_id' => $student->id,
+                    'token_hash' => Hash::make((string) Str::uuid()),
+                ]);
+            }
+
+            // student_class_assignments — method reusable STUDENT-ASSIGNMENT-001.
+            // 409 duplicate_assignment/assignment_conflict ditegakkan di sana;
+            // exception di sini otomatis rollback seluruh transaksi (termasuk
+            // User+Student+QrToken yang baru dibuat kalau ini Student baru).
+            $this->assignmentService->createAssignment(
+                $student->id,
+                $assignment->rombel_id,
+                $assignment->academic_year_id,
+            );
 
             return $student;
         });
 
         if ($logoFile instanceof UploadedFile) {
-            $path = $this->uploadService->upload($logoFile, 'students', $student->id);
-            $student->update(['photo' => $path]);
+            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $student->photo_path);
+            $student->update(['photo_path' => $path]);
         }
 
-        return $student->load(['school', 'user']);
+        return $student->fresh()->load(['school', 'user']);
     }
 
+    /**
+     * PATCH /api/v1/students/{id} — Teacher only, Student dalam own active
+     * rombel. Hanya field administratif (protected field ditolak di Request).
+     */
     public function update(int $id, array $data)
     {
         $user = $this->currentUser();
@@ -171,48 +203,30 @@ class StudentService
             throw new HttpException(404, 'Siswa tidak ditemukan');
         }
 
-        if (!$this->canAccess($user, $student)) {
-            throw new HttpException(403, 'Anda tidak berhak mengubah siswa ini');
+        $assignment = $this->teacherScope->activeAssignment($user);
+        $studentRombelId = $student->activeClassAssignment?->rombel_id;
+
+        if (!$assignment || $studentRombelId === null || $assignment->rombel_id !== $studentRombelId) {
+            throw new HttpException(403, 'Anda hanya boleh mengubah Student pada own active rombel');
         }
 
         $logoFile = $data['photo'] ?? null;
         unset($data['photo']);
 
+        if (array_key_exists('name', $data)) {
+            $data['fullname'] = $data['name'];
+            unset($data['name']);
+        }
+
         if (!empty($data)) {
             $student->update($data);
-
-            // Kalau NISN berubah, sinkronkan juga username DAN password (NISN lama) di tabel users
-            if (array_key_exists('nisn', $data)) {
-                $student->user->update([
-                    'username' => $data['nisn'],
-                    'password' => Hash::make($data['nisn']),
-                ]);
-            }
         }
 
         if ($logoFile instanceof UploadedFile) {
-            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $student->photo);
-            $student->update(['photo' => $path]);
+            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $student->photo_path);
+            $student->update(['photo_path' => $path]);
         }
 
         return $student->fresh()->load(['school', 'user']);
-    }
-
-    public function destroy(int $id)
-    {
-        $user = $this->currentUser();
-        $student = Student::find($id);
-
-        if (!$student) {
-            throw new HttpException(404, 'Siswa tidak ditemukan');
-        }
-
-        if (!$this->canAccess($user, $student)) {
-            throw new HttpException(403, 'Anda tidak berhak menghapus siswa ini');
-        }
-
-        $student->user->update(['is_active' => 0]);
-
-        return true;
     }
 }

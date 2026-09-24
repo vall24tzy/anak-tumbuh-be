@@ -88,3 +88,42 @@ Ditetapkan:
   operasi write... digunakan 403"). Assignment id yang benar-benar tidak ada → 404.
 
 Endpoint final: POST, GET (list, scope-based), GET /students/{id}/class-assignments, **PATCH** (hanya `status: ended`).
+
+## STUDENT-001 (dependency: SCHOOL-001, UPLOAD-001, MIGRATION-002, STUDENT-ASSIGNMENT-001, TEACHER-ASSIGNMENT-001, ARCH-001 — semua ✅)
+
+Rewrite total `StudentController`/`StudentService`/Request/Resource dari implementasi lama (level angka,
+`classroom`/`grade_level` mentah, `is_active`, `qr_user` plaintext) ke skema final MIGRATION-002 + assignment-based
+placement, sesuai API Contract v1.2 §17 & DB Design v1.5 §5.5. Reuse `TeacherScopeService::activeAssignment()`
+dan `StudentClassAssignmentService::createAssignment()` — tidak duplikasi query scope/assignment.
+
+**NOTE-04 (referensi dari Prompt Siap Pakai Task Board — didokumentasikan di sini karena belum ada
+sebelumnya):** POST /students men-generate QR token SYSTEM saat create (DB Design v1.5 §5.15), tapi
+response **tidak** menyertakan raw token — hanya `token_hash` yang disimpan (hash, bukan plaintext).
+Raw token hanya didapat lewat endpoint regenerate (`QR-001`, belum dikerjakan). Ini konsisten langsung
+dengan DB Design v1.5 §5.15 ("raw token hanya dikirim sekali ke Student saat generate/regenerate,
+tidak pernah disimpan plaintext"), bukan aturan baru.
+
+**Boundary — dampak ke IMPORT-001 (belum dikerjakan, di luar scope):** `StudentImportService::store()`
+memanggil `StudentService::store($row)` dengan shape lama (`school_id`, `classroom`, `grade_level`).
+Signature baru `StudentService::store()` butuh `rombel_id` (bukan `school_id`/`classroom`/`grade_level`).
+`routes/v1/student.php` prefix `students/import` **tidak disentuh** (masih `role:1,2,3` lama) — akan
+error sampai IMPORT-001 dikerjakan ulang untuk menyesuaikan ke signature baru. Ini expected, bukan bug
+baru dari task ini.
+
+## NOTE-06 (24 Sep 2026) — STUDENT-001, PATCH /students/{id}
+
+**Bug ditemukan saat review kode** (bukan gap SoT): `UpdateStudentRequest` sempat memvalidasi key
+`fullname`, sementara `CreateStudentRequest` (POST /students) memvalidasi key `name` — inkonsisten
+untuk field yang sama. API Contract v1.2 §17 eksplisit hanya mengenal satu field API: **`name`**
+(tabel Administrative Fields: `name (fullname)` — `name` adalah field API, `fullname` adalah nama
+kolom DB). POST sudah benar; PATCH salah.
+
+**Fix:**
+- `UpdateStudentRequest`: `$allowed` dan rule diganti dari `fullname` → `name`.
+- `StudentService::update()`: tambah mapping `name` → `fullname` sebelum `$student->update($data)`,
+  konsisten dengan pola yang sudah ada di `store()`.
+- Key `fullname` pada body PATCH sekarang eksplisit ditolak 422 `protected_field` (bukan diam-diam
+  diterima seperti sebelumnya).
+
+Test: `tests/Feature/Student/StudentUpdateNameFieldTest.php` (2 case: PATCH `name` → 200, kolom
+`fullname` berubah; PATCH `fullname` → 422 `protected_field`).

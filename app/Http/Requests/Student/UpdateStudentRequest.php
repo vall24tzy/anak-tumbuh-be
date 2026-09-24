@@ -4,8 +4,18 @@ namespace App\Http\Requests\Student;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+// API Contract v1.2 §17 — hanya field administratif: name, gender, photo.
+// Field API bernama "name" (konsisten dgn POST /students), dipetakan ke
+// kolom DB "fullname" di StudentService::update(). Key "fullname" pada body
+// PATCH DITOLAK 422 (bukan diterima) — NOTE-06 (24 Sep 2026, db-gap-analysis.md).
+// Protected fields (nisn, user_id, school_id, poin, level, classroom,
+// academic_year, class_assignment — Matrix #11) DITOLAK 422 eksplisit
+// (code: protected_field), bukan silent-drop.
+
 class UpdateStudentRequest extends FormRequest
 {
+    protected array $allowed = ['name', 'gender', 'photo'];
+
     public function authorize(): bool
     {
         return true;
@@ -13,15 +23,21 @@ class UpdateStudentRequest extends FormRequest
 
     public function rules(): array
     {
-        $studentId = $this->route('id');
-
         return [
-            'fullname'    => ['sometimes', 'string', 'max:255'],
-            'nisn'        => ['sometimes', 'string', 'max:20', 'unique:students,nisn,' . $studentId],
-            'gender'      => ['sometimes', 'in:laki-laki,perempuan'],
-            'classroom'   => ['sometimes', 'string', 'max:50'],
-            'grade_level' => ['sometimes', 'integer', 'min:1'],
-            'photo'       => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'name'     => ['sometimes', 'string', 'max:150'],
+            'gender'   => ['sometimes', 'in:laki-laki,perempuan'],
+            'photo'    => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            foreach (array_keys($this->all()) as $field) {
+                if (!in_array($field, $this->allowed, true)) {
+                    $validator->errors()->add($field, 'protected_field');
+                }
+            }
+        });
     }
 }

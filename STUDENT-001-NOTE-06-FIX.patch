@@ -1,0 +1,232 @@
+diff --git a/app/Http/Requests/Student/UpdateStudentRequest.php b/app/Http/Requests/Student/UpdateStudentRequest.php
+index fe10de6..c9bfd69 100644
+--- a/app/Http/Requests/Student/UpdateStudentRequest.php
++++ b/app/Http/Requests/Student/UpdateStudentRequest.php
+@@ -4,14 +4,17 @@
+ 
+ use Illuminate\Foundation\Http\FormRequest;
+ 
+-// API Contract v1.2 §17 — hanya field administratif: fullname, gender, photo.
++// API Contract v1.2 §17 — hanya field administratif: name, gender, photo.
++// Field API bernama "name" (konsisten dgn POST /students), dipetakan ke
++// kolom DB "fullname" di StudentService::update(). Key "fullname" pada body
++// PATCH DITOLAK 422 (bukan diterima) — NOTE-06 (24 Sep 2026, db-gap-analysis.md).
+ // Protected fields (nisn, user_id, school_id, poin, level, classroom,
+ // academic_year, class_assignment — Matrix #11) DITOLAK 422 eksplisit
+ // (code: protected_field), bukan silent-drop.
+ 
+ class UpdateStudentRequest extends FormRequest
+ {
+-    protected array $allowed = ['fullname', 'gender', 'photo'];
++    protected array $allowed = ['name', 'gender', 'photo'];
+ 
+     public function authorize(): bool
+     {
+@@ -21,7 +24,7 @@ public function authorize(): bool
+     public function rules(): array
+     {
+         return [
+-            'fullname' => ['sometimes', 'string', 'max:150'],
++            'name'     => ['sometimes', 'string', 'max:150'],
+             'gender'   => ['sometimes', 'in:laki-laki,perempuan'],
+             'photo'    => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+         ];
+diff --git a/app/Services/Student/StudentService.php b/app/Services/Student/StudentService.php
+index 813048b..5f31845 100644
+--- a/app/Services/Student/StudentService.php
++++ b/app/Services/Student/StudentService.php
+@@ -213,6 +213,11 @@ public function update(int $id, array $data)
+         $logoFile = $data['photo'] ?? null;
+         unset($data['photo']);
+ 
++        if (array_key_exists('name', $data)) {
++            $data['fullname'] = $data['name'];
++            unset($data['name']);
++        }
++
+         if (!empty($data)) {
+             $student->update($data);
+         }
+diff --git a/docs/db-gap-analysis.md b/docs/db-gap-analysis.md
+index 7e4911b..613cdca 100644
+--- a/docs/db-gap-analysis.md
++++ b/docs/db-gap-analysis.md
+@@ -109,3 +109,21 @@ ## STUDENT-001 (dependency: SCHOOL-001, UPLOAD-001, MIGRATION-002, STUDENT-ASSIG
+ `routes/v1/student.php` prefix `students/import` **tidak disentuh** (masih `role:1,2,3` lama) — akan
+ error sampai IMPORT-001 dikerjakan ulang untuk menyesuaikan ke signature baru. Ini expected, bukan bug
+ baru dari task ini.
++
++## NOTE-06 (24 Sep 2026) — STUDENT-001, PATCH /students/{id}
++
++**Bug ditemukan saat review kode** (bukan gap SoT): `UpdateStudentRequest` sempat memvalidasi key
++`fullname`, sementara `CreateStudentRequest` (POST /students) memvalidasi key `name` — inkonsisten
++untuk field yang sama. API Contract v1.2 §17 eksplisit hanya mengenal satu field API: **`name`**
++(tabel Administrative Fields: `name (fullname)` — `name` adalah field API, `fullname` adalah nama
++kolom DB). POST sudah benar; PATCH salah.
++
++**Fix:**
++- `UpdateStudentRequest`: `$allowed` dan rule diganti dari `fullname` → `name`.
++- `StudentService::update()`: tambah mapping `name` → `fullname` sebelum `$student->update($data)`,
++  konsisten dengan pola yang sudah ada di `store()`.
++- Key `fullname` pada body PATCH sekarang eksplisit ditolak 422 `protected_field` (bukan diam-diam
++  diterima seperti sebelumnya).
++
++Test: `tests/Feature/Student/StudentUpdateNameFieldTest.php` (2 case: PATCH `name` → 200, kolom
++`fullname` berubah; PATCH `fullname` → 422 `protected_field`).
+diff --git a/docs/team-log/STUDENT-001.md b/docs/team-log/STUDENT-001.md
+index 74e41a6..99c2f7f 100644
+--- a/docs/team-log/STUDENT-001.md
++++ b/docs/team-log/STUDENT-001.md
+@@ -41,3 +41,13 @@ ### Negative
+ ## Status Orang 2 (info manual, Task Board tidak diupdate)
+ 
+ - SETUP-001, ARCH-001, AUTH-001, AUTH-002, UPLOAD-001, SCHOOL-001, HEADMASTER-001, TEACHER-001, ACADEMICYEAR-001, ROMBEL-001, TEACHER-ASSIGNMENT-001, TEACHER-LIFECYCLE-001 -- selesai
++
++## NOTE-06 (24 Sep 2026)
++
++- Bug ditemukan saat review: `UpdateStudentRequest` pakai key `fullname`, padahal API Contract §17
++  cuma kenal `name` (POST sudah benar pakai `name`, PATCH tidak konsisten). Fix: `UpdateStudentRequest`
++  + `StudentService::update()` diselaraskan ke `name` (mapping ke kolom DB `fullname`). Detail &
++  alasan di `docs/db-gap-analysis.md` NOTE-06.
++- Test: `tests/Feature/Student/StudentUpdateNameFieldTest.php` (2 case: PATCH `name` → 200 fullname
++  berubah; PATCH `fullname` → 422 protected_field). **BELUM dijalankan** di sandbox (tidak ada
++  PHP/Postgres live) — perlu run manual: `php artisan test --filter=StudentUpdateNameFieldTest`
+diff --git a/tests/Feature/Student/StudentUpdateNameFieldTest.php b/tests/Feature/Student/StudentUpdateNameFieldTest.php
+new file mode 100644
+index 0000000..e30a689
+--- /dev/null
++++ b/tests/Feature/Student/StudentUpdateNameFieldTest.php
+@@ -0,0 +1,133 @@
++<?php
++
++namespace Tests\Feature\Student;
++
++use App\Models\AcademicYear;
++use App\Models\Rombel;
++use App\Models\School;
++use App\Models\Student;
++use App\Models\StudentClassAssignment;
++use App\Models\Teacher;
++use App\Models\TeacherClassAssignment;
++use App\Models\User;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Tests\TestCase;
++
++// STUDENT-001 NOTE-06 (24 Sep 2026, lihat docs/db-gap-analysis.md NOTE-06):
++// body PATCH /api/v1/students/{id} pakai key "name" (bukan "fullname").
++// "fullname" pada PATCH wajib ditolak 422 protected_field.
++
++class StudentUpdateNameFieldTest extends TestCase
++{
++    use RefreshDatabase;
++
++    protected function setUpScenario(): array
++    {
++        $school = School::create(['name' => 'SD Contoh']);
++
++        $academicYear = AcademicYear::create([
++            'school_id'  => $school->id,
++            'name'       => '2026/2027',
++            'start_date' => '2026-07-01',
++            'end_date'   => '2027-06-30',
++            'is_active'  => true,
++        ]);
++
++        $rombel = Rombel::create([
++            'school_id'        => $school->id,
++            'academic_year_id' => $academicYear->id,
++            'name'             => 'VII-A',
++            'grade_level'      => 7,
++        ]);
++
++        $teacherUser = User::create([
++            'role'     => 'teacher',
++            'username' => '199001012020121001',
++            'password' => 'secret',
++        ]);
++
++        $teacher = Teacher::create([
++            'user_id'   => $teacherUser->id,
++            'school_id' => $school->id,
++            'fullname'  => 'Bu Guru',
++            'nip'       => '199001012020121001',
++            'gender'    => 'perempuan',
++            'status'    => 'active',
++        ]);
++
++        TeacherClassAssignment::create([
++            'teacher_id'       => $teacher->id,
++            'school_id'        => $school->id,
++            'academic_year_id' => $academicYear->id,
++            'rombel_id'        => $rombel->id,
++            'is_active'        => true,
++        ]);
++
++        $studentUser = User::create([
++            'role'     => 'student',
++            'username' => '0051234567',
++            'password' => '0051234567',
++        ]);
++
++        $student = Student::create([
++            'user_id'   => $studentUser->id,
++            'school_id' => $school->id,
++            'fullname'  => 'Nama Lama',
++            'nisn'      => '0051234567',
++            'gender'    => 'laki-laki',
++            'poin'      => 0,
++            'status'    => 'active',
++        ]);
++
++        StudentClassAssignment::create([
++            'student_id'       => $student->id,
++            'school_id'        => $school->id,
++            'rombel_id'        => $rombel->id,
++            'academic_year_id' => $academicYear->id,
++            'status'           => 'active',
++        ]);
++
++        return [$teacherUser, $student];
++    }
++
++    /** @test */
++    public function patch_name_oleh_teacher_pemilik_own_active_rombel_mengubah_kolom_fullname(): void
++    {
++        [$teacherUser, $student] = $this->setUpScenario();
++        $token = auth('api')->login($teacherUser);
++
++        $response = $this->withHeader('Authorization', "Bearer {$token}")
++            ->patchJson("/api/v1/students/{$student->id}", [
++                'name' => 'Nama Baru',
++            ]);
++
++        $response->assertStatus(200);
++
++        $this->assertDatabaseHas('students', [
++            'id'       => $student->id,
++            'fullname' => 'Nama Baru',
++        ]);
++    }
++
++    /** @test */
++    public function patch_fullname_key_lama_ditolak_422_protected_field(): void
++    {
++        [$teacherUser, $student] = $this->setUpScenario();
++        $token = auth('api')->login($teacherUser);
++
++        $response = $this->withHeader('Authorization', "Bearer {$token}")
++            ->patchJson("/api/v1/students/{$student->id}", [
++                'fullname' => 'Nama Baru',
++            ]);
++
++        $response->assertStatus(422);
++        $response->assertJsonPath('error.code', 'validation_failed');
++        $response->assertJsonPath('error.details.0.field', 'fullname');
++        $response->assertJsonPath('error.details.0.message', 'protected_field');
++
++        $this->assertDatabaseMissing('students', [
++            'id'       => $student->id,
++            'fullname' => 'Nama Baru',
++        ]);
++    }
++}

@@ -9,6 +9,9 @@ use App\Http\Resources\Student\StudentResource;
 use App\Services\Student\StudentService;
 use App\Traits\ApiResponseTraits;
 
+// API Contract v1.2 §17. TIDAK ADA destroy() — Matrix #12: hard delete DENY
+// semua role, lifecycle (inactive/graduated) di STUDENT-LIFECYCLE-001.
+
 class StudentController extends Controller
 {
     use ApiResponseTraits;
@@ -17,31 +20,23 @@ class StudentController extends Controller
 
     public function index()
     {
-        $students = $this->service->index();
-        return $this->successResponse(StudentResource::collection($students), 'Daftar siswa berhasil diambil');
+        return $this->successResponse(StudentResource::collection($this->service->index()));
     }
 
     public function store(CreateStudentRequest $request)
     {
         $student = $this->service->store($request->validated());
-        return $this->successResponse(new StudentResource($student), 'Siswa berhasil dibuat');
+        return $this->successResponse(new StudentResource($student), code: 201);
     }
 
     public function show(int $id)
     {
-        $student = $this->service->show($id);
-        return $this->successResponse(new StudentResource($student), 'Detail siswa berhasil diambil');
+        return $this->successResponse(new StudentResource($this->service->show($id)));
     }
 
     public function update(UpdateStudentRequest $request, int $id)
     {
         $student = $this->service->update($id, $request->validated());
-        return $this->successResponse(new StudentResource($student), 'Siswa berhasil diperbarui');
-    }
-
-    public function destroy(int $id)
-    {
-        $this->service->destroy($id);
-        return $this->successResponse(null, 'Akun siswa berhasil dinonaktifkan');
+        return $this->successResponse(new StudentResource($student));
     }
 }
