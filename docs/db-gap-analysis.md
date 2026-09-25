@@ -127,3 +127,57 @@ kolom DB). POST sudah benar; PATCH salah.
 
 Test: `tests/Feature/Student/StudentUpdateNameFieldTest.php` (2 case: PATCH `name` → 200, kolom
 `fullname` berubah; PATCH `fullname` → 422 `protected_field`).
+
+## STUDENT-LIFECYCLE-001 (dependency: STUDENT-ASSIGNMENT-001, TEACHER-ASSIGNMENT-001, STUDENT-001, AUTH-001/002 — semua ✅)
+
+`StudentLifecycleService` (`markInactive()`, `markGraduated()`, `bulkGraduate()`) +
+`StudentLifecycleController` + route, sesuai API Contract v1.2 §20, Dokumen v4.0 §6.3,
+Matrix #41-43. Reuse penuh `TeacherScopeService::activeAssignment()` dan
+`StudentClassAssignmentService::closeActiveAssignment()`.
+
+### NOTE-07 — RESOLVED (Keputusan Tim, 24 Sep 2026)
+
+CONFLICT awal:
+
+```
+SOURCE A (Dokumen v4.0 §5.3, diimplementasikan di StudentService::studentInTeacherActiveRombel(),
+          STUDENT-001): scope Teacher atas Student = assignment AKTIF Student saat ini
+          (Student.activeClassAssignment.rombel_id === Teacher.activeAssignment.rombel_id).
+SOURCE B (Task Board AC STUDENT-LIFECYCLE-001; API Contract v1.2 §15 pola Teacher Lifecycle
+          Matrix #61, dianalogikan): pemanggilan ulang endpoint lifecycle pada state yang
+          sama HARUS idempotent 200 tanpa error.
+IMPACT: begitu /inactive atau /graduate berhasil sekali, student_class_assignments aktif
+        Student ditutup (status 'ended') -> activeClassAssignment jadi null -> pemanggilan
+        ulang (skenario idempotent yang diminta SOURCE B) otomatis gagal scope-check
+        SOURCE A (403), bukan 200 idempotent. Dua requirement SoT ini tidak bisa dipenuhi
+        bersamaan pakai satu basis scope yang sama.
+```
+
+Keputusan Tim (user, 24 Sep 2026 — bukan kutipan literal SoT, SoT tidak membahas edge case ini):
+
+1. Scope Teacher terhadap Student TETAP berbasis active assignment (tidak berubah dari STUDENT-001).
+2. Assignment yang sudah `ended` TIDAK boleh jadi dasar authorization untuk GET/PATCH Student
+   biasa setelah Student inactive/graduated — `StudentService::studentInTeacherActiveRombel()`
+   **TIDAK diubah**.
+3. Idempotency lifecycle **dipisah** dari authorization Student biasa: kalau Student SUDAH di
+   target state (`inactive`/`graduated`), request lifecycle → 200 idempotent tanpa butuh
+   `activeClassAssignment` lagi, tanpa efek tambahan.
+4. Untuk transisi state yang BENAR-BENAR terjadi (belum di target state), Teacher tetap wajib
+   lolos scope active-rombel penuh seperti biasa (403 kalau tidak lolos).
+5. Pada idempotent path tetap wajib **school-scope check** (`Student.school_id === Teacher.school_id`)
+   supaya Teacher tidak bisa dapat 200 untuk Student dari sekolah lain.
+6. `studentInTeacherActiveRombel()` **TIDAK** diubah jadi berbasis assignment terakhir/ended.
+7. Scope Teacher **TIDAK** dilonggarkan ke level sekolah untuk kasus umum (GET/PATCH biasa).
+
+Konsekuensi yang disadari & diterima secara eksplisit: GET/PATCH Student yang sudah
+inactive/graduated **tetap tidak otomatis accessible** oleh Teacher yang dulu memilikinya —
+ini bukan bug, melainkan hasil langsung dari poin 2 & 7 di atas. Tidak ada perluasan
+authorization hanya untuk menyelesaikan masalah idempotency (poin 7).
+
+### Konvensi 403/404 tambahan yang diterapkan (bukan literal SoT, penerapan §26)
+
+Teks API Contract §20 ("404 — Student/Rombel tidak ditemukan pada scope requester") sedikit
+ambigu untuk kasus **Rombel** di `bulk-graduate` (bisa dibaca sebagai "di luar scope -> 404").
+Diterapkan konsisten dengan konvensi umum §26 (write-op, scope jelas dari path): Rombel/Student
+id benar-benar tidak ada → 404; ada tapi di luar own active rombel Teacher → 403. Ini pola yang
+sama dipakai konsisten di STUDENT-ASSIGNMENT-001 dan STUDENT-001.
