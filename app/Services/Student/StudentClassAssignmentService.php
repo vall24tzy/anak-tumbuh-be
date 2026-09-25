@@ -3,6 +3,7 @@
 namespace App\Services\Student;
 
 use App\Exceptions\ApiException;
+use App\Models\AcademicYear;
 use App\Models\Headmaster;
 use App\Models\Rombel;
 use App\Models\Student;
@@ -198,6 +199,27 @@ class StudentClassAssignmentService
         $assignment->update(['status' => 'ended']);
 
         return $assignment->fresh();
+    }
+
+    /**
+     * Assignment aktif Student pada Academic Year yang sedang active di
+     * school-nya (STUDENTHABIT-001, GAP #5). Deterministik: 1 active Academic
+     * Year per school (DB Design §5.6) + 1 active assignment per (student,
+     * academic year) (DB Design §5.9). Tidak ada fallback ke assignment
+     * ended / Academic Year lain — bila tidak ada, return null.
+     */
+    public function activeAssignmentInCurrentAcademicYear(Student $student): ?StudentClassAssignment
+    {
+        return StudentClassAssignment::with('rombel')
+            ->where('student_id', $student->id)
+            ->where('status', 'active')
+            ->whereIn(
+                'academic_year_id',
+                AcademicYear::where('school_id', $student->school_id)
+                    ->where('is_active', true)
+                    ->select('id')
+            )
+            ->first();
     }
 
     protected function studentInTeacherActiveRombel($user, Student $student): bool

@@ -128,6 +128,20 @@ kolom DB). POST sudah benar; PATCH salah.
 Test: `tests/Feature/Student/StudentUpdateNameFieldTest.php` (2 case: PATCH `name` → 200, kolom
 `fullname` berubah; PATCH `fullname` → 422 `protected_field`).
 
+
+## STUDENTHABIT-001 — POST saja (dependency: STUDENT-001, HABIT-001, STUDENT-ASSIGNMENT-001, TEACHER-ASSIGNMENT-001, MIGRATION-002)
+
+| Existing (legacy) | Required Final (DB Design v1.5 §5.12-§5.13, API v1.2 §21-§22) | Action | Reason |
+|---|---|---|---|
+| `student_habits`: description, inisiative nullable, note longText, indicator_id NOT NULL, tanpa habit_date | habit_date NOT NULL, note varchar(1000), classroom varchar(30) NULL, initiative NOT NULL CHECK IN (mandiri,disuruh), indicator_id NULL, UNIQUE uq_student_habit_date, index (student_id,habit_date) & (habit_id,habit_date); TANPA description | REWRITE migration (Fresh) | DB v1.5 R11/R17, Dokumen v4.0 §7 |
+| (tidak ada) | `student_habit_indicators` (pivot Bermasyarakat) | ADD migration + Model | DB v1.5 §5.13 |
+| StudentHabit model: fillable lama | Fillable final + relasi selectedIndicators | EDIT | — |
+
+Keputusan Tim 24 Sep 2026: GAP #1 `habit_already_locked` tidak diimplementasikan di POST (kontrak mendefinisikan error untuk PATCH yang tidak ada); GAP #2 `wrong_habit_endpoint` (422); GAP #3 `/habits/entries` tidak memuat Bermasyarakat, filter GET ditunda sampai audit kontrak; GAP #4 tidak ada perubahan (enum `mandiri|disuruh`).
+GAP #5 RESOLVED (Keputusan Tim 24 Sep 2026): snapshot `classroom` diambil dari assignment aktif pada Academic Year active school Student (`StudentClassAssignmentService::activeAssignmentInCurrentAcademicYear`), tanpa fallback; tanpa perubahan skema/constraint. `duplicate_habit_entry` (409) disetujui sebagai technical code; `too_many_indicators` dibatalkan; duplicate `indicator_ids` -> 422 validation_failed.
+
+GET (24 Sep 2026): `/habits/entries` (+/{id}) dan `/bermasyarakat/entries` diimplementasikan hanya dengan scope (Matrix #33/#35), pagination, dan sort §7; tanpa filter. Sort allowlist (`habit_date`,`id`) = technical decision (SoT tidak menyebut field sortable). GAP GET-1 RESOLVED via perubahan kontrak (Keputusan Tim 24 Sep 2026): `student_id` (saja) ditambahkan ke response GET habit/bermasyarakat entries — API Contract perlu addendum. Gap terpisah (belum diisi): filter `date` untuk GET habit entries.
+
 ## STUDENT-LIFECYCLE-001 (dependency: STUDENT-ASSIGNMENT-001, TEACHER-ASSIGNMENT-001, STUDENT-001, AUTH-001/002 — semua ✅)
 
 `StudentLifecycleService` (`markInactive()`, `markGraduated()`, `bulkGraduate()`) +
@@ -181,3 +195,32 @@ ambigu untuk kasus **Rombel** di `bulk-graduate` (bisa dibaca sebagai "di luar s
 Diterapkan konsisten dengan konvensi umum §26 (write-op, scope jelas dari path): Rombel/Student
 id benar-benar tidak ada → 404; ada tapi di luar own active rombel Teacher → 403. Ini pola yang
 sama dipakai konsisten di STUDENT-ASSIGNMENT-001 dan STUDENT-001.
+
+## NOTE-08 (24 Sep 2026) — Reconciliation: Habit submission IMMUTABLE, GAP #1 dicabut
+
+**Koreksi atas GAP #1 STUDENTHABIT-001 di atas.** Review sebelumnya sempat mengangkat konsep "edit
+sebelum daily lock" (API Contract v1.2 §21: *"Tanggal sebelum hari ini: view-only... PATCH ditolak
+untuk entry ber-habit_date < hari ini server, atau setelah daily lock"*) sebagai kemungkinan fitur
+yang hilang dari implementasi POST-only ini.
+
+**Keputusan Bisnis Final (Keputusan Tim, 24 Sep 2026) — mencabut/reconcile teks tersebut:**
+
+Habit submission bersifat **IMMUTABLE**. Setelah Student submit:
+- Tidak ada PATCH/edit entry, tidak ada DELETE — tidak ada mekanisme koreksi mandiri sama sekali.
+- Submit ulang habit yang sama pada tanggal yang sama → **409 `duplicate_habit_entry`** (bukan diblokir
+  lewat konsep "lock").
+- Poin dihitung sekali saat submission; tidak ada mekanisme reversal/edit poin.
+
+**Konsekuensi reconciliation:**
+- Konsep "edit-before-daily-lock" pada teks API Contract §21 **tidak berlaku** untuk business rule final
+  — teks tersebut adalah requirement versi lama yang belum disinkronkan ulang ke keputusan immutability ini.
+- Error code `habit_already_locked` **tidak diperlukan** — tidak pernah ada state "locked" karena tidak
+  pernah ada state "editable" untuk di-lock.
+- Tidak ada cutoff time yang perlu didefinisikan (tidak "dikarang") — pertanyaan itu **gugur**, bukan
+  dijawab, karena premisnya (entry yang editable) sudah tidak berlaku.
+- Implementasi POST/GET yang sudah ada **tidak berubah** — sudah sejak awal konsisten dengan model
+  immutable ini (unique constraint `uq_student_habit_date` → 409 duplicate, tidak ada route PATCH/DELETE
+  yang pernah dibuat).
+
+**Status akhir:** STUDENTHABIT-001 dinyatakan lengkap tanpa PATCH/DELETE. GAP #1 (baris di atas) dianggap
+**RESOLVED via reconciliation**, bukan gap terbuka.
