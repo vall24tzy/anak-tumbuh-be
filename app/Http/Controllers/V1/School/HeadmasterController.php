@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\V1\School;
 
+use App\Http\Requests\User\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\CreateHeadmasterRequest;
 use App\Http\Resources\School\HeadmasterResource;
@@ -29,6 +30,12 @@ class HeadmasterController extends Controller
     public function show(int $id)
     {
         $headmaster = $this->service->show($id);
+        return $this->successResponse(new HeadmasterResource($headmaster));
+    }
+
+    public function resetPassword(ResetPasswordRequest $request, int $id)
+    {
+        $headmaster = $this->service->resetPassword($id, $request->validated());
         return $this->successResponse(new HeadmasterResource($headmaster));
     }
 }

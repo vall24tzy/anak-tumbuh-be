@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\V1\Student;
 
+use App\Http\Requests\User\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\CreateStudentRequest;
 use App\Http\Requests\Student\UpdateStudentRequest;
@@ -37,6 +38,12 @@ class StudentController extends Controller
     public function update(UpdateStudentRequest $request, int $id)
     {
         $student = $this->service->update($id, $request->validated());
+        return $this->successResponse(new StudentResource($student));
+    }
+
+    public function resetPassword(ResetPasswordRequest $request, int $id)
+    {
+        $student = $this->service->resetPassword($id, $request->validated());
         return $this->successResponse(new StudentResource($student));
     }
 }

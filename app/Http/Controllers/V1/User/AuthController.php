@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\V1\User;
 
+use App\Http\Requests\User\ChangePasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StaffLoginRequest;
 use App\Http\Requests\User\StudentPasswordLoginRequest;
@@ -31,5 +32,10 @@ class AuthController extends Controller
     public function me()
     {
         return $this->authService->me(auth('api')->user());
+    }
+
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        return $this->authService->changePassword(auth('api')->user(), $request->validated());
     }
 }

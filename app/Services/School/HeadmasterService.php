@@ -4,12 +4,15 @@ namespace App\Services\School;
 
 use App\Models\Headmaster;
 use App\Models\User;
+use App\Services\User\AuditLogService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class HeadmasterService
 {
+    public function __construct(protected AuditLogService $auditLog) {}
+
     public function index()
     {
         return Headmaster::with('school')->get();
@@ -49,5 +52,17 @@ class HeadmasterService
                 'status'    => 'active',
             ])->load('school');
         });
+    }
+
+    public function resetPassword(int $id, array $data): Headmaster
+    {
+        $headmaster = $this->show($id); // reuse 404 kalau tidak ada
+        $actor = auth('api')->user();
+
+        $headmaster->user->update(['password' => $data['new_password']]);
+
+        $this->auditLog->record($actor, 'password_reset', $headmaster->user);
+
+        return $headmaster;
     }
 }

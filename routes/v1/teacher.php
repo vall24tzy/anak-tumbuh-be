@@ -10,4 +10,5 @@ Route::prefix('teachers')
         Route::post('/', [TeacherController::class, 'store']);
         Route::get('/{id}', [TeacherController::class, 'show']);
         Route::post('/{id}/inactive', [TeacherController::class, 'inactive']);
+        Route::post('/{id}/reset-password', [TeacherController::class, 'resetPassword']);
     });

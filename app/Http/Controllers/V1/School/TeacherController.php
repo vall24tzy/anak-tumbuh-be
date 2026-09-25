@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\V1\School;
 
+use App\Http\Requests\User\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\CreateTeacherRequest;
 use App\Http\Resources\School\TeacherResource;
@@ -35,6 +36,12 @@ class TeacherController extends Controller
     public function inactive(int $id)
     {
         $teacher = $this->service->inactive($id);
+        return $this->successResponse(new TeacherResource($teacher));
+    }
+
+    public function resetPassword(ResetPasswordRequest $request, int $id)
+    {
+        $teacher = $this->service->resetPassword($id, $request->validated());
         return $this->successResponse(new TeacherResource($teacher));
     }
 }

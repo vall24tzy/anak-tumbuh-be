@@ -2,6 +2,7 @@
 
 namespace App\Services\Student;
 
+use App\Services\User\AuditLogService;
 use App\Exceptions\ApiException;
 use App\Models\Headmaster;
 use App\Models\QrToken;
@@ -26,6 +27,7 @@ class StudentService
         protected UploadService $uploadService,
         protected TeacherScopeService $teacherScope,
         protected StudentClassAssignmentService $assignmentService,
+        protected AuditLogService $auditLog,
     ) {}
 
     protected function currentUser()
@@ -236,5 +238,25 @@ class StudentService
         }
 
         return $student->fresh()->load(['school', 'user']);
+    }
+
+    public function resetPassword(int $id, array $data): Student
+    {
+        $user = $this->currentUser();
+        $student = Student::find($id);
+
+        if (!$student) {
+            throw new HttpException(404, 'Siswa tidak ditemukan');
+        }
+
+        if (!$this->studentInTeacherActiveRombel($user, $student)) {
+            throw new HttpException(403, 'Student ini di luar own active rombel Anda');
+        }
+
+        $student->user->update(['password' => $data['new_password']]);
+
+        $this->auditLog->record($user, 'password_reset', $student->user);
+
+        return $student;
     }
 }

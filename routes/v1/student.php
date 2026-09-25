@@ -16,6 +16,7 @@ Route::prefix('students')
         Route::middleware('role:teacher')->group(function () {
             Route::post('/', [StudentController::class, 'store']);
             Route::patch('/{id}', [StudentController::class, 'update']);
+            Route::post('/{id}/reset-password', [StudentController::class, 'resetPassword']);
         });
     });
 

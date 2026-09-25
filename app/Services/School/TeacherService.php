@@ -2,6 +2,7 @@
 
 namespace App\Services\School;
 
+use App\Services\User\AuditLogService;
 use App\Models\TeacherClassAssignment;
 use App\Models\Headmaster;
 use App\Models\Teacher;
@@ -12,6 +13,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TeacherService
 {
+    public function __construct(protected AuditLogService $auditLog) {}
+
     protected function currentUser()
     {
         return auth('api')->user();
@@ -84,5 +87,17 @@ class TeacherService
 
             return $teacher->fresh('school');
         });
+    }
+
+    public function resetPassword(int $id, array $data): Teacher
+    {
+        $teacher = $this->show($id);
+        $actor = $this->currentUser();
+
+        $teacher->user->update(['password' => $data['new_password']]);
+
+        $this->auditLog->record($actor, 'password_reset', $teacher->user);
+
+        return $teacher;
     }
 }

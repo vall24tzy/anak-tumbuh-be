@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Seeder;
 
 // DB Design v1.5 (Fresh Deployment §10.A) — seeder pemanggilan test user lama
@@ -21,5 +23,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             HabitIndicatorSeeder::class, // HABIT-001 — 7 habit x 4 indicator FIXED
         ]);
+
+        User::firstOrCreate(
+            ['username' => 'superadmin1'],
+            ['role' => 'super_admin', 'password' => Hash::make('ganti_ini_di_production')]
+        );
+        User::firstOrCreate(
+            ['username' => 'superadmin2'],
+            ['role' => 'super_admin', 'password' => Hash::make('ganti_ini_di_production')]
+        );
     }
 }

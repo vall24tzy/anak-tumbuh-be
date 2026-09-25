@@ -6,6 +6,7 @@ use App\Http\Resources\User\MeResource;
 use App\Http\Resources\User\UserResource;
 use App\Models\User;
 use App\Traits\ApiResponseTraits;
+use App\Services\User\AuditLogService;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -78,5 +79,25 @@ class AuthService
     public function me(User $user)
     {
         return $this->successResponse(new MeResource($user));
+    }
+
+    public function __construct(protected AuditLogService $auditLog) {}
+
+    // ... loginStaff, loginStudentPassword, issueLoginResponse, logout, me TETAP SAMA ...
+
+    /**
+     * POST /auth/change-password — Super Admin only, own account (Matrix #47).
+     */
+    public function changePassword(User $user, array $data)
+    {
+        $user->update(['password' => $data['new_password']]); // auto-hash via cast 'hashed' (User model)
+
+        $this->auditLog->record($user, 'password_change', $user);
+
+        return $this->successResponse([
+            'id'   => $user->id,
+            'role' => $user->role,
+            'name' => $user->username,
+        ]);
     }
 }
