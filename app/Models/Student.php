@@ -52,10 +52,38 @@ class Student extends Model
         return $this->hasMany(StudentClassAssignment::class);
     }
 
-    // Current placement saja (status='active') — dipakai ulang di STUDENT-001,
-    // IMPORT-001, STUDENT-LIFECYCLE-001. JANGAN duplikasi query ini di tempat lain.
+    // Current placement saja (status='active'). PERINGATAN (GAP #5-scope, 24 Sep
+    // 2026): ini hasOne TANPA urutan academic_year. DB Design v1.5 §5.9 mengizinkan
+    // Student punya LEBIH DARI SATU assignment aktif sekaligus (lintas Academic
+    // Year berbeda) — kalau itu terjadi, baris mana yang diambil relasi ini TIDAK
+    // deterministik. JANGAN pakai relasi ini untuk scope/authorization check
+    // ("apakah Student ada di rombel X") — pakai hasActiveAssignmentInRombel()
+    // di bawah (EXISTS query, deterministik). Relasi ini hanya aman dipakai kalau
+    // kamu genuinely butuh SATU baris snapshot dan sudah sadar batasannya — untuk
+    // itu pun lebih baik StudentClassAssignmentService::activeAssignmentInCurrentAcademicYear()
+    // (scoped ke Academic Year aktif sekolah, dipakai StudentHabitService untuk
+    // classroom snapshot).
     public function activeClassAssignment()
     {
         return $this->hasOne(StudentClassAssignment::class)->where('status', 'active');
+    }
+
+    /**
+     * Scope/authorization check: apakah Student ini punya assignment
+     * status='active' pada rombel_id tertentu — EXISTS query, BUKAN fetch-satu-
+     * baris-lalu-compare seperti activeClassAssignment(). Deterministik walau
+     * Student punya >1 assignment aktif lintas Academic Year (DB Design §5.9),
+     * karena mengecek keberadaan baris yang cocok, bukan mengambil "salah satu"
+     * baris lalu membandingkan atributnya. Dipakai StudentService, StudentClassAssignmentService::
+     * studentInTeacherActiveRombel(), StudentLifecycleService — JANGAN duplikasi
+     * query ini, selalu panggil method ini (GAP #5-scope, 24 Sep 2026; skema/
+     * constraint TIDAK diubah).
+     */
+    public function hasActiveAssignmentInRombel(int $rombelId): bool
+    {
+        return $this->studentClassAssignments()
+            ->where('rombel_id', $rombelId)
+            ->where('status', 'active')
+            ->exists();
     }
 }

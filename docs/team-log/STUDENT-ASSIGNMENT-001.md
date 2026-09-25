@@ -35,3 +35,14 @@
 ## Status Orang 2 (info manual, Task Board tidak diupdate)
 
 - SETUP-001, ARCH-001, AUTH-001, AUTH-002, UPLOAD-001, SCHOOL-001, HEADMASTER-001, TEACHER-001, ACADEMICYEAR-001, ROMBEL-001, TEACHER-ASSIGNMENT-001, TEACHER-LIFECYCLE-001 -- selesai
+
+## Patch 8 — GAP #5-scope reuse dari STUDENT-001 patch 7 (24 Sep 2026)
+
+`studentInTeacherActiveRombel()` (dipakai `historyForStudent()`, endpoint `GET /students/{id}/class-assignments`)
+diganti dari `$student->activeClassAssignment?->rombel_id` ke `Student::hasActiveAssignmentInRombel()` — sama
+seperti perbaikan di `StudentService.php` (STUDENT-001 patch 7). Detail lengkap gap & alasan di
+`docs/db-gap-analysis.md` bagian "STUDENT-001 — GAP #5-scope". Tidak ada perubahan pada `indexForTeacher()`,
+`store()`, `createAssignment()`, `closeActiveAssignment()`, atau `endAssignment()` — semuanya sudah query
+langsung ke `student_class_assignments`, tidak pernah pakai relasi ambigu ini.
+
+Belum diverifikasi runtime.

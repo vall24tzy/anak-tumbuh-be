@@ -61,3 +61,17 @@ authorization transisi state sungguhan (active-rombel scope penuh, tidak berubah
 - Logic ditelusuri manual baris-per-baris terhadap kode StudentService/
   StudentClassAssignmentService/TeacherScopeService yang sudah ada dan sudah
   diverifikasi sebelumnya, bukan ditulis dari asumsi kosong.
+
+## Patch 8 — GAP #5-scope reuse dari STUDENT-001 patch 7 (24 Sep 2026)
+
+`transition()` (dipakai `markInactive`/`markGraduated`) diganti dari `$student->activeClassAssignment?->rombel_id`
+(hasOne ambigu lintas Academic Year, lihat `docs/db-gap-analysis.md` — STUDENT-001 GAP #5-scope) ke
+`Student::hasActiveAssignmentInRombel()` (EXISTS query deterministik, ditambah patch 7 di `app/Models/Student.php`).
+NOTE-07 (idempotency check school-scope dulu, sebelum full active-rombel check) **TIDAK disentuh** — urutan dan
+logic idempotency persis sama seperti sebelumnya, hanya baris pengecekan scope active-rombel yang diganti.
+`bulkGraduate()` **tidak terpengaruh** — sudah query langsung ke `student_class_assignments`, tidak pernah pakai
+relasi ambigu ini.
+
+Belum diverifikasi runtime — `StudentLifecycleTest.php` yang sudah ada wajib dijalankan ulang di dev environment
+untuk memastikan tidak ada regresi (khususnya skenario Student dengan 1 assignment aktif, kasus normal yang
+paling sering — perilakunya harus identik dengan sebelumnya).

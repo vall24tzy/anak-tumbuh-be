@@ -291,9 +291,12 @@ class StudentHabitService
 
     // ------------------------------------------------------------------
     // GET monitor/view — Matrix #33 (Teacher own active rombel, Student own),
-    // #35 (past dates view-only = tanggal lampau tetap terbaca). Hanya scope,
-    // pagination, sort (API Contract §7). TIDAK ADA filter date/student_id/
-    // rombel_id (Keputusan Tim 24 Sep 2026).
+    // #35 (past dates view-only = tanggal lampau tetap terbaca). Scope,
+    // pagination, sort (API Contract §7), + filter opsional `date` (Addendum:
+    // Habit GET Response & Date Filter, 25 Sep 2026 — lihat applyDateFilter()
+    // di bawah). TIDAK ADA filter student_id/rombel_id (Keputusan Tim 24 &
+    // 25 Sep 2026 — client parameter tidak boleh menjadi penentu authorization
+    // scope; `student_id` hanya field identity di response, bukan filter).
     // ------------------------------------------------------------------
 
     /** meta pagination (API Contract §7): { page, per_page, total, total_pages }. */

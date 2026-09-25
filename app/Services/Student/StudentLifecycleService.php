@@ -88,9 +88,12 @@ class StudentLifecycleService
             throw new HttpException(403, 'Anda belum memiliki active rombel.');
         }
 
-        $studentRombelId = $student->activeClassAssignment?->rombel_id;
-
-        if ($studentRombelId === null || $studentRombelId !== $activeAssignment->rombel_id) {
+        // GAP #5-scope (24 Sep 2026, STUDENT-001 patch 7): sebelumnya
+        // $student->activeClassAssignment?->rombel_id (hasOne ambigu lintas
+        // Academic Year, DB Design §5.9). Diganti EXISTS check via
+        // Student::hasActiveAssignmentInRombel() — NOTE-07 (idempotency
+        // check di atas, sebelum blok ini) TIDAK disentuh/diubah urutannya.
+        if (!$student->hasActiveAssignmentInRombel($activeAssignment->rombel_id)) {
             throw new HttpException(403, 'Siswa ini di luar own active rombel Anda.');
         }
 

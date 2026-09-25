@@ -248,3 +248,44 @@ Habit submission bersifat **IMMUTABLE**. Setelah Student submit:
 
 **Status akhir:** STUDENTHABIT-001 dinyatakan lengkap tanpa PATCH/DELETE. GAP #1 (baris di atas) dianggap
 **RESOLVED via reconciliation**, bukan gap terbuka.
+
+## STUDENT-001 — GAP #5-scope: `activeClassAssignment` hasOne ambigu dipakai untuk authorization (24 Sep 2026)
+
+**Temuan:** `Student::activeClassAssignment()` (`hasOne(StudentClassAssignment::class)->where('status','active')`,
+tanpa urutan/filter Academic Year) dipakai di 4 tempat untuk **scope/authorization check** ("apakah Student ini
+ada di own active rombel Teacher"), dengan pola `$student->activeClassAssignment?->rombel_id === $rombelTarget`:
+
+| File | Method |
+| --- | --- |
+| `StudentService.php` | `studentInTeacherActiveRombel()` (dipakai `show()` via `canView()`) |
+| `StudentService.php` | `update()` (inline, pola sama, tidak lewat helper) |
+| `StudentClassAssignmentService.php` | `studentInTeacherActiveRombel()` (dipakai `historyForStudent()`) |
+| `StudentLifecycleService.php` | `transition()` (dipakai `markInactive`/`markGraduated`) |
+
+DB Design v1.5 §5.9 eksplisit mengizinkan Student punya **lebih dari satu** assignment aktif sekaligus (Academic
+Year berbeda). Pada kondisi itu, `hasOne` tanpa `ORDER BY` mengambil satu baris yang urutannya **tidak
+deterministik** (tergantung Postgres, bukan dijamin). Kalau baris yang terambil BUKAN yang cocok dengan rombel
+Teacher, perbandingan `rombel_id` gagal padahal baris yang cocok **memang ada** di baris lain → Teacher yang
+seharusnya berhak (own active rombel) bisa **salah ditolak** (false negative, fail-closed — bukan celah keamanan
+memberi akses berlebih, tapi bug korektnes/availability).
+
+**Perbaikan (application-layer, skema/constraint TIDAK diubah):**
+- `Student::hasActiveAssignmentInRombel(int $rombelId): bool` (baru, `app/Models/Student.php`) — EXISTS query
+  langsung ke `student_class_assignments` (`WHERE rombel_id = X AND status = 'active'`), bukan fetch-satu-baris-
+  lalu-compare. Deterministik terlepas dari berapa banyak assignment aktif yang dimiliki Student.
+- 4 call site di atas diganti memanggil method ini. `indexForTeacher()` (`StudentService.php` baris 69, pakai
+  `whereHas`) **TIDAK diubah** — itu sudah EXISTS-style query yang benar sejak awal, bukan bug.
+- `StudentClassAssignmentService::activeAssignmentInCurrentAcademicYear()` (STUDENTHABIT-001, GAP #5 snapshot)
+  **tidak dipakai** untuk fix ini — itu untuk kebutuhan berbeda (ambil SATU baris snapshot utk `classroom`,
+  discoped ke Academic Year aktif sekolah). Scope-check di sini murni butuh jawaban ya/tidak atas rombel spesifik
+  yang sudah diketahui (dari `TeacherScopeService::activeAssignment()`), tidak perlu konsep "assignment saat ini".
+
+**Cakupan patch (dipisah per pemilik task, disepakati 24 Sep 2026):**
+- Patch 7 (STUDENT-001): `app/Models/Student.php` (method baru) + `app/Services/Student/StudentService.php`
+  (2 call site).
+- Patch 8 (ripple ke task lain, TIDAK mengubah business rule task tsb): `app/Services/Student/StudentClassAssignmentService.php`
+  (STUDENT-ASSIGNMENT-001, 1 call site) + `app/Services/Student/StudentLifecycleService.php` (STUDENT-LIFECYCLE-001,
+  1 call site). Keduanya hanya mengganti pemanggilan query, tidak mengubah urutan idempotency/NOTE-07 yang sudah ada.
+
+**Belum diverifikasi runtime** (sandbox tanpa PHP/Postgres) — wajib PHPUnit regression di dev environment,
+termasuk `StudentLifecycleTest.php` dan `StudentUpdateNameFieldTest.php` yang sudah ada.

@@ -222,12 +222,19 @@ class StudentClassAssignmentService
             ->first();
     }
 
+    /**
+     * GAP #5-scope (24 Sep 2026, db-gap-analysis.md — STUDENT-001 patch 7):
+     * sebelumnya pakai $student->activeClassAssignment?->rombel_id (hasOne
+     * tanpa urutan tahun, non-deterministik kalau Student punya >1 assignment
+     * aktif lintas Academic Year — DB Design v1.5 §5.9). Diganti EXISTS check
+     * via Student::hasActiveAssignmentInRombel() (app/Models/Student.php,
+     * ditambah patch 7). Business rule scope TIDAK berubah, skema TIDAK diubah.
+     */
     protected function studentInTeacherActiveRombel($user, Student $student): bool
     {
         $teacherRombelId = $this->teacherScope->activeAssignment($user)?->rombel_id;
-        $studentRombelId = $student->activeClassAssignment?->rombel_id;
 
-        return $teacherRombelId !== null && $teacherRombelId === $studentRombelId;
+        return $teacherRombelId !== null && $student->hasActiveAssignmentInRombel($teacherRombelId);
     }
 
     protected function assertRombelMatchesAcademicYear(int $rombelId, int $academicYearId): void

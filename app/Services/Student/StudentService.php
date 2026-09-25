@@ -101,12 +101,19 @@ class StudentService
         };
     }
 
+    /**
+     * GAP #5-scope (24 Sep 2026): sebelumnya pakai
+     * $student->activeClassAssignment?->rombel_id (hasOne tanpa urutan tahun,
+     * non-deterministik kalau Student punya >1 assignment aktif lintas Academic
+     * Year — DB Design v1.5 §5.9). Diganti EXISTS check via
+     * Student::hasActiveAssignmentInRombel() — deterministik, tanpa mengubah
+     * skema/constraint. Business rule "own active rombel" TIDAK berubah.
+     */
     protected function studentInTeacherActiveRombel($user, Student $student): bool
     {
         $teacherRombelId = $this->teacherScope->activeAssignment($user)?->rombel_id;
-        $studentRombelId = $student->activeClassAssignment?->rombel_id;
 
-        return $teacherRombelId !== null && $teacherRombelId === $studentRombelId;
+        return $teacherRombelId !== null && $student->hasActiveAssignmentInRombel($teacherRombelId);
     }
 
     /**
@@ -203,10 +210,11 @@ class StudentService
             throw new HttpException(404, 'Siswa tidak ditemukan');
         }
 
+        // GAP #5-scope (24 Sep 2026) — lihat studentInTeacherActiveRombel() di atas;
+        // sama-sama diganti EXISTS check, bukan fetch-satu-baris-lalu-compare.
         $assignment = $this->teacherScope->activeAssignment($user);
-        $studentRombelId = $student->activeClassAssignment?->rombel_id;
 
-        if (!$assignment || $studentRombelId === null || $assignment->rombel_id !== $studentRombelId) {
+        if (!$assignment || !$student->hasActiveAssignmentInRombel($assignment->rombel_id)) {
             throw new HttpException(403, 'Anda hanya boleh mengubah Student pada own active rombel');
         }
 
