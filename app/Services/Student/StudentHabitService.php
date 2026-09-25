@@ -345,8 +345,26 @@ class StudentHabitService
         return $query->whereRaw('1 = 0');
     }
 
+    /**
+     * Filter opsional habit_date=date (Addendum: Habit GET Response & Date
+     * Filter, 25 Sep 2026). Dipanggil SETELAH scope query dibangun
+     * (scopedEntries) — filter ini murni mempersempit hasil dalam scope yang
+     * SUDAH ditentukan oleh role/active assignment, tidak pernah menentukan
+     * atau menggantikan authorization scope itu sendiri.
+     */
+    protected function applyDateFilter(Builder $query, array $params): Builder
+    {
+        if (!empty($params['date'])) {
+            $query->whereDate('habit_date', $params['date']);
+        }
+
+        return $query;
+    }
+
     protected function paginateEntries(Builder $query, array $params): LengthAwarePaginator
     {
+        $this->applyDateFilter($query, $params);
+
         $sort  = $params['sort'] ?? 'habit_date';
         $order = $params['order'] ?? 'desc';
 

@@ -148,3 +148,27 @@ mekanisme "daily lock" berbasis waktu. Submit ulang habit sama di tanggal sama �
 `duplicate_habit_entry` (sudah diimplementasikan via unique constraint sejak awal). Detail & alasan
 reconciliation di `docs/db-gap-analysis.md` NOTE-08. **Tidak ada perubahan kode** — implementasi
 POST/GET yang sudah ada tetap dipertahankan apa adanya, sudah konsisten dengan keputusan ini sejak awal.
+
+## NOTE-09 (25 Sep 2026) — Addendum: Habit GET Response & Date Filter
+
+Keputusan Tim menindaklanjuti GAP GET-1: filter `?date=YYYY-MM-DD` diimplementasikan untuk
+`GET /habits/entries` dan `GET /bermasyarakat/entries` (filter setelah scope, tidak pernah
+menentukan scope). `student_id` di response dikonfirmasi tetap seperti sebelumnya (sudah ada dari
+GAP GET-1, bukan perubahan baru). `?student_id=`/`?rombel_id=` sebagai query filter tetap ditolak.
+Tidak ada perubahan skema DB, tidak ada perubahan pada immutability (NOTE-08). Detail lengkap +
+alasan: `docs/db-gap-analysis.md` NOTE-09, `docs/addendum/API-Contract-v1.2-Addendum-Habit-GET.md`.
+
+**File diubah:**
+- `app/Http/Requests/Student/ListHabitEntriesRequest.php` — tambah rule `date` (`date_format:Y-m-d`)
+- `app/Services/Student/StudentHabitService.php` — tambah `applyDateFilter()`, dipanggil di
+  `paginateEntries()` (dipakai baik oleh `listHabitEntries()` maupun `listBermasyarakatEntries()`)
+
+**File baru:**
+- `docs/addendum/API-Contract-v1.2-Addendum-Habit-GET.md`
+- `tests/Feature/Student/StudentHabitGetFilterTest.php` (10 test case)
+
+**Tidak diubah:** migration/schema, scoring, initiative, Bermasyarakat scoring, authorization,
+assignment resolver, classroom snapshot — sesuai batasan scope (poin J keputusan tim).
+
+**Test:** belum dijalankan di sandbox ini (tidak ada PHP/Postgres live) — perlu run manual:
+`php artisan test --filter=StudentHabitGetFilterTest`

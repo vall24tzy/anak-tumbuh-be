@@ -140,7 +140,31 @@ Test: `tests/Feature/Student/StudentUpdateNameFieldTest.php` (2 case: PATCH `nam
 Keputusan Tim 24 Sep 2026: GAP #1 `habit_already_locked` tidak diimplementasikan di POST (kontrak mendefinisikan error untuk PATCH yang tidak ada); GAP #2 `wrong_habit_endpoint` (422); GAP #3 `/habits/entries` tidak memuat Bermasyarakat, filter GET ditunda sampai audit kontrak; GAP #4 tidak ada perubahan (enum `mandiri|disuruh`).
 GAP #5 RESOLVED (Keputusan Tim 24 Sep 2026): snapshot `classroom` diambil dari assignment aktif pada Academic Year active school Student (`StudentClassAssignmentService::activeAssignmentInCurrentAcademicYear`), tanpa fallback; tanpa perubahan skema/constraint. `duplicate_habit_entry` (409) disetujui sebagai technical code; `too_many_indicators` dibatalkan; duplicate `indicator_ids` -> 422 validation_failed.
 
-GET (24 Sep 2026): `/habits/entries` (+/{id}) dan `/bermasyarakat/entries` diimplementasikan hanya dengan scope (Matrix #33/#35), pagination, dan sort §7; tanpa filter. Sort allowlist (`habit_date`,`id`) = technical decision (SoT tidak menyebut field sortable). GAP GET-1 RESOLVED via perubahan kontrak (Keputusan Tim 24 Sep 2026): `student_id` (saja) ditambahkan ke response GET habit/bermasyarakat entries — API Contract perlu addendum. Gap terpisah (belum diisi): filter `date` untuk GET habit entries.
+GET (24 Sep 2026): `/habits/entries` (+/{id}) dan `/bermasyarakat/entries` diimplementasikan hanya dengan scope (Matrix #33/#35), pagination, dan sort §7; tanpa filter. Sort allowlist (`habit_date`,`id`) = technical decision (SoT tidak menyebut field sortable). GAP GET-1 RESOLVED via perubahan kontrak (Keputusan Tim 24 Sep 2026): `student_id` (saja) ditambahkan ke response GET habit/bermasyarakat entries. Gap filter `date` (dulu ditunda) — lihat NOTE-09.
+
+## NOTE-09 (25 Sep 2026) — Addendum: Habit GET Response & Date Filter
+
+**Keputusan Tim (25 Sep 2026)**, menindaklanjuti GAP GET-1 di atas. Dokumen lengkap:
+`docs/addendum/API-Contract-v1.2-Addendum-Habit-GET.md`.
+
+Ringkasan:
+- `student_id` di response GET (habits/entries, habits/entries/{id}, bermasyarakat/entries) —
+  **sudah diimplementasikan sejak GAP GET-1**, dikonfirmasi tetap seperti itu (bukan perubahan baru).
+  Tidak ada `student_name`/`nisn`/nested Student/data rombel.
+- Filter opsional `?date=YYYY-MM-DD` — **baru diimplementasikan** (`ListHabitEntriesRequest` +
+  `StudentHabitService::applyDateFilter()`), untuk `habits/entries` dan `bermasyarakat/entries`.
+  Filter murni mempersempit hasil DALAM scope yang sudah ditentukan (Teacher own active rombel /
+  Student own) — tidak pernah menentukan/mengubah authorization scope. Format salah → 422.
+- `?student_id=...` dan `?rombel_id=...` sebagai query filter — **DITOLAK, tidak diimplementasikan**
+  (client parameter tidak boleh menjadi penentu authorization scope; belum ada kebutuhan eksplisit
+  di SoT).
+- Habit entry tetap **immutable** (NOTE-08) — tidak ada PATCH/DELETE/Daily Lock akibat perubahan ini.
+- Tidak ada migration baru — `student_id` (kolom `student_id` di `student_habits`) sudah ada sejak
+  schema awal; ini murni perubahan response/filtering di layer API.
+
+Test: `tests/Feature/Student/StudentHabitGetFilterTest.php` (10 test case: date filter habit &
+bermasyarakat, scope Teacher/Student/cross-rombel, `student_id` di response, 404 detail di luar
+scope, invalid date format, `student_id` query diabaikan, tidak ada route PATCH/DELETE).
 
 ## STUDENT-LIFECYCLE-001 (dependency: STUDENT-ASSIGNMENT-001, TEACHER-ASSIGNMENT-001, STUDENT-001, AUTH-001/002 — semua ✅)
 
