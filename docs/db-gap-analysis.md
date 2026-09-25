@@ -289,3 +289,43 @@ memberi akses berlebih, tapi bug korektnes/availability).
 
 **Belum diverifikasi runtime** (sandbox tanpa PHP/Postgres) — wajib PHPUnit regression di dev environment,
 termasuk `StudentLifecycleTest.php` dan `StudentUpdateNameFieldTest.php` yang sudah ada.
+
+## Fix — Bug 403 vs 404 pada Teacher Reset Password (25 Sep 2026)
+
+**Ditemukan oleh:** audit silang (validasi ulang independen sebelum eksekusi, bukan langsung dipercaya).
+
+**Bug:** `POST /teachers/{id}/reset-password` mengembalikan 404 untuk Teacher yang ADA tapi di
+sekolah lain — seharusnya 403 sesuai API Contract v1.2 §10: *"403 bila target di luar scope actor
+(cross-school untuk Headmaster→Teacher, cross-rombel untuk Teacher→Student); 404 bila target tidak
+ditemukan."*
+
+**Root cause:** `TeacherService::resetPassword()` (AUTH-003) reuse `show()` — yang filter
+`where('school_id', $scopeHM)` SEBELUM `find()`. Akibatnya "tidak ada" dan "ada tapi beda sekolah"
+tidak bisa dibedakan, keduanya jatuh ke 404. `show()` sendiri (dipakai `GET /teachers/{id}`) memang
+BENAR begitu — GET harus 404 untuk keduanya (§26, cegah enumerasi lintas-scope). Yang salah adalah
+me-reuse method GET untuk write endpoint yang butuh distingsi berbeda.
+
+**Fix:** Tambah `TeacherService::findTeacherOrFail()` (fetch global, tanpa filter school) khusus
+untuk write endpoint. `resetPassword()` pakai method baru ini + cek `school_id` terpisah -> 403 kalau
+beda. `show()` **tidak disentuh sama sekali** — `GET /teachers/{id}` tetap 404 untuk keduanya seperti
+sebelumnya. `inactive()` (TEACHER-LIFECYCLE-001) juga **tidak disentuh** — di luar scope perbaikan
+ini (spesifikasi §15 untuk endpoint itu sendiri ambigu/tidak konsisten secara terpisah, bukan bagian
+dari bug yang sama).
+
+**Perbaikan tambahan (kosmetik, aman, tidak mengubah behavior):**
+- `AuthService.php`: constructor dipindah ke atas class (sebelumnya di baris terakhir, sisa pola
+  edit patch), komentar nyasar `// ... TETAP SAMA ...` dihapus.
+- `StudentService::resetPassword()`: tambah `->load(['school','user'])` sebelum return, konsisten
+  dengan `update()` — `StudentResource` mengakses kedua relasi itu, sebelumnya lazy-load (2 query
+  tambahan per response, bukan error, cuma kurang efisien).
+
+**Test:** `tests/Feature/School/TeacherResetPasswordScopeTest.php` (3 case: same-school -> 200,
+cross-school -> 403, id tidak ada -> 404).
+
+**Di luar scope perbaikan ini (dicatat, bukan dikerjakan sekarang):**
+- `docs/team-log/AUTH-003.md` masih belum ada — perlu dibuat oleh yang mengerjakan AUTH-003 supaya
+  keputusan seperti `min:8`, `audit_logs` opsional, dsb. tercatat, bukan cuma di pesan commit.
+- Trailing newline yang hilang di beberapa file baru AUTH-003 (`ChangePasswordRequest.php`,
+  `ResetPasswordRequest.php`, `AuditLog.php`, `AuditLogService.php`, migration `audit_logs`,
+  `AdminResetPassword.php`) — style-only (PSR-12), tidak disentuh di patch ini supaya diff tetap
+  fokus ke bug utama saja.

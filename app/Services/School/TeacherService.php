@@ -48,6 +48,26 @@ class TeacherService
         return $teacher;
     }
 
+    /**
+     * Fetch GLOBAL (tanpa filter school_id) — beda dari show(). Dipakai untuk
+     * operasi WRITE yang scope-nya jelas dari path (bukan GET), supaya "tidak
+     * ditemukan" (404) dan "ada tapi di luar scope" (403) tetap bisa dibedakan
+     * (API Contract v1.2 §10: "403 bila target di luar scope actor (cross-school
+     * untuk Headmaster→Teacher); 404 bila target tidak ditemukan"). show() di
+     * atas SENGAJA tidak diubah — GET memang harus 404 untuk keduanya (§26,
+     * mencegah enumerasi lintas-scope), beda konvensi dari write endpoint ini.
+     */
+    protected function findTeacherOrFail(int $id): Teacher
+    {
+        $teacher = Teacher::with('school')->find($id);
+
+        if (!$teacher) {
+            throw new HttpException(404, 'Guru tidak ditemukan');
+        }
+
+        return $teacher;
+    }
+
     public function store(array $data): Teacher
     {
         $schoolId = $this->headmasterSchoolId($this->currentUser());
@@ -91,8 +111,12 @@ class TeacherService
 
     public function resetPassword(int $id, array $data): Teacher
     {
-        $teacher = $this->show($id);
+        $teacher = $this->findTeacherOrFail($id);
         $actor = $this->currentUser();
+
+        if ($teacher->school_id !== $this->headmasterSchoolId($actor)) {
+            throw new HttpException(403, 'Guru ini di luar sekolah Anda');
+        }
 
         $teacher->user->update(['password' => $data['new_password']]);
 

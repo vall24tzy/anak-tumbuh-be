@@ -14,6 +14,8 @@ class AuthService
 {
     use ApiResponseTraits;
 
+    public function __construct(protected AuditLogService $auditLog) {}
+
     /**
      * Login staff: Super Admin (username asli) / Headmaster & Teacher (username = NIP).
      * Tidak ada gate status untuk staff - baseline belum mengatur ini (jangan ditebak).
@@ -80,10 +82,6 @@ class AuthService
     {
         return $this->successResponse(new MeResource($user));
     }
-
-    public function __construct(protected AuditLogService $auditLog) {}
-
-    // ... loginStaff, loginStudentPassword, issueLoginResponse, logout, me TETAP SAMA ...
 
     /**
      * POST /auth/change-password — Super Admin only, own account (Matrix #47).

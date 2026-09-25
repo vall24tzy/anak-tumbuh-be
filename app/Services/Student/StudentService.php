@@ -257,6 +257,6 @@ class StudentService
 
         $this->auditLog->record($user, 'password_reset', $student->user);
 
-        return $student;
+        return $student->load(['school', 'user']);
     }
 }
