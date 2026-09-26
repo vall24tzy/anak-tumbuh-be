@@ -58,7 +58,8 @@ class AcademicYearService
 
     public function update(int $id, array $data): AcademicYear
     {
-        $academicYear = $this->show($id); // reuse scope check + 404
+        $academicYear = $this->findAcademicYearOrFail($id);
+        $this->assertAcademicYearInScope($academicYear, $this->currentUser());
 
         $academicYear->update($data);
 
@@ -67,7 +68,8 @@ class AcademicYearService
 
     public function activate(int $id): AcademicYear
     {
-        $academicYear = $this->show($id); // scope check + 404 dulu
+        $academicYear = $this->findAcademicYearOrFail($id);
+        $this->assertAcademicYearInScope($academicYear, $this->currentUser());
 
         return DB::transaction(function () use ($academicYear) {
             AcademicYear::where('school_id', $academicYear->school_id)
@@ -78,5 +80,23 @@ class AcademicYearService
 
             return $academicYear->fresh();
         });
+    }
+
+    protected function findAcademicYearOrFail(int $id): AcademicYear
+    {
+        $academicYear = AcademicYear::find($id);
+
+        if (!$academicYear) {
+            throw new HttpException(404, 'Tahun ajaran tidak ditemukan');
+        }
+
+        return $academicYear;
+    }
+
+    protected function assertAcademicYearInScope(AcademicYear $academicYear, $user): void
+    {
+        if ($academicYear->school_id !== $this->schoolIdForUser($user)) {
+            throw new HttpException(403, 'Tahun ajaran ini di luar sekolah Anda');
+        }
     }
 }

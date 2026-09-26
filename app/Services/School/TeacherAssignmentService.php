@@ -88,7 +88,8 @@ class TeacherAssignmentService
 
     public function update(int $id, array $data): TeacherClassAssignment
     {
-        $assignment = $this->show($id); // scope check + 404 dulu
+        $assignment = $this->findAssignmentOrFail($id);
+        $this->assertAssignmentInScope($assignment, $this->currentUser());
 
         if (isset($data['rombel_id'])) {
             $this->assertRombelMatchesSchoolAndYear($data['rombel_id'], $assignment->school_id, $assignment->academic_year_id);
@@ -100,7 +101,9 @@ class TeacherAssignmentService
 
     public function deactivate(int $id): TeacherClassAssignment
     {
-        $assignment = $this->show($id);
+        $assignment = $this->findAssignmentOrFail($id);
+        $this->assertAssignmentInScope($assignment, $this->currentUser());
+
         $assignment->update(['is_active' => false]);
 
         return $assignment->fresh();
@@ -115,6 +118,28 @@ class TeacherAssignmentService
 
         if (!$ok) {
             throw new ApiException('rombel_mismatch', 422, 'Rombel tidak sesuai sekolah/tahun ajaran yang diminta');
+        }
+    }
+
+    protected function findAssignmentOrFail(int $id): TeacherClassAssignment
+    {
+        $assignment = TeacherClassAssignment::find($id);
+
+        if (!$assignment) {
+            throw new HttpException(404, 'Teacher Class Assignment tidak ditemukan');
+        }
+
+        return $assignment;
+    }
+
+    protected function assertAssignmentInScope(TeacherClassAssignment $assignment, $user): void
+    {
+        if ($user->role === 'headmaster' && $assignment->school_id !== $this->headmasterSchoolId($user)) {
+            throw new HttpException(403, 'Assignment ini di luar sekolah Anda');
+        }
+
+        if ($user->role === 'teacher' && $assignment->teacher_id !== $user->teacher?->id) {
+            throw new HttpException(403, 'Assignment ini bukan milik Anda');
         }
     }
 }

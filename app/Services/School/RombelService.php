@@ -75,7 +75,8 @@ class RombelService
 
     public function update(int $id, array $data): Rombel
     {
-        $rombel = $this->show($id); // scope check + 404 dulu
+        $rombel = $this->findRombelOrFail($id);
+        $this->assertRombelInScope($rombel, $this->currentUser());
 
         if (isset($data['academic_year_id'])) {
             $this->assertAcademicYearBelongsToSchool($data['academic_year_id'], $rombel->school_id);
@@ -88,7 +89,8 @@ class RombelService
 
     public function destroy(int $id): void
     {
-        $rombel = $this->show($id);
+        $rombel = $this->findRombelOrFail($id);
+        $this->assertRombelInScope($rombel, $this->currentUser());
 
         try {
             $rombel->delete();
@@ -104,5 +106,29 @@ class RombelService
     private function isForeignKeyViolation(QueryException $e): bool
     {
         return $e->getCode() === '23503'; // kode SQLSTATE PostgreSQL untuk foreign_key_violation
+    }
+
+    /**
+     * Fetch GLOBAL (tanpa filter school_id) — dipakai WRITE ops (update/destroy),
+     * beda dari show() yang tetap 404 untuk GET (§26, cegah enumerasi lintas-scope).
+     * Write op scope-nya jelas dari path -> 403 kalau di luar sekolah (API Contract
+     * §14: "403 — cross-school").
+     */
+    protected function findRombelOrFail(int $id): Rombel
+    {
+        $rombel = Rombel::find($id);
+
+        if (!$rombel) {
+            throw new HttpException(404, 'Rombel tidak ditemukan');
+        }
+
+        return $rombel;
+    }
+
+    protected function assertRombelInScope(Rombel $rombel, $user): void
+    {
+        if ($rombel->school_id !== $this->schoolIdForUser($user)) {
+            throw new HttpException(403, 'Rombel ini di luar sekolah Anda');
+        }
     }
 }
