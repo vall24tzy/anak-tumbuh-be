@@ -21,4 +21,14 @@ class DashboardController extends Controller
     {
         return $this->successResponse($this->service->forTeacher());
     }
+
+    public function headmaster()
+    {
+        return $this->successResponse($this->service->forHeadmaster());
+    }
+
+    public function superAdmin()
+    {
+        return $this->successResponse($this->service->forSuperAdmin());
+    }
 }

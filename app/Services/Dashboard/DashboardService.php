@@ -2,6 +2,9 @@
 
 namespace App\Services\Dashboard;
 
+use App\Models\Headmaster;
+use App\Models\Rombel;
+use App\Models\School;
 use App\Models\Student;
 use App\Models\StudentClassAssignment;
 use App\Models\StudentHabit;
@@ -161,6 +164,107 @@ class DashboardService
                 'average_submitted' => $averageSubmitted,
                 'total'             => $totalHabit,
             ],
+        ];
+    }
+
+    protected function currentHeadmaster(): Headmaster
+    {
+        $headmaster = auth('api')->user()?->headmaster;
+
+        if (!$headmaster) {
+            throw new HttpException(403, 'Profil Headmaster tidak ditemukan untuk akun ini');
+        }
+
+        return $headmaster;
+    }
+
+    /**
+     * GET /api/v1/dashboard/headmaster — Headmaster, own school (§25).
+     * Per rombel: jumlah Student (assignment aktif) & rata-rata submission
+     * habit hari ini. Pakai agregasi query (bukan query per-rombel di PHP
+     * loop), sesuai instruksi Task Board.
+     */
+    public function forHeadmaster(): array
+    {
+        $headmaster = $this->currentHeadmaster();
+
+        $activeYear = \App\Models\AcademicYear::where('school_id', $headmaster->school_id)
+            ->where('is_active', true)
+            ->first();
+
+        // Belum ada tahun ajaran aktif -> tidak error, cukup list kosong
+        // (school baru/belum setup ACADEMICYEAR-001, bukan kondisi salah).
+        if (!$activeYear) {
+            return ['rombels' => []];
+        }
+
+        $rombels = Rombel::where('school_id', $headmaster->school_id)
+            ->where('academic_year_id', $activeYear->id)
+            ->get(['id', 'name', 'grade_level']);
+
+        if ($rombels->isEmpty()) {
+            return ['rombels' => []];
+        }
+
+        $rombelIds = $rombels->pluck('id');
+
+        // Query 1: jumlah Student aktif per rombel — 1 query untuk SEMUA
+        // rombel sekaligus (groupBy), bukan 1 query per rombel.
+        $studentCounts = StudentClassAssignment::whereIn('rombel_id', $rombelIds)
+            ->where('status', 'active')
+            ->select('rombel_id', DB::raw('count(distinct student_id) as total'))
+            ->groupBy('rombel_id')
+            ->pluck('total', 'rombel_id');
+
+        // Query 2: assignment aktif per rombel (buat tau siapa student-nya),
+        // lalu Query 3: submission hari ini per student — sama-sama 1 query
+        // untuk semua rombel, hasilnya baru digabung di PHP (bukan query
+        // ke DB lagi per rombel).
+        $activeAssignments = StudentClassAssignment::whereIn('rombel_id', $rombelIds)
+            ->where('status', 'active')
+            ->get(['rombel_id', 'student_id'])
+            ->groupBy('rombel_id');
+
+        $allActiveStudentIds = StudentClassAssignment::whereIn('rombel_id', $rombelIds)
+            ->where('status', 'active')
+            ->pluck('student_id');
+
+        $submittedPerStudent = StudentHabit::whereIn('student_id', $allActiveStudentIds)
+            ->where('habit_date', $this->today())
+            ->select('student_id', DB::raw('count(distinct habit_id) as c'))
+            ->groupBy('student_id')
+            ->pluck('c', 'student_id');
+
+        $result = $rombels->map(function (Rombel $rombel) use ($studentCounts, $activeAssignments, $submittedPerStudent) {
+            $studentsInRombel = $activeAssignments->get($rombel->id, collect());
+            $totalStudent = $studentCounts[$rombel->id] ?? 0;
+
+            $averageSubmitted = 0.0;
+            if ($studentsInRombel->isNotEmpty()) {
+                $sum = $studentsInRombel->sum(fn ($a) => $submittedPerStudent[$a->student_id] ?? 0);
+                $averageSubmitted = round($sum / $studentsInRombel->count(), 2);
+            }
+
+            return [
+                'id'                      => $rombel->id,
+                'name'                    => $rombel->name,
+                'grade_level'             => $rombel->grade_level,
+                'student_count'           => $totalStudent,
+                'average_submitted_today' => $averageSubmitted,
+            ];
+        });
+
+        return ['rombels' => $result->values()->all()];
+    }
+
+    /**
+     * GET /api/v1/dashboard/super-admin — Super Admin, global (§25).
+     */
+    public function forSuperAdmin(): array
+    {
+        return [
+            'school_count'     => School::count(),
+            'headmaster_count' => Headmaster::count(),
         ];
     }
 }
