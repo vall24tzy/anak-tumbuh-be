@@ -6,6 +6,7 @@ use App\Http\Resources\User\MeResource;
 use App\Http\Resources\User\UserResource;
 use App\Models\User;
 use App\Traits\ApiResponseTraits;
+use App\Services\Student\QrTokenService;
 use App\Services\User\AuditLogService;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -14,7 +15,10 @@ class AuthService
 {
     use ApiResponseTraits;
 
-    public function __construct(protected AuditLogService $auditLog) {}
+    public function __construct(
+        protected AuditLogService $auditLog,
+        protected QrTokenService $qrTokenService,
+    ) {}
 
     /**
      * Login staff: Super Admin (username asli) / Headmaster & Teacher (username = NIP).
@@ -54,8 +58,30 @@ class AuthService
     }
 
     /**
-     * Method reusable penerbit JWT - dipakai lagi di QR-001 nanti (login QR
-     * tanpa verifikasi password, tapi tetap terbitkan token lewat method ini).
+     * Login Student via QR (Matrix #51) — tanpa verifikasi password. QR
+     * token bersifat permanent, TIDAK ada konsep "expired" berbasis waktu
+     * (istilah itu hanya untuk JWT) — hanya invalid kalau signature/hash
+     * tidak cocok (revoked via regenerate). Gate status sama seperti
+     * loginStudentPassword.
+     */
+    public function loginStudentQr(array $data)
+    {
+        $student = $this->qrTokenService->verifyAndResolveStudent($data['qr_payload']);
+
+        if (!$student) {
+            return $this->errorResponse('QR token tidak valid', 401);
+        }
+
+        if (in_array($student->status, ['inactive', 'graduated'], true)) {
+            return $this->errorResponse('Akun siswa tidak aktif', 403);
+        }
+
+        return $this->issueLoginResponse($student->user);
+    }
+
+    /**
+     * Method reusable penerbit JWT — dipakai loginStaff/loginStudentPassword/
+     * loginStudentQr (QR-001).
      */
     public function issueLoginResponse(User $user)
     {

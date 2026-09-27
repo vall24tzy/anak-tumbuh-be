@@ -329,3 +329,28 @@ cross-school -> 403, id tidak ada -> 404).
   `ResetPasswordRequest.php`, `AuditLog.php`, `AuditLogService.php`, migration `audit_logs`,
   `AdminResetPassword.php`) — style-only (PSR-12), tidak disentuh di patch ini supaya diff tetap
   fokus ke bug utama saja.
+
+## QR-001 — Mekanisme qr_payload (technical convention, bukan business rule baru)
+
+DB Design v1.5 §5.15 & API Contract v1.2 §10/§17 sudah final soal WHAT (token signed, permanent,
+revocable via regenerate, hash disimpan bukan plaintext, raw token hanya dikirim sekali) tapi tidak
+merinci format konkret payload/signing — technical convention berikut dipilih (sejalan §7 API
+Contract: "technical convention, tidak mengubah business rule manapun"):
+
+- `qr_payload` = `base64(json{student_id, token})` + `"."` + `HMAC-SHA256(payload, APP_KEY)`.
+- `student_id` perlu ikut disertakan (signed, bukan rahasia) supaya server bisa langsung cari baris
+  `qr_tokens` yang tepat untuk `Hash::check()` — bcrypt hash tidak bisa dicari terbalik dari raw token
+  saja tanpa tahu baris mana yang mau dicek.
+- Verifikasi pakai `hash_equals()` (bukan `===`) untuk signature — tahan timing attack.
+- Regenerate pakai `QrToken::updateOrCreate()` (1 baris per Student, sudah dibuat saat POST /students
+  di STUDENT-001) — signature lama otomatis invalid karena `token_hash` berubah, tanpa perlu tabel
+  revoke/blacklist terpisah.
+- Response `POST /qr-tokens/{student_id}/regenerate`: `{"data": {"qr_payload": "..."}}` — field
+  tunggal ini realisasi langsung dari requirement eksplisit SoT ("raw token hanya dikirim sekali saat
+  generate/regenerate"), BUKAN deviasi shape yang butuh addendum (beda dari kasus `student_id` di GET
+  habit yang memang menyimpang dari contoh response tertulis).
+- `qr_regenerate` dicatat ke `audit_logs` (non-blocking, reuse `AuditLogService::record()` dari
+  AUTH-003) — sesuai instruksi task.
+- Reuse: `TeacherScopeService::activeAssignment()` + `Student::hasActiveAssignmentInRombel()`
+  (GAP #5-scope) untuk scope regenerate; `AuthService::issueLoginResponse()` untuk penerbitan JWT
+  login QR — tidak ada logic scope/JWT baru yang diduplikasi.

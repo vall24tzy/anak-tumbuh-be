@@ -17,4 +17,5 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/v1/student-lifecycle.php');
     require base_path('routes/v1/habit.php');
     require base_path('routes/v1/bermasyarakat.php');
+    require base_path('routes/v1/qr-token.php');
 });

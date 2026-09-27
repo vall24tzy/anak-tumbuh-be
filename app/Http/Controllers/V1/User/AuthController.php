@@ -6,6 +6,7 @@ use App\Http\Requests\User\ChangePasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StaffLoginRequest;
 use App\Http\Requests\User\StudentPasswordLoginRequest;
+use App\Http\Requests\User\StudentQrLoginRequest;
 use App\Services\User\AuthService;
 
 class AuthController extends Controller
@@ -22,6 +23,11 @@ class AuthController extends Controller
     public function loginStudentPassword(StudentPasswordLoginRequest $request)
     {
         return $this->authService->loginStudentPassword($request->only('nisn', 'password'));
+    }
+
+    public function loginStudentQr(StudentQrLoginRequest $request)
+    {
+        return $this->authService->loginStudentQr($request->only('qr_payload'));
     }
 
     public function logout()
