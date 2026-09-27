@@ -4,13 +4,18 @@ namespace App\Http\Controllers\V1\Student;
 
 use App\Exports\StudentImportTemplateExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Student\StudentImportCommitRequest;
+use App\Http\Requests\Student\StudentImportPreviewRequest;
 use App\Jobs\ProcessStudentImportJob;
 use App\Models\ImportBatch;
 use App\Services\Student\StudentImportService;
 use App\Traits\ApiResponseTraits;
-use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+
+// API Contract v1.2 §18/§28. Teacher only (Matrix — SA/HM tidak
+// create/import Student). Path top-level "student-imports" (bukan nested di
+// bawah "students") sesuai kontrak.
 
 class StudentImportController extends Controller
 {
@@ -23,24 +28,22 @@ class StudentImportController extends Controller
         return Excel::download(new StudentImportTemplateExport(), 'template_import_siswa.xlsx');
     }
 
-    public function preview(Request $request)
+    public function preview(StudentImportPreviewRequest $request)
     {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'], // 5120 KB = 5 MB
-        ]);
-
         $result = $this->service->preview($request->file('file'));
 
-        return $this->successResponse($result, 'Preview import berhasil diambil');
+        return $this->successResponse($result);
     }
 
-    public function store(Request $request)
+    public function commit(StudentImportCommitRequest $request)
     {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
-        ]);
-
         $file = $request->file('file');
+        $rombelId = (int) $request->input('rombel_id');
+
+        // Revalidasi server-side eksplisit sebelum apapun diproses — API
+        // Contract §18/§28: commit tidak boleh percaya hasil preview client.
+        $this->service->assertOwnActiveRombel($rombelId);
+
         $rowCount = $this->service->countRows($file);
 
         if ($rowCount > 1000) {
@@ -48,7 +51,6 @@ class StudentImportController extends Controller
         }
 
         $user = auth('api')->user();
-        $schoolId = $this->service->resolveSchoolId($user, $request->input('school_id'));
 
         $batch = ImportBatch::create([
             'type'       => 'student',
@@ -58,27 +60,33 @@ class StudentImportController extends Controller
 
         if ($rowCount <= 100) {
             $batch->update(['status' => 'processing']);
-            $result = $this->service->generate($file, $schoolId);
+            $result = $this->service->commit($file, $rombelId);
             $batch->update([
                 'status'      => 'done',
-                'total'       => $result['total'],
-                'success'     => $result['success'],
-                'failed'      => $result['failed'],
-                'failed_rows' => $result['failed_rows'],
+                'total'       => $result['total_rows'],
+                'success'     => $result['successful_rows'],
+                'failed'      => $result['rejected_rows'],
+                'failed_rows' => $result['errors'],
             ]);
 
-            return $this->successResponse(array_merge(['batch_id' => $batch->id], $result), 'Import selesai diproses');
+            return $this->successResponse(array_merge(['batch_id' => $batch->id], $result));
         }
 
         $storedPath = $file->store('imports');
-        ProcessStudentImportJob::dispatch($batch->id, $storedPath, $schoolId);
+        ProcessStudentImportJob::dispatch($batch->id, $storedPath, $rombelId);
 
         return $this->successResponse([
             'batch_id' => $batch->id,
             'status'   => 'pending',
-        ], 'File diterima, sedang diproses di background. Cek status lewat endpoint status.');
+        ]);
     }
 
+    /**
+     * NOTE-09 (docs/db-gap-analysis.md): endpoint status/polling batch queue
+     * TIDAK ada di API Contract v1.2 — dipertahankan sebagai technical
+     * necessity untuk file >100 baris (queue asinkron), bukan business rule
+     * baru (instruksi task poin 6).
+     */
     public function status(int $batchId)
     {
         $batch = ImportBatch::find($batchId);
@@ -88,12 +96,13 @@ class StudentImportController extends Controller
         }
 
         return $this->successResponse([
-            'batch_id'    => $batch->id,
-            'status'      => $batch->status,
-            'total'       => $batch->total,
-            'success'     => $batch->success,
-            'failed'      => $batch->failed,
-            'failed_rows' => $batch->failed_rows,
-        ], 'Status import berhasil diambil');
+            'batch_id'        => $batch->id,
+            'status'          => $batch->status,
+            'total_rows'      => $batch->total,
+            'processed_rows'  => $batch->total,
+            'successful_rows' => $batch->success,
+            'rejected_rows'   => $batch->failed,
+            'errors'          => $batch->failed_rows,
+        ]);
     }
 }

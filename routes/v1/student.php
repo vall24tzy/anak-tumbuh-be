@@ -20,15 +20,18 @@ Route::prefix('students')
         });
     });
 
-// IMPORT-001 — belum dirework, route lama dipertahankan apa adanya (di luar
-// scope STUDENT-001). StudentImportService akan perlu disesuaikan ulang ke
-// StudentService::store() yang baru (parameter rombel_id, bukan school_id/
-// classroom/grade_level) saat IMPORT-001 dikerjakan.
-Route::prefix('students/import')
-    ->middleware(['jwt', 'role:1,2,3'])
+// IMPORT-001 — API Contract v1.2 §18/§28. Teacher only, own active rombel.
+// Path top-level "student-imports" (BUKAN nested di bawah "students") sesuai
+// kontrak — menggantikan path lama "students/import/*" (role:1,2,3, SA/HM
+// diizinkan) yang sudah tidak sesuai baseline final.
+Route::prefix('student-imports')
+    ->middleware(['jwt', 'role:teacher'])
     ->group(function () {
         Route::get('template', [StudentImportController::class, 'template']);
         Route::post('preview', [StudentImportController::class, 'preview']);
-        Route::post('/', [StudentImportController::class, 'store']);
+        Route::post('commit', [StudentImportController::class, 'commit']);
+        // NOTE-09 — endpoint status/polling queue, tidak ada di API Contract
+        // v1.2, dipertahankan sebagai technical necessity (lihat instruksi
+        // task poin 6 & docs/db-gap-analysis.md).
         Route::get('status/{batchId}', [StudentImportController::class, 'status']);
     });

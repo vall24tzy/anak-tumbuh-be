@@ -354,3 +354,77 @@ Contract: "technical convention, tidak mengubah business rule manapun"):
 - Reuse: `TeacherScopeService::activeAssignment()` + `Student::hasActiveAssignmentInRombel()`
   (GAP #5-scope) untuk scope regenerate; `AuthService::issueLoginResponse()` untuk penerbitan JWT
   login QR — tidak ada logic scope/JWT baru yang diduplikasi.
+
+## IMPORT-001 — Reuse StudentService::store(), rombel_id request-level, NOTE-09
+
+**Desain inti:** `rombel_id` adalah parameter REQUEST-LEVEL (satu nilai untuk seluruh baris file),
+divalidasi SEKALI di awal (`assertOwnActiveRombel()`) sebelum satu baris pun diproses — bukan
+per-baris — karena Teacher cuma punya 1 active rombel per Academic Year (TEACHER-ASSIGNMENT-001).
+Template TIDAK punya kolom Rombel/Classroom/Grade Level/Email, cuma Nama Lengkap/NISN/Gender.
+
+**Reuse, bukan duplikasi:** setiap baris valid diproses lewat `StudentService::store()` **apa
+adanya** (tidak dimodifikasi sama sekali — file itu di luar scope IMPORT-001) sebagai
+`rowProcessor` `ImportService`. Ini otomatis memberi: NISN reuse/cross-school-reject,
+`duplicate_assignment`/`assignment_conflict` (lewat `StudentClassAssignmentService`), DB
+transaction per-baris (rollback otomatis kalau baris itu gagal), dan revalidasi authorization
+penuh di commit — semuanya GRATIS dari kode yang sudah diaudit, tanpa reimplementasi.
+
+**Trade-off yang diterima sadar:** `StudentService::store()` memanggil
+`TeacherScopeService::activeAssignment()` (1 query) di SETIAP baris, walau hasilnya pasti sama
+persis untuk seluruh file (sudah divalidasi sekali di awal). Ini N+1-ish untuk file besar (sampai
+1.000 baris), tapi TIDAK diperbaiki di sini karena perbaikannya butuh mengubah signature
+`StudentService::store()` (di luar file-focus task ini: `app/Services/Import/ImportService.php,
+app/Services/Student/StudentImportService.php, routes/v1/student.php`). Correctness diutamakan
+di atas micro-optimization untuk task ini.
+
+**Teknik "smuggling" kode error tanpa menyentuh ImportService.php:** `ImportService::generate()`
+generik cuma menangkap `\Throwable` dan simpan `->getMessage()` (string polos, tidak ada `code`).
+Supaya response akhir tetap `{row, field, code, message}` (API Contract §9/§18) TANPA mengubah
+`ImportService.php` (di luar file-focus), exception dari `StudentService::store()`
+di-`catch` di `StudentImportService::processRow()` lalu di-lempar ulang sebagai
+`\RuntimeException` berisi JSON `{code, field, message}` — lolos lewat catch generik
+`ImportService`, lalu dibongkar lagi di `normalizeErrors()`. `ImportService.php` sendiri **tidak
+disentuh sama sekali**.
+
+**NOTE-09 — endpoint status/polling queue (`GET /student-imports/status/{batchId}`)**
+
+```
+CONFLICT
+SOURCE A: API Contract v1.2 §18 tidak mendaftarkan endpoint status/polling batch queue sama sekali.
+SOURCE B: Task Board v23 instruksi poin 6 eksplisit: "Endpoint status/polling untuk queue tetap
+          dipertahankan (belum ada di API Contract)".
+IMPACT: File >100 baris diproses async lewat queue (technical requirement, Task Board §OD-12/
+        instruksi §16) — tanpa endpoint status, client tidak ada cara tahu kapan proses selesai.
+RECOMMENDATION: Dipertahankan sebagai technical necessity (bukan business rule baru), response
+        shape disamakan ke {total_rows, successful_rows, rejected_rows, errors[]} biar konsisten
+        dengan response commit sinkron. Perlu ditambahkan ke API Contract sebagai addendum resmi
+        kalau mau benar-benar final (belum dilakukan di sini — di luar wewenang saya mengubah
+        dokumen SoT langsung).
+```
+
+**Preview TIDAK butuh `rombel_id`:** `ImportService::preview()` murni validasi struktural/format
+(Form Request-style), tidak pernah memanggil `rowProcessor`/business logic — jadi `rombel_id` tidak
+punya efek apa pun di situ walau dikirim. Endpoint `preview` di kontrak juga tidak mencantumkan
+`rombel_id` sebagai bagian wajib request-nya secara eksplisit terpisah dari `commit`.
+
+## NOTE-10 (26 Sep 2026) — IMPORT-001: penggunaan tabel `import_batches`
+
+**Temuan:** Tabel `import_batches` (dipakai `StudentImportController::status()` untuk fitur
+status/polling queue, NOTE-09) **tidak ada** di 16 Final Entity List DB Design v1.5 §4. Tabel ini
+sudah ada di repo sejak sebelum rework (migration `2026_09_15_150154_create_import_batches_table.php`,
+pertama kali dicatat sebagai gap terbuka di analisis MIGRATION-002 — "nasibnya belum ditetapkan").
+
+**Keputusan:** Tabel ini **tetap dipakai apa adanya** (tanpa kolom baru, tanpa perubahan skema).
+Alasan: endpoint status/polling adalah **technical necessity** yang sudah diinstruksikan Task Board
+sendiri (poin 6: "Endpoint status/polling untuk queue tetap dipertahankan, belum ada di API Contract")
+untuk file >100 baris yang diproses async lewat queue — perlu tempat menyimpan state batch di antara
+job dispatch dan client polling. `import_batches` sudah tersedia dari implementasi lama, dipakai ulang
+daripada membuat tabel baru yang juga sama-sama tidak ada di DB Design.
+
+**Bukan business rule/skema baru yang dikarang** — murni infrastruktur teknis pendukung queue,
+konsisten dengan kategori `audit_logs` (entity #16, "infrastruktur opsional, tidak memblokir v1.0")
+di DB Design yang juga sama sifatnya: technical support table, bukan business entity.
+
+**Field response `status()` disamakan penuh ke response `commit` (5 field, bukan 4)** — ditambahkan
+`processed_rows` (nilai = `total_rows`, sinkron dengan `StudentImportService::normalizeResult()` yang
+juga menyamakan keduanya untuk jalur commit sinkron).

@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\ImportBatch;
-use App\Models\User; // <-- tambah ini
+use App\Models\User;
 use App\Services\Student\StudentImportService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +19,7 @@ class ProcessStudentImportJob implements ShouldQueue
     public function __construct(
         protected int $importBatchId,
         protected string $storedPath,
-        protected int $schoolId,
+        protected int $rombelId,
     ) {}
 
     public function handle(StudentImportService $service): void
@@ -32,24 +32,24 @@ class ProcessStudentImportJob implements ShouldQueue
 
         $batch->update(['status' => 'processing']);
 
-        // Job ini jalan di worker terpisah, TIDAK punya konteks request/JWT
-        // dari HTTP call awal. StudentService::store() butuh auth('api')->user()
-        // buat cek scoping (Headmaster/Guru), jadi kita "login"-kan manual
-        // user yang upload file ini (sudah dicatat di ImportBatch::created_by).
+        // Job jalan di worker terpisah, tidak punya konteks request/JWT dari
+        // HTTP call awal — "login"-kan manual user yang upload (dicatat di
+        // ImportBatch::created_by) supaya StudentService::store() bisa
+        // resolve TeacherScopeService::activeAssignment() dengan benar.
         $actingUser = User::find($batch->created_by);
         if ($actingUser) {
             auth('api')->login($actingUser);
         }
 
         $fullPath = Storage::path($this->storedPath);
-        $result = $service->generate($fullPath, $this->schoolId);
+        $result = $service->commit($fullPath, $this->rombelId);
 
         $batch->update([
             'status'      => 'done',
-            'total'       => $result['total'],
-            'success'     => $result['success'],
-            'failed'      => $result['failed'],
-            'failed_rows' => $result['failed_rows'],
+            'total'       => $result['total_rows'],
+            'success'     => $result['successful_rows'],
+            'failed'      => $result['rejected_rows'],
+            'failed_rows' => $result['errors'],
         ]);
 
         Storage::delete($this->storedPath);
