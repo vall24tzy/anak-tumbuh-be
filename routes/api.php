@@ -12,6 +12,7 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/v1/academic-year.php');
     require base_path('routes/v1/rombel.php');
     require base_path('routes/v1/teacher-assignment.php');
+    require base_path('routes/v1/teacher-import.php');
     require base_path('routes/v1/student.php');
     require base_path('routes/v1/student-class-assignment.php');
     require base_path('routes/v1/student-lifecycle.php');
