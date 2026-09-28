@@ -264,7 +264,9 @@ class DashboardService
     {
         return [
             'school_count'     => School::count(),
-            'headmaster_count' => Headmaster::count(),
+            // Keputusan tim final: hanya Headmaster status='active' yang dihitung
+            // (inactive = sudah diganti lewat suksesi, bukan Headmaster berjalan).
+            'headmaster_count' => Headmaster::where('status', 'active')->count(),
         ];
     }
 }
