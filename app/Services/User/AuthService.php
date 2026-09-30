@@ -22,7 +22,11 @@ class AuthService
 
     /**
      * Login staff: Super Admin (username asli) / Headmaster & Teacher (username = NIP).
-     * Tidak ada gate status untuk staff - baseline belum mengatur ini (jangan ditebak).
+     * Gate lifecycle (F-14): Headmaster/Teacher inactive ditolak 403 - pola sama
+     * dengan login Student (R7), dicek SETELAH password valid supaya status akun
+     * tidak bocor ke pihak tanpa password. Super Admin tidak punya lifecycle.
+     * (Pembatasan role Student di jalur ini = F-01, sengaja di luar Stage 0-B;
+     * gate ini berlaku untuk semua role sehingga Student inactive juga tertolak.)
      */
     public function loginStaff(array $data)
     {
@@ -30,6 +34,10 @@ class AuthService
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return $this->errorResponse('Username atau password salah', 401);
+        }
+
+        if (!$user->isLifecycleActive()) {
+            return $this->errorResponse('Akun tidak aktif', 403);
         }
 
         return $this->issueLoginResponse($user);
