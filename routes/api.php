@@ -20,4 +20,5 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/v1/bermasyarakat.php');
     require base_path('routes/v1/qr-token.php');
     require base_path('routes/v1/dashboard.php');
+    require base_path('routes/v1/gamification.php');
 });

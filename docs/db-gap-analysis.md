@@ -428,3 +428,78 @@ di DB Design yang juga sama sifatnya: technical support table, bukan business en
 **Field response `status()` disamakan penuh ke response `commit` (5 field, bukan 4)** — ditambahkan
 `processed_rows` (nilai = `total_rows`, sinkron dengan `StudentImportService::normalizeResult()` yang
 juga menyamakan keduanya untuk jalur commit sinkron).
+
+## NOTE-11 (28 Sep 2026, direvisi 28 Sep 2026 — revisi 3) — LEVEL-RANKING-001: keputusan final tim
+
+Implementasi: migration `gamification_levels` (PK `level`, `required_poin` CHECK >= 0, INDEX) + seed
+101 baris dari `database/seeders/data/gamification_levels.php` (angka PERSIS dari dokumen "Analisis &
+Threshold Level ANAKTUMBUH" bagian 6, diverifikasi lewat script: 101 level unik, strictly increasing,
+baris batas kolom 25/50/75 konsisten, titik acuan API Contract §23 cocok) + `LevelService`
+(`levelForPoin()` real-time = MAX(level) WHERE required_poin <= poin, default 0, tidak disimpan di
+`students`; `levelsForPoins()` batch — baca threshold SEKALI, hitung di memori, dipakai Ranking supaya
+1 query per request bukan per baris) + `GET /gamification/me`, `GET /students/{id}/gamification`,
+`GET /rankings/rombel`, `GET /rankings/angkatan`. Semua GET, tanpa endpoint write untuk
+Level/poin/threshold. `DashboardService` TIDAK disentuh — integrasi `gamification_level` ke dashboard
+Student adalah MERGE-001 (Task Board), `LevelService` sudah siap dipakai.
+
+**Interpretasi dependency (a.5):** frasa "hingga TEST-001/TEST-002" pada kolom Dependency Task Board
+dibaca sebagai keterangan jadwal (task ini sengaja terakhir karena butuh data poin asli), bukan syarat
+pemblokir.
+
+Detail lengkap kutipan SoT vs keputusan final ada di
+`docs/addendum/API-Contract-v1.2-Addendum-Level-Ranking.md`. Ringkasan di sini:
+
+**(a) `GET /gamification/me` untuk non-Student — TIDAK BERUBAH dari draf sebelumnya.**
+Dibatasi `role:student`; SA/HM/Teacher → 403 (akses mereka ke poin/level Student dipenuhi
+`GET /students/{id}/gamification`, least privilege, tidak melebihi Matrix #38).
+
+**(b) Response ranking — REVISI (mengganti draf sebelumnya).**
+Field final: `student_id`, `name` (students.fullname), `rombel` (nama rombel dari active assignment,
+BUKAN classroom), `poin`, `level` (BUKAN "gamification_level" seperti §23 — rename disengaja, KEPUTUSAN
+TIM). Pagination §7 penuh (page/per_page/meta), reuse `StudentHabitService::paginationMeta()`. Sort:
+poin DESC, name ASC, id ASC (tie-break teknis terakhir).
+**Konflik SoT yang disadari dan tetap dijalankan:** menampilkan `name` bertentangan dengan Dokumen v4.0
+§9 ("Student ... tidak membutuhkan classmates list"), Matrix baris #9 ("no classmates list"), dan Role
+Summary Student ("Other students" masuk kolom DENIED). ­Dokumen v4.0 dan Matrix berada DI ATAS API
+Contract pada hierarki SoT proyek — keputusan tim ini secara sadar menyimpang dari keduanya untuk
+kebutuhan fungsional ranking (angka poin tanpa nama tidak berarti apa-apa bagi pengguna). Matrix dan
+Dokumen v4.0 PERLU diamandemen resmi supaya konsisten (di luar scope task ini) — dicatat di sini
+supaya tidak jadi penyimpangan diam-diam.
+
+**(c) Query `rombel_id` / `academic_year_id` — REVISI (mempersempit draf sebelumnya).**
+Ranking HANYA untuk Academic Year AKTIF sekolah caller (dasar: Dokumen v4.0 §9 "Ranking memakai
+active/current Class Assignment context") — ini KEPUTUSAN TIM yang mempersempit parameter opsional
+`academic_year_id` di API Contract §24 (§24 tidak membatasi ke tahun aktif saja secara literal).
+`academic_year_id` selain tahun aktif sekolah caller (termasuk tahun lain milik sekolah sendiri) → 403
+untuk SEMUA role — bukan lagi diizinkan untuk Student seperti draf sebelumnya.
+**Urutan pengecekan (wajib, supaya tidak salah short-circuit):** `academic_year_id` divalidasi
+terhadap tahun aktif sekolah caller TERLEBIH DAHULU, baru rombel caller di-resolve, baru `rombel_id`
+divalidasi terhadap rombel itu — SEBELUM hasil-kosong diputuskan. Berlaku sama untuk Teacher & Student.
+**Asumsi tim (boleh dibalik kalau ada info baru):**
+- Sekolah tanpa Academic Year aktif + `academic_year_id` dikirim → 403 (tidak ada "tahun aktif" untuk
+  dicocokkan). Tanpa param → 200 kosong.
+- Caller tanpa konteks kelas (belum/tidak punya active assignment) + `rombel_id` apa pun → 403 (tidak
+  ada rombel yang termasuk scope-nya untuk dicocokkan).
+`rombel_id` tidak dipakai di `/rankings/angkatan`. Query lain (`student_id`, `sort`, `order`, dst.)
+tidak dibaca sama sekali — diabaikan, bukan ditolak.
+**Hasil kosong:** Teacher tanpa active Teacher Class Assignment → 200 `{data:[], meta:{...total:0...}}`
+(bukan 403 seperti draf sebelumnya). Student tanpa active assignment atau tanpa Academic Year aktif →
+200 kosong. Meta hasil kosong memakai paginator Laravel yang sama (`whereRaw('1=0')` lalu `paginate()`,
+pola sama dgn `StudentHabitService`) — bukan ditulis manual.
+
+**(d) `is_active` vs `status` — TIDAK BERUBAH.**
+API Contract §24 (query konseptual) menyebut `is_active`, skema fisik DB Design §5.9 memakai `status`
+('active'/'ended'). Implementasi memakai `status = 'active'`.
+
+**(e) Headmaster `status='inactive'` — gap lintas-task, SENGAJA TIDAK diperbaiki di sini.**
+7 service (`GamificationService`, `StudentService`, `StudentClassAssignmentService`, `TeacherService`,
+`RombelService`, `AcademicYearService`, `TeacherAssignmentService`) resolve scope sekolah lewat
+`Headmaster::where('user_id', ...)->value('school_id')` tanpa memfilter `status='active'` — seorang
+Headmaster yang sudah di-nonaktifkan (suksesi, HEADMASTER-001) tetap ter-resolve school_id-nya kalau
+akunnya masih bisa login. Ini gap valid, LINTAS TASK (bukan spesifik LEVEL-RANKING-001), dan efeknya
+menyentuh login/authorization/scope di banyak tempat sekaligus — perlu direkonsiliasi dulu sebagai satu
+keputusan menyeluruh (apakah Headmaster inactive boleh login sama sekali, dsb.) di fix pass terpisah
+setelah audit, BUKAN ditambal sebagian di sini.
+
+Belum dicakup: Postman Collection TEST-001 belum memuat folder Level/Ranking — bisa ditambahkan
+sebagai patch terpisah.

@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             HabitIndicatorSeeder::class, // HABIT-001 — 7 habit x 4 indicator FIXED
+            GamificationLevelSeeder::class, // LEVEL-RANKING-001 — threshold Level 0-100 (101 baris FIXED)
         ]);
 
         User::firstOrCreate(
