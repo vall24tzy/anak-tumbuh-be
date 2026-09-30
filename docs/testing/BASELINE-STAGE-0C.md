@@ -78,6 +78,8 @@ Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada s
 
 - **Deploy Stage 0-B: semua user login ulang sekali.** Setelah patch Stage 0-B, semua JWT yang terbit sebelum patch (tanpa claim `pwd`) ditolak dengan 401. Setiap user perlu login ulang satu kali saat deploy; umumkan ke tim dan FE sebelum rilis.
 - **Status batch import bisa bernilai `failed`.** Job import (Guru/Siswa) yang dibatalkan karena pemilik batch tidak aktif atau hilang menandai batch `failed` (file upload dihapus). Nilai status ini belum didokumentasikan di SoT (kolom `import_batches.status` adalah string bebas) dan akan diselaraskan dengan F-37.
+- **Rotasi `APP_KEY` mencabut semua sesi.** Claim `pwd` dihitung dengan HMAC yang memakai `APP_KEY` (`User::passwordFingerprint()`). Mengganti `APP_KEY` mengubah sidik jari semua user, sehingga semua JWT aktif ditolak 401 dan semua user harus login ulang. Jadwalkan rotasi seperti rilis Stage 0-B dan umumkan ke tim dan FE.
+- **Menulis ulang `users.password` mencabut sesi user itu.** Sidik jari `pwd` diturunkan dari hash password, jadi setiap penulisan hash baru (change/reset password, atau rehash otomatis bila kelak diaktifkan; saat ini tidak ada rehash di kode) membuat semua token lama user tersebut ditolak 401.
 
 ## 6. Yang masih OPEN setelah Stage 0
 
