@@ -23,7 +23,7 @@ class SchoolController extends Controller
     public function store(CreateSchoolRequest $request)
     {
         $school = $this->service->store($request->validated());
-        return $this->successResponse(new SchoolResource($school), 'Sekolah berhasil dibuat');
+        return $this->successResponse(new SchoolResource($school), 'Sekolah berhasil dibuat', 201);
     }
 
     public function show(int $id)
