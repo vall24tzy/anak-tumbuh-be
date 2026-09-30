@@ -33,10 +33,8 @@ use Tests\TestCase;
 // Setup pakai Model::create() berantai, konsisten dengan
 // tests/Feature/School/RombelWriteScopeTest.php.
 //
-// STATUS EKSEKUSI: belum dijalankan di sandbox ini (tidak ada Postgres live;
-// skema pakai raw CHECK constraint & partial unique index Postgres,
-// DB_CONNECTION=sqlite di phpunit.xml sengaja di-comment).
-// Jalankan manual: php artisan test --filter=TeacherAssignmentWriteScopeTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=TeacherAssignmentWriteScopeTest
 
 class TeacherAssignmentWriteScopeTest extends TestCase
 {

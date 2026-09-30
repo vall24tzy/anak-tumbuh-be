@@ -17,9 +17,8 @@ use Tests\TestCase;
 // IMPORT-002 — API Contract v1.2 §15/§28, Dokumen v4.0 §3/§4.2.
 // Setup pakai Model::create() berantai, konsisten dengan task lain.
 //
-// STATUS EKSEKUSI: belum dijalankan di sandbox ini (tidak ada Postgres live,
-// juga belum pernah dicoba generate file xlsx asli via Maatwebsite\Excel di
-// sandbox ini). Jalankan manual: php artisan test --filter=TeacherImportTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=TeacherImportTest
 
 class TeacherImportTest extends TestCase
 {

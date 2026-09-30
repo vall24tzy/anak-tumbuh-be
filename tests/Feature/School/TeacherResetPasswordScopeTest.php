@@ -22,8 +22,8 @@ use Tests\TestCase;
 // Setup pakai Model::create() berantai, konsisten dengan
 // tests/Feature/Student/StudentLifecycleTest.php.
 //
-// STATUS EKSEKUSI: belum dijalankan di sandbox ini (tidak ada Postgres live).
-// Jalankan manual: php artisan test --filter=TeacherResetPasswordScopeTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=TeacherResetPasswordScopeTest
 
 class TeacherResetPasswordScopeTest extends TestCase
 {

@@ -10,8 +10,8 @@ use Tests\Concerns\CreatesGamificationFixtures;
 use Tests\TestCase;
 
 // LEVEL-RANKING-001 — API Contract v1.2 §23, Matrix #38.
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres live di sandbox penulis).
-// Jalankan manual: php artisan test --filter=GamificationLevelTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=GamificationLevelTest
 
 class GamificationLevelTest extends TestCase
 {

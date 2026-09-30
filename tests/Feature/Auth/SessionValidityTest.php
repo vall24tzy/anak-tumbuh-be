@@ -23,8 +23,8 @@ use Tymon\JWTAuth\Facades\JWTFactory;
 //
 // Setup pakai Model::create() berantai, konsisten dengan test lain di repo ini.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=SessionValidityTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL: 22 passed, 90 assertions; full suite baseline Stage 0-C 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=SessionValidityTest
 
 class SessionValidityTest extends TestCase
 {

@@ -13,8 +13,8 @@ use Tests\TestCase;
 // LEVEL-RANKING-001 revisi 3 — API Contract v1.2 §24, Dokumen v4.0 §9, Matrix
 // #39. KEPUTUSAN TIM: ranking Academic Year AKTIF saja, response
 // {student_id,name,rombel,poin,level}, pagination §7.
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres live di sandbox
-// penulis). Jalankan manual: php artisan test --filter=RankingTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=RankingTest
 
 class RankingTest extends TestCase
 {

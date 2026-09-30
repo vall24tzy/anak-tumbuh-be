@@ -24,11 +24,8 @@ use Tests\TestCase;
 // seperti tests/Feature/Student/StudentUpdateNameFieldTest.php, repo ini
 // belum punya factory untuk chain School/AcademicYear/Rombel/Teacher/dst.
 //
-// STATUS EKSEKUSI: test ini BELUM dijalankan di sandbox saya karena tidak ada
-// Postgres live (skema pakai raw CHECK constraint & partial unique index
-// Postgres; DB_CONNECTION=sqlite di phpunit.xml sengaja di-comment). Perlu
-// dijalankan manual di dev env:
-//   php artisan test --filter=StudentLifecycleTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
+// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=StudentLifecycleTest
 
 class StudentLifecycleTest extends TestCase
 {
