@@ -23,9 +23,10 @@ Dokumen ini mencatat hasil eksekusi nyata sebagai baseline regresi. Tidak ada kl
 | Full suite (verifikasi Stage 0-B) | **142 passed, 531 assertions** |
 | `SessionValidityTest` | **22 passed, 90 assertions** |
 | Full suite setelah patch Stage 0-C (142 + 30 test baru) | **172 passed, 780 assertions** (baseline regresi berlaku untuk stage berikutnya) |
-| Full suite setelah residual F-14 (172 + 15 test baru) | **187 passed, 873 assertions** (baseline regresi terkini) |
+| Full suite setelah residual F-14 (172 + 15 test baru) | **187 passed, 873 assertions** |
+| Full suite setelah test F-12 (187 + 3 test baru) | **190 passed, 895 assertions** (baseline regresi terkini) |
 
-Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada state setelah residual F-14, berjumlah **187**, sama dengan total run (187 passed), sehingga tidak ada test yang terlewat atau ter-skip. Rinciannya: 142 (baseline Stage 0-B) + 30 (Stage 0-C) + 15 (residual F-14).
+Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada state setelah test F-12, berjumlah **190**, sama dengan total run (190 passed), sehingga tidak ada test yang terlewat atau ter-skip. Rinciannya: 142 (baseline Stage 0-B) + 30 (Stage 0-C) + 15 (residual F-14) + 3 (F-12).
 
 | File | Test | Catatan |
 |---|---:|---|
@@ -53,7 +54,8 @@ Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada s
 | `Feature/School/ShowCrossSchoolScopeTest` | 3 | Stage 0-C (F-51) |
 | `Feature/Auth/ImportJobAuthorityTest` | 8 | Residual F-14 (job import Guru/Siswa) |
 | `Feature/Auth/ApiTestRouteGateTest` | 7 | Residual F-14 (`/api/test`) |
-| **Total** | **187** | |
+| `Feature/School/SchoolStoreStatusTest` | 3 | F-12 (`POST /schools`: 201 untuk Super Admin; 403 untuk Headmaster, Teacher, Student) |
+| **Total** | **190** | |
 
 ## 3. Register test gap (Matrix v3 §5)
 
@@ -89,4 +91,7 @@ Daftar ini bukan klaim selesai; setiap item tetap OPEN sampai kode diperbaiki da
 - **F-14:** jendela balapan; Headmaster/Teacher yang di-inactive-kan saat job import sedang berjalan menyelesaikan job itu (gerbang hanya dicek di awal job).
 - **F-37:** exception di tengah job masih menahan batch di `processing` dan file upload tidak terhapus.
 - **F-46:** `_method` (method-spoofing PATCH + multipart) masih dianggap field asing oleh `UpdateStudentRequest::prepareForValidation()`, sehingga replace foto Student masih 422 `protected_field`.
-- **F-12:** kode sudah mengembalikan 201 di `SchoolController::store()` (diubah di commit `7396a1a`, yang berjudul "test(postman): TEST-001 ..."), tetapi belum ada test PHPUnit sehingga **belum terverifikasi**. Matrix v3 masih mencatat perilaku lama (200); catatan itu sudah tidak sesuai kode, dan F-12 masih terdaftar di bundel School Stage 3.
+
+## 7. Terverifikasi di luar urutan stage
+
+- **F-12: FIXED — VERIFIED.** `POST /schools` oleh Super Admin mengembalikan 201 dengan envelope `{data:{id,name,address,logo}}`. Kode diubah di `SchoolController::store()` pada commit `7396a1a` (judul commit "test(postman): TEST-001 ..."), dan kini dikunci oleh `SchoolStoreStatusTest` (3 test; full suite 190 passed, 895 assertions). Headmaster, Teacher, dan Student ditolak 403. Status belum CLOSED. Matrix v3 masih mencatat perilaku lama (200) dan F-12 masih terdaftar di bundel School Stage 3; keduanya perlu disesuaikan di Stage 3.
