@@ -23,6 +23,7 @@ Dokumen ini mencatat hasil eksekusi nyata sebagai baseline regresi. Tidak ada kl
 | Full suite (verifikasi Stage 0-B) | **142 passed, 531 assertions** |
 | `SessionValidityTest` | **22 passed, 90 assertions** |
 | Full suite setelah patch Stage 0-C (142 + 30 test baru) | **172 passed, 780 assertions** (baseline regresi berlaku untuk stage berikutnya) |
+| Full suite setelah residual F-14 (172 + 15 test baru) | **187 passed, 873 assertions** (baseline regresi terkini) |
 
 Inventaris statis (jumlah method test per file) berjumlah **142**, sama dengan total run, sehingga tidak ada test yang terlewat atau ter-skip.
 

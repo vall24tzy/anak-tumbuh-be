@@ -2,7 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:api')->get('/test', fn () => 'ok');
+// Stage 0-B residual F-14: sebelumnya `auth:api` (guard JWT polos) - hanya cek token valid,
+// tidak cek status lifecycle maupun sidik jari password. Sekarang lewat alias `jwt`
+// (AuthenticateActiveSession) seperti semua route terproteksi lain.
+Route::middleware('jwt')->get('/test', fn () => 'ok');
 
 Route::prefix('v1')->group(function () {
     require base_path('routes/v1/auth.php');

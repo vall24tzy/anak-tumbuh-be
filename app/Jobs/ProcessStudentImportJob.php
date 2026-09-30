@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\ActsAsActiveBatchOwner;
 use App\Models\ImportBatch;
-use App\Models\User;
 use App\Services\Student\StudentImportService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ProcessStudentImportJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use ActsAsActiveBatchOwner, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(
         protected int $importBatchId,
@@ -30,16 +30,17 @@ class ProcessStudentImportJob implements ShouldQueue
             return;
         }
 
-        $batch->update(['status' => 'processing']);
-
+        // Gate lifecycle (F-14 residual): pemilik batch harus masih aktif. Kalau tidak,
+        // job berhenti fail-closed (batch 'failed', file dihapus) TANPA login.
         // Job jalan di worker terpisah, tidak punya konteks request/JWT dari
         // HTTP call awal — "login"-kan manual user yang upload (dicatat di
         // ImportBatch::created_by) supaya StudentService::store() bisa
         // resolve TeacherScopeService::activeAssignment() dengan benar.
-        $actingUser = User::find($batch->created_by);
-        if ($actingUser) {
-            auth('api')->login($actingUser);
+        if (!$this->actAsActiveBatchOwner($batch, $this->storedPath)) {
+            return;
         }
+
+        $batch->update(['status' => 'processing']);
 
         $fullPath = Storage::path($this->storedPath);
         $result = $service->commit($fullPath, $this->rombelId);
