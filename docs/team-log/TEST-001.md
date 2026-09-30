@@ -23,4 +23,5 @@ keberadaan file ini saja.
 ## Status Orang 2 (info manual, Task Board tidak diupdate)
 
 - SETUP-001, ARCH-001, AUTH-001, AUTH-002, AUTH-003 (+fix 403/404 reset-password), UPLOAD-001, SCHOOL-001, HEADMASTER-001, TEACHER-001, ACADEMICYEAR-001, ROMBEL-001, TEACHER-ASSIGNMENT-001, TEACHER-LIFECYCLE-001, DASHBOARD-001, fix 403/404 Rombel/AcademicYear/TeacherAssignment -- selesai
-- DASHBOARD-002 (Headmaster+SA) -- belum, masih memblokir LEVEL-RANKING-001
+- DASHBOARD-002 (Headmaster+SA), IMPORT-002 -- selesai (sebelum LEVEL-RANKING-001 dibuat)
+- LEVEL-RANKING-001 (Orang 1) -- selesai; dependency "hingga TEST-001/TEST-002" dikonfirmasi bukan blocker (lihat addendum Level & Ranking)
