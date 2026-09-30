@@ -53,7 +53,9 @@ trait ApiResponseTraits
             403 => 'forbidden',
             404 => 'not_found',
             409 => 'conflict',
+            405 => 'method_not_allowed',
             422 => 'validation_failed',
+            429 => 'rate_limit_exceeded',
             default => 'internal_error',
         };
     }

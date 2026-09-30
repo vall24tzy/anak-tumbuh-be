@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Student;
 
+use App\Exceptions\ApiException;
 use Illuminate\Foundation\Http\FormRequest;
 
 // API Contract v1.2 §17 — hanya field administratif: name, gender, photo.
@@ -30,14 +31,27 @@ class UpdateStudentRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator)
+    protected function prepareForValidation(): void
     {
-        $validator->after(function ($validator) {
-            foreach (array_keys($this->all()) as $field) {
-                if (!in_array($field, $this->allowed, true)) {
-                    $validator->errors()->add($field, 'protected_field');
-                }
+        $details = [];
+
+        foreach (array_keys($this->all()) as $field) {
+            if (!in_array($field, $this->allowed, true)) {
+                $details[] = [
+                    'field'   => $field,
+                    'reason'  => 'protected_field',
+                    'message' => "{$field} tidak dapat diubah melalui endpoint ini",
+                ];
             }
-        });
+        }
+
+        if ($details !== []) {
+            throw new ApiException(
+                'protected_field',
+                422,
+                $details[0]['message'],
+                $details,
+            );
+        }
     }
 }

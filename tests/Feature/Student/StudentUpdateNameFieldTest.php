@@ -121,9 +121,9 @@ class StudentUpdateNameFieldTest extends TestCase
             ]);
 
         $response->assertStatus(422);
-        $response->assertJsonPath('error.code', 'validation_failed');
+        $response->assertJsonPath('error.code', 'protected_field');
         $response->assertJsonPath('error.details.0.field', 'fullname');
-        $response->assertJsonPath('error.details.0.message', 'protected_field');
+        $response->assertJsonPath('error.details.0.reason', 'protected_field');
 
         $this->assertDatabaseMissing('students', [
             'id'       => $student->id,

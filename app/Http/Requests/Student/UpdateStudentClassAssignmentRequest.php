@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Student;
 
+use App\Exceptions\ApiException;
 use Illuminate\Foundation\Http\FormRequest;
 
 // PATCH /student-class-assignments/{id} — Keputusan Tim (db-gap-analysis.md NOTE-05,
@@ -24,15 +25,28 @@ class UpdateStudentClassAssignmentRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator)
+    protected function prepareForValidation(): void
     {
-        $validator->after(function ($validator) {
-            foreach (array_keys($this->all()) as $field) {
-                if ($field !== 'status') {
-                    $validator->errors()->add($field, 'field_not_accepted');
-                }
+        $details = [];
+
+        foreach (array_keys($this->all()) as $field) {
+            if ($field !== 'status') {
+                $details[] = [
+                    'field'   => $field,
+                    'reason'  => 'field_not_accepted',
+                    'message' => "{$field} tidak diterima",
+                ];
             }
-        });
+        }
+
+        if ($details !== []) {
+            throw new ApiException(
+                'field_not_accepted',
+                422,
+                $details[0]['message'],
+                $details,
+            );
+        }
     }
 
     public function messages(): array
