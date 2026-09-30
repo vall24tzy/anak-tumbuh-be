@@ -35,8 +35,7 @@ use Tests\TestCase;
 // Status profil di-flip LANGSUNG (assignment Teacher sengaja dibiarkan aktif)
 // supaya yang teruji murni gate job, bukan pemeriksaan scope sekunder.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=ImportJobAuthorityTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class ImportJobAuthorityTest extends TestCase
 {

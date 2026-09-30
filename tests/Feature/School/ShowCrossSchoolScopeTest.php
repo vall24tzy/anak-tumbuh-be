@@ -18,8 +18,7 @@ use Tests\TestCase;
 //   - pesan 404 lintas-sekolah IDENTIK dengan pesan id yang memang tidak ada
 //     (tidak bisa dibedakan -> tidak ada kebocoran keberadaan)
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=ShowCrossSchoolScopeTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class ShowCrossSchoolScopeTest extends TestCase
 {

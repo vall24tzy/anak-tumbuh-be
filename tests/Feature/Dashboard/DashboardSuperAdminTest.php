@@ -23,8 +23,7 @@ use Tests\TestCase;
 // Setup pakai Model::create() berantai, konsisten dengan
 // tests/Feature/School/RombelWriteScopeTest.php (repo belum punya factory).
 //
-// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
-// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=DashboardSuperAdminTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class DashboardSuperAdminTest extends TestCase
 {

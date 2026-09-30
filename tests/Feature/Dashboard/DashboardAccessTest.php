@@ -16,8 +16,7 @@ use Tests\TestCase;
 // Yang ada di sini hanya sisi DENIAL/401 untuk keduanya, karena penolakan role
 // terjadi di middleware sebelum logika dashboard dijalankan.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=DashboardAccessTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class DashboardAccessTest extends TestCase
 {

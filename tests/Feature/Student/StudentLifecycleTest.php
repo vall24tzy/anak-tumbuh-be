@@ -24,8 +24,7 @@ use Tests\TestCase;
 // seperti tests/Feature/Student/StudentUpdateNameFieldTest.php, repo ini
 // belum punya factory untuk chain School/AcademicYear/Rombel/Teacher/dst.
 //
-// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
-// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=StudentLifecycleTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class StudentLifecycleTest extends TestCase
 {

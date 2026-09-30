@@ -21,8 +21,7 @@ use Tests\TestCase;
 // dicakup SessionValidityTest; HM->Teacher own/cross-school/404 dicakup
 // TeacherResetPasswordScopeTest. Tidak diduplikasi di sini.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=PasswordRoleMatrixTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class PasswordRoleMatrixTest extends TestCase
 {

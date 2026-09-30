@@ -17,8 +17,7 @@ use Tests\TestCase;
 // nip/nisn, school) + tidak ada kebocoran password. Bila F-25 memutuskan shape
 // lain, sesuaikan test ini di stage F-25, bukan di Stage 0-C.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=AuthMeTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class AuthMeTest extends TestCase
 {

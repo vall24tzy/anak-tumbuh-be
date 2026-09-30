@@ -23,8 +23,7 @@ use Tests\TestCase;
 // Route ini tidak ada di API Contract (endpoint teknis), jadi TIDAK dihapus dan
 // responsnya tidak diubah (string 'ok'); hanya gerbangnya yang disamakan.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=ApiTestRouteGateTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class ApiTestRouteGateTest extends TestCase
 {

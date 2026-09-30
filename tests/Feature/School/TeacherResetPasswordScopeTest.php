@@ -22,8 +22,7 @@ use Tests\TestCase;
 // Setup pakai Model::create() berantai, konsisten dengan
 // tests/Feature/Student/StudentLifecycleTest.php.
 //
-// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
-// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=TeacherResetPasswordScopeTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class TeacherResetPasswordScopeTest extends TestCase
 {

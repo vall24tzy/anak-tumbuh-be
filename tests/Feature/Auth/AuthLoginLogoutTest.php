@@ -21,8 +21,7 @@ use Tests\TestCase;
 // limiter) berbagi satu kunci per IP. Batas 5 request login per test - jangan
 // tambah request login di test tanpa menghitung ulang, kalau tidak jadi 429.
 //
-// STATUS EKSEKUSI: belum dijalankan (tidak ada PHP/Postgres di lingkungan
-// penyusun patch). Jalankan: php artisan test --filter=AuthLoginLogoutTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class AuthLoginLogoutTest extends TestCase
 {

@@ -17,8 +17,7 @@ use Tests\TestCase;
 // IMPORT-002 — API Contract v1.2 §15/§28, Dokumen v4.0 §3/§4.2.
 // Setup pakai Model::create() berantai, konsisten dengan task lain.
 //
-// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL pada baseline Stage 0-C: full suite 142 passed, 531 assertions
-// (lihat docs/testing/BASELINE-STAGE-0C.md). Ulangi: php artisan test --filter=TeacherImportTest
+// STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
 class TeacherImportTest extends TestCase
 {

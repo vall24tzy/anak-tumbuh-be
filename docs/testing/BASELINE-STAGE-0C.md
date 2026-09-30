@@ -25,7 +25,7 @@ Dokumen ini mencatat hasil eksekusi nyata sebagai baseline regresi. Tidak ada kl
 | Full suite setelah patch Stage 0-C (142 + 30 test baru) | **172 passed, 780 assertions** (baseline regresi berlaku untuk stage berikutnya) |
 | Full suite setelah residual F-14 (172 + 15 test baru) | **187 passed, 873 assertions** (baseline regresi terkini) |
 
-Inventaris statis (jumlah method test per file) berjumlah **142**, sama dengan total run, sehingga tidak ada test yang terlewat atau ter-skip.
+Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada state setelah residual F-14, berjumlah **187**, sama dengan total run (187 passed), sehingga tidak ada test yang terlewat atau ter-skip. Rinciannya: 142 (baseline Stage 0-B) + 30 (Stage 0-C) + 15 (residual F-14).
 
 | File | Test | Catatan |
 |---|---:|---|
@@ -46,7 +46,14 @@ Inventaris statis (jumlah method test per file) berjumlah **142**, sama dengan t
 | `Feature/Student/StudentLifecycleTest` | 10 | |
 | `Feature/Student/StudentUpdateNameFieldTest` | 2 | |
 | `Feature/ExampleTest`, `Unit/ExampleTest` | 1 + 1 | bawaan Laravel |
-| **Total** | **142** | |
+| `Feature/Auth/AuthLoginLogoutTest` | 11 | Stage 0-C (F-22) |
+| `Feature/Auth/AuthMeTest` | 3 | Stage 0-C (F-27, F-26) |
+| `Feature/Auth/PasswordRoleMatrixTest` | 10 | Stage 0-C (F-28) |
+| `Feature/Dashboard/DashboardAccessTest` | 3 | Stage 0-C (F-42) |
+| `Feature/School/ShowCrossSchoolScopeTest` | 3 | Stage 0-C (F-51) |
+| `Feature/Auth/ImportJobAuthorityTest` | 8 | Residual F-14 (job import Guru/Siswa) |
+| `Feature/Auth/ApiTestRouteGateTest` | 7 | Residual F-14 (`/api/test`) |
+| **Total** | **187** | |
 
 ## 3. Register test gap (Matrix v3 §5)
 
@@ -66,3 +73,18 @@ Inventaris statis (jumlah method test per file) berjumlah **142**, sama dengan t
 2. Test baru bersifat additive; jangan mengubah assertion test lama untuk membuat suite hijau.
 3. Test untuk perilaku finding yang masih OPEN ditulis bersamaan dengan fix-nya, bukan lebih awal (test merah menodai baseline).
 4. Test yang gagal setelah patch dianggap bukti (bug test atau temuan produksi); jangan "diperbaiki" dengan melonggarkan assertion.
+
+## 5. Catatan operasional
+
+- **Deploy Stage 0-B: semua user login ulang sekali.** Setelah patch Stage 0-B, semua JWT yang terbit sebelum patch (tanpa claim `pwd`) ditolak dengan 401. Setiap user perlu login ulang satu kali saat deploy; umumkan ke tim dan FE sebelum rilis.
+- **Status batch import bisa bernilai `failed`.** Job import (Guru/Siswa) yang dibatalkan karena pemilik batch tidak aktif atau hilang menandai batch `failed` (file upload dihapus). Nilai status ini belum didokumentasikan di SoT (kolom `import_batches.status` adalah string bebas) dan akan diselaraskan dengan F-37.
+
+## 6. Yang masih OPEN setelah Stage 0
+
+Daftar ini bukan klaim selesai; setiap item tetap OPEN sampai kode diperbaiki dan test dijalankan hijau.
+
+- **F-14:** scope resolver di service belum memfilter status profil (poin (c) remediation F-14). Jalur HTTP sudah ditutup middleware `AuthenticateActiveSession`. Rencana: digabung ke Stage 3 (keputusan penjadwalan; Matrix v3 §8 menempatkan F-14 di Stage 2/Grup S dan tidak menjadwalkan poin ini secara eksplisit).
+- **F-14:** jendela balapan; Headmaster/Teacher yang di-inactive-kan saat job import sedang berjalan menyelesaikan job itu (gerbang hanya dicek di awal job).
+- **F-37:** exception di tengah job masih menahan batch di `processing` dan file upload tidak terhapus.
+- **F-46:** `_method` (method-spoofing PATCH + multipart) masih dianggap field asing oleh `UpdateStudentRequest::prepareForValidation()`, sehingga replace foto Student masih 422 `protected_field`.
+- **F-12:** kode sudah mengembalikan 201 di `SchoolController::store()` (diubah di commit `7396a1a`, yang berjudul "test(postman): TEST-001 ..."), tetapi belum ada test PHPUnit sehingga **belum terverifikasi**. Matrix v3 masih mencatat perilaku lama (200); catatan itu sudah tidak sesuai kode, dan F-12 masih terdaftar di bundel School Stage 3.
