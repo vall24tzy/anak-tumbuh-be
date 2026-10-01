@@ -26,9 +26,10 @@ Dokumen ini mencatat hasil eksekusi nyata sebagai baseline regresi. Tidak ada kl
 | Full suite setelah residual F-14 (172 + 15 test baru) | **187 passed, 873 assertions** |
 | Full suite setelah test F-12 (187 + 3 test baru) | **190 passed, 895 assertions** |
 | Full suite setelah fix F-46 (190 + 8 test baru) | **198 passed, 938 assertions** |
-| Full suite setelah fix F-02 (198 + 5 test baru) | **203 passed, 976 assertions** (baseline regresi terkini) |
+| Full suite setelah fix F-02 (198 + 5 test baru) | **203 passed, 976 assertions** |
+| Full suite setelah fix F-01 (203 + 7 test baru) | **210 passed, 1013 assertions** (baseline regresi terkini) |
 
-Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada state setelah fix F-02, berjumlah **203**, sama dengan total run (203 passed), sehingga tidak ada test yang terlewat atau ter-skip. Rinciannya: 142 (baseline Stage 0-B) + 30 (Stage 0-C) + 15 (residual F-14) + 3 (F-12) + 8 (F-46) + 5 (F-02).
+Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada state setelah fix F-01, berjumlah **210**, sama dengan total run (210 passed), sehingga tidak ada test yang terlewat atau ter-skip. Rinciannya: 142 (baseline Stage 0-B) + 30 (Stage 0-C) + 15 (residual F-14) + 3 (F-12) + 8 (F-46) + 5 (F-02) + 7 (F-01).
 
 | File | Test | Catatan |
 |---|---:|---|
@@ -59,13 +60,14 @@ Inventaris statis (jumlah method test per file), dihitung ulang dari repo pada s
 | `Feature/School/SchoolStoreStatusTest` | 3 | F-12 (`POST /schools`: 201 untuk Super Admin; 403 untuk Headmaster, Teacher, Student) |
 | `Feature/Student/StudentUpdatePhotoMultipartTest` | 8 | F-46 (`PATCH /students/{id}` multipart + `_method=PATCH`) |
 | `Feature/School/AcademicYearActivateIdempotencyTest` | 5 | F-02 (`POST /academic-years/{id}/activate` idempoten) |
-| **Total** | **203** | |
+| `Feature/Auth/StaffLoginRoleGateTest` | 7 | F-01 (`POST /auth/login/staff` menolak akun Student) |
+| **Total** | **210** | |
 
 ## 3. Register test gap (Matrix v3 §5)
 
 | Gap | Status setelah Stage 0-C | Alasan / dependency |
 |---|---|---|
-| F-22 login/logout | **Sebagian ditutup** (`AuthLoginLogoutTest`) | Skenario F-01 dan F-23 menunggu fix masing-masing (finding OPEN). Gate F-14/F-24 sudah di `SessionValidityTest`. |
+| F-22 login/logout | **Sebagian ditutup** (`AuthLoginLogoutTest`) | Skenario F-01 sudah ditutup di `StaffLoginRoleGateTest`; skenario F-23 menunggu fix F-23 (finding OPEN). Gate F-14/F-24 sudah di `SessionValidityTest`. |
 | F-27 `/auth/me` | **Sebagian ditutup** (`AuthMeTest`, termasuk kunci F-26 `id == users.id`) | Bentuk respons penuh menunggu F-25 (shape resmi belum didokumentasikan). |
 | F-28 AUTH-003 | **Sebagian ditutup** (`PasswordRoleMatrixTest`) | Sisi positif dan skenario F-29 sudah di `SessionValidityTest`; HM→Teacher di `TeacherResetPasswordScopeTest`. |
 | F-39 Import Guru | **Ditunda** | NIP kembar, file rusak, `.xls`, trim, async, dan isolasi status adalah perilaku F-32–F-38 yang masih OPEN. Test ditulis bersama fix-nya (aturan Matrix §8). |
@@ -100,3 +102,4 @@ Daftar ini bukan klaim selesai; setiap item tetap OPEN sampai kode diperbaiki da
 - **F-12: FIXED — VERIFIED.** `POST /schools` oleh Super Admin mengembalikan 201 dengan envelope `{data:{id,name,address,logo}}`. Kode diubah di `SchoolController::store()` pada commit `7396a1a` (judul commit "test(postman): TEST-001 ..."), dan kini dikunci oleh `SchoolStoreStatusTest` (3 test; run verifikasi: full suite 190 passed, 895 assertions; baseline terkini: lihat §2). Headmaster, Teacher, dan Student ditolak 403. Status belum CLOSED. Matrix v3 masih mencatat perilaku lama (200) dan F-12 masih terdaftar di bundel School Stage 3; keduanya perlu disesuaikan di Stage 3.
 - **F-46: FIXED — VERIFIED.** `PATCH /students/{id}` multipart (method-spoofing POST + `_method=PATCH`) tidak lagi 422 `protected_field` karena field `_method`. Kode diubah di `UpdateStudentRequest::prepareForValidation()` (properti `$ignored`) pada commit `33d444e`, dan kini dikunci oleh `StudentUpdatePhotoMultipartTest` (8 test; full suite 198 passed, 938 assertions). Yang dikunci: foto valid 200 dan tersimpan, replace foto menghapus file lama, update `name` tanpa foto, method-spoofing lewat query string, field terlarang lain tetap 422 `protected_field` tanpa `_method` ikut dilaporkan, foto bukan gambar tetap 422 `validation_failed`, Teacher rombel lain 403, Headmaster 403, dan tanpa token 401. Status belum CLOSED. Cek manual Postman TEST-002 9.07/9.08 (bagian acceptance F-46 di Matrix) belum dilakukan. Test butuh ekstensi PHP `gd` dan terikat ke `Storage::fake('public')` serta jalur `students/{id}.jpg`; sesuaikan saat F-06 (foto Student private), jangan dianggap regresi F-46.
 - **F-02: FIXED — VERIFIED.** `POST /academic-years/{id}/activate` pada Academic Year yang sudah aktif tetap aktif (200 idempoten) dan tepat satu AY aktif per school setelah setiap activate. Akar masalah: bulk query builder di `AcademicYearService::activate()` menulis `is_active=false` ke baris target, lalu `$academicYear->update(['is_active' => true])` tidak menghasilkan query karena model tidak dirty, sehingga sekolah berakhir tanpa AY aktif. Fix: baris target dikecualikan dari bulk-deactivate (`whereKeyNot`). Tanpa perubahan schema, migration, atau dokumen SoT. Dikunci oleh `AcademicYearActivateIdempotencyTest` (5 test; full suite 203 passed, 976 assertions). Status belum CLOSED: cek manual Postman TEST-002 4.10 belum dilakukan. Activate konkuren (F-03) tidak tercakup dan dikerjakan terpisah.
+- **F-01: FIXED — VERIFIED.** `POST /auth/login/staff` hanya menerima `super_admin`, `headmaster`, dan `teacher`. Akun Student (aktif, inactive, maupun graduated) ditolak 401 "Username atau password salah" tanpa token dan tanpa membocorkan status akun; sebelumnya Student inactive/graduated mendapat 403 "Akun tidak aktif". Fix: filter `whereIn('role', ...)` pada query `AuthService::loginStaff()`. Tanpa perubahan schema, migration, atau dokumen SoT. Dikunci oleh `StaffLoginRoleGateTest` (7 test; full suite 210 passed, 1013 assertions). Headmaster/Teacher inactive tetap 403 (gate Stage 0-B tidak berubah), SA/Headmaster/Teacher aktif tetap 200, dan login Student lewat jalur Student tetap berfungsi. Status belum CLOSED: cek manual (mis. Postman, login staff dengan NISN) belum dilakukan.
