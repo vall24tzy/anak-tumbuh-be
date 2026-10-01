@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\Student;
 use App\Models\StudentClassAssignment;
 use App\Models\StudentHabit;
+use App\Services\Gamification\LevelService;
 use App\Services\School\TeacherScopeService;
 use App\Services\Student\StudentClassAssignmentService;
 use Illuminate\Support\Carbon;
@@ -19,16 +20,17 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 // bentuk dashboard/teacher dirancang dari instruksi Task Board + prinsip
 // "seluruhnya derivable dari resource yang sudah ada" (tidak menambah data baru).
 //
-// gamification_level SENGAJA belum ada di sini — field ini butuh LevelService
-// dari LEVEL-RANKING-001 (belum dikerjakan), dan Task Board eksplisit menunda
-// integrasinya ke tahap MERGE-001. Jangan tambahkan field ini sendiri sebelum
-// LevelService benar-benar ada.
+// gamification_level (F-40): dashboard/student memuatnya lewat
+// LevelService::levelForPoin() dari students.poin (LEVEL-RANKING-001, API Contract
+// §23/§25). Dihitung real-time dan TIDAK disimpan sebagai kolom; nilainya sama
+// dengan GET /gamification/me. Hanya dashboard/student yang memuat field ini.
 
 class DashboardService
 {
     public function __construct(
         protected TeacherScopeService $teacherScope,
         protected StudentClassAssignmentService $assignments,
+        protected LevelService $levels,
     ) {}
 
     protected function today(): string
@@ -87,6 +89,7 @@ class DashboardService
                 'total'     => $totalHabit,
             ],
             'poin' => $student->poin,
+            'gamification_level' => $this->levels->levelForPoin((int) $student->poin),
         ];
     }
 
