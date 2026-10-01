@@ -4,7 +4,6 @@ namespace App\Jobs\Concerns;
 
 use App\Models\ImportBatch;
 use App\Models\User;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Stage 0-B residual F-14 - gerbang lifecycle untuk job import di queue worker.
@@ -25,6 +24,9 @@ use Illuminate\Support\Facades\Storage;
  */
 trait ActsAsActiveBatchOwner
 {
+    /** Disediakan ClosesFailedImportBatch (F-37): satu rutinitas penutupan batch `failed` + hapus file. */
+    abstract protected function closeBatchAsFailed(ImportBatch $batch, string $storedPath): void;
+
     /**
      * @return bool true = pemilik aktif dan sudah di-login; false = job harus berhenti.
      */
@@ -33,8 +35,7 @@ trait ActsAsActiveBatchOwner
         $actingUser = $batch->created_by ? User::find($batch->created_by) : null;
 
         if (!$actingUser || !$actingUser->isLifecycleActive()) {
-            $batch->update(['status' => 'failed', 'failed_rows' => []]);
-            Storage::delete($storedPath);
+            $this->closeBatchAsFailed($batch, $storedPath);
 
             return false;
         }

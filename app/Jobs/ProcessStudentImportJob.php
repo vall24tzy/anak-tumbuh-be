@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Jobs\Concerns\ActsAsActiveBatchOwner;
+use App\Jobs\Concerns\ClosesFailedImportBatch;
 use App\Models\ImportBatch;
 use App\Services\Student\StudentImportService;
 use Illuminate\Bus\Queueable;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ProcessStudentImportJob implements ShouldQueue
 {
-    use ActsAsActiveBatchOwner, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use ActsAsActiveBatchOwner, ClosesFailedImportBatch, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(
         protected int $importBatchId,
