@@ -8,10 +8,11 @@ use App\Http\Requests\School\CreateTeacherRequest;
 use App\Http\Resources\School\TeacherResource;
 use App\Services\School\TeacherService;
 use App\Traits\ApiResponseTraits;
+use App\Traits\HandlesNipConflict;
 
 class TeacherController extends Controller
 {
-    use ApiResponseTraits;
+    use ApiResponseTraits, HandlesNipConflict;
 
     public function __construct(protected TeacherService $service) {}
 
@@ -23,7 +24,7 @@ class TeacherController extends Controller
 
     public function store(CreateTeacherRequest $request)
     {
-        $teacher = $this->service->store($request->validated());
+        $teacher = $this->withNipConflictAsValidation(fn () => $this->service->store($request->validated()));
         return $this->successResponse(new TeacherResource($teacher), code: 201);
     }
 

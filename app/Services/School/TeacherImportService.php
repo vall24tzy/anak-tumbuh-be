@@ -51,7 +51,11 @@ class TeacherImportService
                 // yang sudah ada, maupun antar-baris di file yang sama lewat
                 // QueryException di ImportService::generate()) SELALU
                 // ditolak, tidak ada konsep "reuse" seperti NISN di Student.
-                'nip'    => ['required', 'string', 'max:30', 'unique:teachers,nip'],
+                // F-13: NIP yang sudah menjadi users.username role lain (SA/Headmaster/Student)
+                // ditolak sebagai error baris field `nip` (validation_failed), bukan lolos lalu gagal
+                // generik `unexpected_error` saat User::create(). `bail` menjaga duplikat per-tabel
+                // tetap satu error. NIP kembar ANTAR-baris dalam file (F-35) tidak tercakup di sini.
+                'nip'    => ['bail', 'required', 'string', 'max:30', 'unique:teachers,nip', 'unique:users,username'],
                 'gender' => ['required', 'in:laki-laki,perempuan'],
             ],
             rowProcessor: $schoolId ? function (array $row) use ($schoolId) {

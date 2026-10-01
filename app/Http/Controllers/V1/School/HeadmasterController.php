@@ -8,10 +8,11 @@ use App\Http\Requests\School\CreateHeadmasterRequest;
 use App\Http\Resources\School\HeadmasterResource;
 use App\Services\School\HeadmasterService;
 use App\Traits\ApiResponseTraits;
+use App\Traits\HandlesNipConflict;
 
 class HeadmasterController extends Controller
 {
-    use ApiResponseTraits;
+    use ApiResponseTraits, HandlesNipConflict;
 
     public function __construct(protected HeadmasterService $service) {}
 
@@ -23,7 +24,7 @@ class HeadmasterController extends Controller
 
     public function store(CreateHeadmasterRequest $request)
     {
-        $headmaster = $this->service->store($request->validated());
+        $headmaster = $this->withNipConflictAsValidation(fn () => $this->service->store($request->validated()));
         return $this->successResponse(new HeadmasterResource($headmaster), code: 201);
     }
 
