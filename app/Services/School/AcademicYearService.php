@@ -72,8 +72,15 @@ class AcademicYearService
         $this->assertAcademicYearInScope($academicYear, $this->currentUser());
 
         return DB::transaction(function () use ($academicYear) {
+            // F-02: nonaktifkan Academic Year aktif LAIN saja; baris target sengaja
+            // dikecualikan. Bila target sudah aktif, bulk query builder di bawah
+            // (yang tidak diketahui Eloquent) dulu ikut menulis is_active=false ke
+            // baris target, lalu $academicYear->update(['is_active' => true]) di-skip
+            // karena nilai in-memory-nya sudah true (tidak dirty) -> sekolah berakhir
+            // tanpa Academic Year aktif dan respons melaporkan is_active=false.
             AcademicYear::where('school_id', $academicYear->school_id)
                 ->where('is_active', true)
+                ->whereKeyNot($academicYear->getKey())
                 ->update(['is_active' => false]);
 
             $academicYear->update(['is_active' => true]);
