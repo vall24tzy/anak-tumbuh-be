@@ -71,7 +71,13 @@ class TeacherImportController extends Controller
 
     public function status(int $batchId)
     {
-        $batch = ImportBatch::find($batchId);
+        // F-32: batch hanya terbaca oleh PEMILIKNYA (created_by = user yang sedang login)
+        // dan hanya untuk jenis 'teacher'. Batch milik orang lain, sekolah lain, jenis
+        // lain, atau created_by NULL tidak dibedakan dari batch yang tidak ada (404),
+        // supaya keberadaan batch tidak bocor. Bentuk respons 200 tidak diubah.
+        $batch = ImportBatch::where('type', 'teacher')
+            ->where('created_by', auth('api')->id())
+            ->find($batchId);
 
         if (!$batch) {
             throw new HttpException(404, 'Batch import tidak ditemukan');
