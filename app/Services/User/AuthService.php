@@ -25,12 +25,19 @@ class AuthService
      * Gate lifecycle (F-14): Headmaster/Teacher inactive ditolak 403 - pola sama
      * dengan login Student (R7), dicek SETELAH password valid supaya status akun
      * tidak bocor ke pihak tanpa password. Super Admin tidak punya lifecycle.
-     * (Pembatasan role Student di jalur ini = F-01, sengaja di luar Stage 0-B;
-     * gate ini berlaku untuk semua role sehingga Student inactive juga tertolak.)
+     *
+     * F-01: jalur ini HANYA untuk super_admin/headmaster/teacher. Akun Student
+     * (username = NISN) diperlakukan sama seperti username yang tidak ada: 401
+     * 'Username atau password salah', termasuk untuk Student inactive/graduated,
+     * sehingga status/keberadaan akun Student tidak bocor dan Student tidak
+     * pernah memperoleh token dari sini (Student memakai loginStudentPassword /
+     * loginStudentQr).
      */
     public function loginStaff(array $data)
     {
-        $user = User::where('username', $data['username'])->first();
+        $user = User::where('username', $data['username'])
+            ->whereIn('role', ['super_admin', 'headmaster', 'teacher'])
+            ->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return $this->errorResponse('Username atau password salah', 401);

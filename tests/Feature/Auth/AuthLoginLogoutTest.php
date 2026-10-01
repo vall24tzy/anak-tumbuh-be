@@ -13,7 +13,7 @@ use Tests\TestCase;
 //
 // SENGAJA TIDAK ADA di file ini (bergantung pada finding yang masih OPEN,
 // harus ditulis bersamaan dengan fix-nya, bukan sekarang):
-//   - skenario F-01 (login/staff menerima akun Student) -> ditulis bersama fix F-01
+//   - skenario F-01 (login/staff menerima akun Student) -> sudah ditulis bersama fix F-01 di StaffLoginRoleGateTest
 //   - skenario F-23 (rate limit login)                  -> ditulis bersama fix F-23
 // Gate inactive/graduated (F-14/F-24) sudah dicakup SessionValidityTest.
 //
