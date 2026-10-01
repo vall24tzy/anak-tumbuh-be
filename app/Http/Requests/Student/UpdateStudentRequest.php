@@ -17,6 +17,11 @@ class UpdateStudentRequest extends FormRequest
 {
     protected array $allowed = ['name', 'gender', 'photo'];
 
+    // Key teknis method-spoofing (POST multipart + `_method=PATCH`), bukan field
+    // data (F-46). Aman dilewati: rules() tidak memuatnya, sehingga validated()
+    // tidak pernah membawanya ke StudentService::update().
+    protected array $ignored = ['_method'];
+
     public function authorize(): bool
     {
         return true;
@@ -36,6 +41,10 @@ class UpdateStudentRequest extends FormRequest
         $details = [];
 
         foreach (array_keys($this->all()) as $field) {
+            if (in_array($field, $this->ignored, true)) {
+                continue;
+            }
+
             if (!in_array($field, $this->allowed, true)) {
                 $details[] = [
                     'field'   => $field,
