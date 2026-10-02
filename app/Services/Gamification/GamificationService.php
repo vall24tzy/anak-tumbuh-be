@@ -57,7 +57,7 @@ class GamificationService
     {
         return match ($user->role) {
             'super_admin' => true,
-            'headmaster'  => $student->school_id === Headmaster::where('user_id', $user->id)->value('school_id'),
+            'headmaster'  => $student->school_id === $user->activeHeadmasterSchoolId(),
             'teacher'     => $this->studentInTeacherActiveRombel($user, $student),
             default       => false,
         };

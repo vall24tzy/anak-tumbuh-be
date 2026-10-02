@@ -18,11 +18,14 @@ class RombelService
 
     protected function schoolIdForUser($user): ?int
     {
+        // F-14 residual: hanya profil AKTIF yang punya scope; selain itu 403 (pola R7).
         if ($user->role === 'headmaster') {
-            return Headmaster::where('user_id', $user->id)->value('school_id');
+            return $user->activeHeadmasterSchoolId()
+                ?? throw new HttpException(403, 'Profil Headmaster tidak aktif atau tidak ditemukan');
         }
 
-        return $user->teacher?->school_id;
+        return $user->activeTeacherSchoolId()
+            ?? throw new HttpException(403, 'Profil Teacher tidak aktif atau tidak ditemukan');
     }
 
     protected function assertAcademicYearBelongsToSchool(int $academicYearId, int $schoolId): void

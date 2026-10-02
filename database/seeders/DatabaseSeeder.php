@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 // DB Design v1.5 (Fresh Deployment §10.A) — seeder pemanggilan test user lama
 // (name/email) dihapus karena kolom tsb tidak ada lagi di skema users final.
@@ -25,13 +26,40 @@ class DatabaseSeeder extends Seeder
             GamificationLevelSeeder::class, // LEVEL-RANKING-001 — threshold Level 0-100 (101 baris FIXED)
         ]);
 
-        User::firstOrCreate(
-            ['username' => 'superadmin1'],
-            ['role' => 'super_admin', 'password' => Hash::make('ganti_ini_di_production')]
+        // F-30 (AUTH-003): 2 Super Admin aktif. Password awal dari konfigurasi deployment
+        // (SEED_SUPER_ADMIN_PASSWORD -> config 'app.seed_super_admin_password'), bukan
+        // literal di source. Akun yang sudah ada tidak diubah (setara firstOrCreate).
+        foreach (['superadmin1', 'superadmin2'] as $username) {
+            if (User::where('username', $username)->exists()) {
+                continue;
+            }
+
+            User::create([
+                'username' => $username,
+                'role'     => 'super_admin',
+                'password' => Hash::make($this->superAdminInitialPassword($username)),
+            ]);
+        }
+    }
+
+    /**
+     * Konfigurasi kosong / hanya spasi dianggap TIDAK diset (bukan password kosong).
+     * Tanpa konfigurasi: password acak per akun dan tidak pernah ditampilkan;
+     * gunakan `php artisan admin:reset-password` untuk menetapkan password.
+     */
+    protected function superAdminInitialPassword(string $username): string
+    {
+        $configured = config('app.seed_super_admin_password');
+
+        if (is_string($configured) && trim($configured) !== '') {
+            return $configured;
+        }
+
+        $this->command?->warn(
+            "SEED_SUPER_ADMIN_PASSWORD tidak diset: password acak dibuat untuk {$username}. "
+            . 'Gunakan `php artisan admin:reset-password` untuk menetapkannya.'
         );
-        User::firstOrCreate(
-            ['username' => 'superadmin2'],
-            ['role' => 'super_admin', 'password' => Hash::make('ganti_ini_di_production')]
-        );
+
+        return Str::random(32);
     }
 }

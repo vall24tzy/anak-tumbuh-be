@@ -17,7 +17,9 @@ class TeacherScopeService
      */
     public function activeAssignment($teacherUser): ?TeacherClassAssignment
     {
-        $teacher = $teacherUser->teacher;
+        // F-14 residual: Teacher inactive tidak punya scope, walau assignment-nya
+        // masih tercatat aktif (status profil diubah tanpa menutup assignment).
+        $teacher = $teacherUser->teacher()->where('status', 'active')->first();
 
         if (!$teacher) {
             return null;

@@ -18,7 +18,9 @@ class TeacherAssignmentService
 
     protected function headmasterSchoolId($user): ?int
     {
-        return Headmaster::where('user_id', $user->id)->value('school_id');
+        // F-14 residual: hanya Headmaster AKTIF yang punya scope; selain itu 403 (pola R7).
+        return $user->activeHeadmasterSchoolId()
+            ?? throw new HttpException(403, 'Profil Headmaster tidak aktif atau tidak ditemukan');
     }
 
     public function index()
@@ -29,8 +31,11 @@ class TeacherAssignmentService
             return TeacherClassAssignment::where('school_id', $this->headmasterSchoolId($user))->get();
         }
 
-        // Teacher: hanya lihat assignment miliknya sendiri
-        return TeacherClassAssignment::where('teacher_id', $user->teacher?->id)->get();
+        // Teacher: hanya lihat assignment miliknya sendiri (F-14 residual: hanya Teacher AKTIF)
+        $teacherId = $user->activeTeacherId()
+            ?? throw new HttpException(403, 'Profil Teacher tidak aktif atau tidak ditemukan');
+
+        return TeacherClassAssignment::where('teacher_id', $teacherId)->get();
     }
 
     public function show(int $id)
@@ -46,7 +51,7 @@ class TeacherAssignmentService
             throw new HttpException(404, 'Teacher Class Assignment tidak ditemukan');
         }
 
-        if ($user->role === 'teacher' && $assignment->teacher_id !== $user->teacher?->id) {
+        if ($user->role === 'teacher' && $assignment->teacher_id !== $user->activeTeacherId()) {
             throw new HttpException(404, 'Teacher Class Assignment tidak ditemukan');
         }
 
@@ -138,7 +143,7 @@ class TeacherAssignmentService
             throw new HttpException(403, 'Assignment ini di luar sekolah Anda');
         }
 
-        if ($user->role === 'teacher' && $assignment->teacher_id !== $user->teacher?->id) {
+        if ($user->role === 'teacher' && $assignment->teacher_id !== $user->activeTeacherId()) {
             throw new HttpException(403, 'Assignment ini bukan milik Anda');
         }
     }

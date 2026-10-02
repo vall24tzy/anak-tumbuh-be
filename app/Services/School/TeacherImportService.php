@@ -30,7 +30,9 @@ class TeacherImportService
 
     protected function headmasterSchoolId($user): ?int
     {
-        return Headmaster::where('user_id', $user->id)->value('school_id');
+        // F-14 residual: hanya Headmaster AKTIF yang punya scope; selain itu 403 (pola R7).
+        return $user->activeHeadmasterSchoolId()
+            ?? throw new \Symfony\Component\HttpKernel\Exception\HttpException(403, 'Profil Headmaster tidak aktif atau tidak ditemukan');
     }
 
     /**

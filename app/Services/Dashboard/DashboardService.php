@@ -172,7 +172,8 @@ class DashboardService
 
     protected function currentHeadmaster(): Headmaster
     {
-        $headmaster = auth('api')->user()?->headmaster;
+        // F-14 residual: hanya profil Headmaster AKTIF.
+        $headmaster = auth('api')->user()?->headmaster()->where('status', 'active')->first();
 
         if (!$headmaster) {
             throw new HttpException(403, 'Profil Headmaster tidak ditemukan untuk akun ini');

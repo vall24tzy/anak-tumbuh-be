@@ -99,6 +99,19 @@ return [
 
     'key' => env('APP_KEY'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Password awal Super Admin (seeder) - F-30
+    |--------------------------------------------------------------------------
+    |
+    | Diisi lewat deployment/secret (env SEED_SUPER_ADMIN_PASSWORD), TIDAK
+    | boleh di-hard-code di repository. Kosong/tidak diset = DatabaseSeeder
+    | membuat password acak per akun (reset lewat `php artisan admin:reset-password`).
+    |
+    */
+
+    'seed_super_admin_password' => env('SEED_SUPER_ADMIN_PASSWORD'),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', env('APP_PREVIOUS_KEYS', ''))

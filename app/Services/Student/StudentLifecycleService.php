@@ -107,7 +107,7 @@ class StudentLifecycleService
 
     protected function sameSchoolAsTeacher($user, Student $student): bool
     {
-        return $student->school_id === $user->teacher?->school_id;
+        return $student->school_id === $user->activeTeacherSchoolId();
     }
 
     /**

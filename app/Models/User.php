@@ -80,6 +80,26 @@ class User extends Authenticatable implements JWTSubject
         };
     }
 
+    /**
+     * F-14 residual: resolver scope hanya boleh memakai profil AKTIF. Dipakai oleh
+     * service sebagai pengganti `Headmaster::where('user_id', ...)` / `$user->teacher`
+     * tanpa filter status. Null = profil tidak ada atau inactive (fail-closed).
+     */
+    public function activeHeadmasterSchoolId(): ?int
+    {
+        return $this->headmaster()->where('status', 'active')->value('school_id');
+    }
+
+    public function activeTeacherSchoolId(): ?int
+    {
+        return $this->teacher()->where('status', 'active')->value('school_id');
+    }
+
+    public function activeTeacherId(): ?int
+    {
+        return $this->teacher()->where('status', 'active')->value('id');
+    }
+
     // ----- Relasi -----
     public function teacher()
     {

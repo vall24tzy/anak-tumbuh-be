@@ -142,7 +142,7 @@ class RankingService
         $user = $this->currentUser();
 
         $schoolId = match ($user->role) {
-            'teacher' => Teacher::where('user_id', $user->id)->value('school_id'),
+            'teacher' => $user->activeTeacherSchoolId(),
             'student' => $user->student?->school_id,
             default   => throw new HttpException(403, 'Role Anda tidak memiliki akses ke ranking'),
         };
