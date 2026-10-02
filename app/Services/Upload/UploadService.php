@@ -23,14 +23,14 @@ class UploadService
 
     /**
      * Upload & resize gambar, simpan dengan nama {identifier}.{ext}.
-     * Kalau $oldPath diisi, file lama dihapus dulu sebelum yang baru disimpan (replacement).
+     *
+     * Replacement (F-08): $oldPath dihapus HANYA setelah file baru benar-benar tersimpan.
+     * Urutan: decode -> resize -> encode -> simpan -> hapus file lama. Bila langkah mana pun
+     * sebelum "hapus file lama" gagal (file rusak, format tidak didukung, penyimpanan gagal),
+     * file lama dan path lama di database tetap valid.
      */
     public function upload(UploadedFile $file, string $folder, int|string $identifier, ?string $oldPath = null): string
     {
-        if ($oldPath) {
-            $this->delete($oldPath);
-        }
-
         $manager = ImageManager::usingDriver(Driver::class);
 
         // decodeSplFileInfo() dipakai khusus untuk baca UploadedFile Laravel
@@ -47,7 +47,19 @@ class UploadService
         $extension = $this->extensionFor($encoded->mediaType());
         $relativePath = "{$folder}/{$identifier}.{$extension}";
 
-        Storage::disk('public')->put($relativePath, (string) $encoded);
+        // Disk `public` dikonfigurasi `throw => false`: put() mengembalikan false (tanpa exception)
+        // saat gagal. Nilai itu harus diperiksa; kalau tidak, path ke file yang tidak ada akan
+        // dikembalikan dan file lama sudah (atau akan) hilang.
+        if (Storage::disk('public')->put($relativePath, (string) $encoded) === false) {
+            throw new \RuntimeException("Gagal menyimpan file upload: {$relativePath}");
+        }
+
+        // Nama file deterministik ({folder}/{identifier}.{ext}): bila ekstensi lama dan baru sama,
+        // path-nya identik dan put() di atas sudah menimpa file lama di tempat. Menghapus
+        // $oldPath pada kasus itu justru menghapus file yang baru disimpan.
+        if ($oldPath && $oldPath !== $relativePath) {
+            $this->delete($oldPath);
+        }
 
         return $relativePath;
     }
