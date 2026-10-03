@@ -12,6 +12,8 @@ Route::prefix('students')
     ->group(function () {
         Route::get('/', [StudentController::class, 'index']);
         Route::get('/{id}', [StudentController::class, 'show']);
+        // F-06: foto Student privat. Otorisasi di service = scope GET /students/{id}.
+        Route::get('/{id}/photo', [StudentController::class, 'photo'])->name('students.photo');
 
         Route::middleware('role:teacher')->group(function () {
             Route::post('/', [StudentController::class, 'store']);

@@ -33,7 +33,8 @@ use Throwable;
 // Di luar scope: batas dimensi (F-07), foto Student private (F-06), dan update field lain pada
 // PATCH /students/{id} yang sudah tersimpan sebelum upload (pola partial-failure serupa F-04).
 //
-// Test ini terikat ke Storage::fake('public') dan jalur students/{id}.{ext}; sesuaikan saat F-06,
+// Test ini terikat ke Storage::fake('public') dan jalur students/{id}.{ext}; F-06 (Stage 2B lanjutan):
+// hanya test pemanggil StudentService yang dipindah ke disk 'private', test level UploadService tetap 'public',
 // jangan dianggap regresi F-08.
 //
 // STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
@@ -50,6 +51,7 @@ class UploadReplaceOrderTest extends TestCase
         parent::setUp();
 
         Storage::fake('public');
+        Storage::fake('private');   // F-06: foto Student ada di disk privat
     }
 
     protected function tearDown(): void
@@ -211,7 +213,8 @@ class UploadReplaceOrderTest extends TestCase
         $teacher = $this->makeTeacher($school, $year, $rombel);
         $student = $this->makeStudent($school, $year, $rombel, 0);
 
-        $this->putOld("students/{$student->id}.png", 'FILE-LAMA');
+        // F-06: pemanggil StudentService memakai disk privat, jadi berkas lama ditaruh di sana.
+        Storage::disk('private')->put("students/{$student->id}.png", 'FILE-LAMA');
         $student->update(['photo_path' => "students/{$student->id}.png"]);
 
         auth('api')->setUser($teacher);
@@ -225,6 +228,6 @@ class UploadReplaceOrderTest extends TestCase
 
         $this->assertTrue($threw);
         $this->assertSame("students/{$student->id}.png", $student->fresh()->photo_path, 'photo_path lama tidak boleh berubah');
-        $this->assertSame('FILE-LAMA', Storage::disk('public')->get("students/{$student->id}.png"));
+        $this->assertSame('FILE-LAMA', Storage::disk('private')->get("students/{$student->id}.png"));
     }
 }

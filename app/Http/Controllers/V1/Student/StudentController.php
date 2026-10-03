@@ -35,6 +35,12 @@ class StudentController extends Controller
         return $this->successResponse(new StudentResource($this->service->show($id)));
     }
 
+    // F-06: foto Student privat; otorisasi sama dengan show().
+    public function photo(int $id)
+    {
+        return $this->service->photo($id);
+    }
+
     public function update(UpdateStudentRequest $request, int $id)
     {
         $student = $this->service->update($id, $request->validated());

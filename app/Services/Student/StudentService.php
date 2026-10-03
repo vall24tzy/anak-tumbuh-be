@@ -13,7 +13,9 @@ use App\Services\Upload\UploadService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 // API Contract v1.2 §17, DB Design v1.5 §5.5. Student = permanent identity;
@@ -23,6 +25,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class StudentService
 {
+    // F-06: foto Student disimpan di disk privat (config/filesystems.php 'private'),
+    // tidak pernah di storage publik. Logo School tetap di disk 'public'.
+    public const PHOTO_DISK = 'private';
+
     public function __construct(
         protected UploadService $uploadService,
         protected TeacherScopeService $teacherScope,
@@ -92,6 +98,26 @@ class StudentService
         }
 
         return $student;
+    }
+
+    /**
+     * F-06: sajikan foto Student dari disk privat. Otorisasi memakai show() yang SAMA
+     * dengan GET /students/{id} (Super Admin; Headmaster own school; Teacher own active
+     * rombel; Student diri sendiri), termasuk perbaikan scope F-14. Di luar scope = 404
+     * (API Contract §26, konvensi GET). Tidak ada fallback ke disk publik.
+     */
+    public function photo(int $id): StreamedResponse
+    {
+        $student = $this->show($id);
+
+        if (!$student->photo_path || !Storage::disk(self::PHOTO_DISK)->exists($student->photo_path)) {
+            throw new HttpException(404, 'Foto siswa tidak ditemukan');
+        }
+
+        return Storage::disk(self::PHOTO_DISK)->response($student->photo_path, null, [
+            'Cache-Control'          => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     protected function canView($user, Student $student): bool
@@ -194,8 +220,13 @@ class StudentService
         });
 
         if ($logoFile instanceof UploadedFile) {
-            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $student->photo_path);
+            $oldPhotoPath = $student->photo_path;
+            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $oldPhotoPath, self::PHOTO_DISK);
             $student->update(['photo_path' => $path]);
+
+            // F-06: sisa foto lama di disk publik (sebelum relokasi) ikut dihapus setelah
+            // upload baru sukses, supaya tidak ada salinan publik yang tertinggal.
+            $this->uploadService->delete($oldPhotoPath, 'public');
         }
 
         return $student->fresh()->load(['school', 'user']);
@@ -235,8 +266,13 @@ class StudentService
         }
 
         if ($logoFile instanceof UploadedFile) {
-            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $student->photo_path);
+            $oldPhotoPath = $student->photo_path;
+            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $oldPhotoPath, self::PHOTO_DISK);
             $student->update(['photo_path' => $path]);
+
+            // F-06: sisa foto lama di disk publik (sebelum relokasi) ikut dihapus setelah
+            // upload baru sukses, supaya tidak ada salinan publik yang tertinggal.
+            $this->uploadService->delete($oldPhotoPath, 'public');
         }
 
         return $student->fresh()->load(['school', 'user']);

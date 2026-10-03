@@ -3,7 +3,6 @@
 namespace App\Http\Resources\Student;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 // Field administratif FINAL (API Contract v1.2 §17): fullname, nisn, gender, photo.
 // TIDAK ADA classroom/grade_level (Risk #1, DB Design v1.5) — current placement
@@ -18,7 +17,8 @@ class StudentResource extends JsonResource
             'fullname' => $this->fullname,
             'nisn'     => $this->nisn,
             'gender'   => $this->gender,
-            'photo'    => $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null,
+            // F-06: URL endpoint terotorisasi (butuh Authorization), bukan URL storage publik.
+            'photo'    => $this->photo_path ? route('students.photo', ['id' => $this->id]) : null,
             'poin'     => $this->poin,
             'status'   => $this->status,
             'school'   => [

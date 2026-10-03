@@ -44,6 +44,17 @@ return [
             'throw' => false,
         ],
 
+        // F-06: berkas privat (foto Student). Root di LUAR storage/app/public dan
+        // tanpa 'url', sehingga tidak pernah dilayani web server; hanya dapat dibaca
+        // lewat endpoint terotorisasi (GET /students/{id}/photo). Logo School tetap
+        // di disk 'public'.
+        'private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'visibility' => 'private',
+            'throw' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

@@ -13,6 +13,7 @@ use Tests\TestCase;
 // Sebelum fix, `_method` ikut dihitung sebagai field asing oleh
 // UpdateStudentRequest::prepareForValidation() sehingga replace foto selalu
 // 422 protected_field. SoT: API Contract v1.2 §17 (photo writable), Matrix #10.
+// F-06 (Stage 2B): foto Student kini di disk 'private'; assertion disk disesuaikan dari 'public'.
 // Test ini butuh ekstensi PHP `gd` (UploadedFile::fake()->image() dan UploadService).
 //
 // Yang dikunci:
@@ -33,6 +34,7 @@ class StudentUpdatePhotoMultipartTest extends TestCase
         parent::setUp();
 
         Storage::fake('public');
+        Storage::fake('private');   // F-06: foto Student ada di disk privat
     }
 
     /** Satu sekolah, dua rombel: Teacher A + Student di rombel A; Teacher B di rombel B. */
@@ -87,7 +89,7 @@ class StudentUpdatePhotoMultipartTest extends TestCase
 
         $path = $student->fresh()->photo_path;
         $this->assertSame("students/{$student->id}.jpg", $path);
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('private')->assertExists($path);
         $this->assertNotNull($response->json('data.photo'));
     }
 
@@ -100,7 +102,7 @@ class StudentUpdatePhotoMultipartTest extends TestCase
         $this->spoofPatch($student, $token, ['photo' => UploadedFile::fake()->image('lama.jpg', 80, 80)])
             ->assertStatus(200);
         $old = $student->fresh()->photo_path;
-        Storage::disk('public')->assertExists($old);
+        Storage::disk('private')->assertExists($old);
 
         $this->spoofPatch($student, $token, ['photo' => UploadedFile::fake()->image('baru.png', 80, 80)])
             ->assertStatus(200);
@@ -108,8 +110,8 @@ class StudentUpdatePhotoMultipartTest extends TestCase
         $new = $student->fresh()->photo_path;
         $this->assertNotSame($old, $new);
         $this->assertSame("students/{$student->id}.png", $new);
-        Storage::disk('public')->assertExists($new);
-        Storage::disk('public')->assertMissing($old);
+        Storage::disk('private')->assertExists($new);
+        Storage::disk('private')->assertMissing($old);
     }
 
     /** @test */
@@ -155,7 +157,7 @@ class StudentUpdatePhotoMultipartTest extends TestCase
 
         $this->assertDatabaseHas('students', ['id' => $student->id, 'nisn' => '0051234567']);
         $this->assertNull($student->fresh()->photo_path);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('private')->allFiles());
     }
 
     /** @test */
@@ -170,7 +172,7 @@ class StudentUpdatePhotoMultipartTest extends TestCase
         $response->assertStatus(422)->assertJsonPath('error.code', 'validation_failed');
         $this->assertSame('photo', $response->json('error.details.0.field'));
         $this->assertNull($student->fresh()->photo_path);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('private')->allFiles());
     }
 
     /** @test */
@@ -183,7 +185,7 @@ class StudentUpdatePhotoMultipartTest extends TestCase
         ])->assertStatus(403);
 
         $this->assertNull($student->fresh()->photo_path);
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('private')->allFiles());
     }
 
     /** @test */

@@ -22,15 +22,21 @@ class UploadService
     ];
 
     /**
-     * Upload & resize gambar, simpan dengan nama {identifier}.{ext}.
+     * Upload & resize gambar, simpan dengan nama {identifier}.{ext} di disk $disk
+     * ('public' untuk logo School; 'private' untuk foto Student, F-06).
      *
      * Replacement (F-08): $oldPath dihapus HANYA setelah file baru benar-benar tersimpan.
      * Urutan: decode -> resize -> encode -> simpan -> hapus file lama. Bila langkah mana pun
      * sebelum "hapus file lama" gagal (file rusak, format tidak didukung, penyimpanan gagal),
      * file lama dan path lama di database tetap valid.
      */
-    public function upload(UploadedFile $file, string $folder, int|string $identifier, ?string $oldPath = null): string
-    {
+    public function upload(
+        UploadedFile $file,
+        string $folder,
+        int|string $identifier,
+        ?string $oldPath = null,
+        string $disk = 'public'
+    ): string {
         $manager = ImageManager::usingDriver(Driver::class);
 
         // decodeSplFileInfo() dipakai khusus untuk baca UploadedFile Laravel
@@ -50,7 +56,7 @@ class UploadService
         // Disk `public` dikonfigurasi `throw => false`: put() mengembalikan false (tanpa exception)
         // saat gagal. Nilai itu harus diperiksa; kalau tidak, path ke file yang tidak ada akan
         // dikembalikan dan file lama sudah (atau akan) hilang.
-        if (Storage::disk('public')->put($relativePath, (string) $encoded) === false) {
+        if (Storage::disk($disk)->put($relativePath, (string) $encoded) === false) {
             throw new \RuntimeException("Gagal menyimpan file upload: {$relativePath}");
         }
 
@@ -58,7 +64,7 @@ class UploadService
         // path-nya identik dan put() di atas sudah menimpa file lama di tempat. Menghapus
         // $oldPath pada kasus itu justru menghapus file yang baru disimpan.
         if ($oldPath && $oldPath !== $relativePath) {
-            $this->delete($oldPath);
+            $this->delete($oldPath, $disk);
         }
 
         return $relativePath;
@@ -78,10 +84,10 @@ class UploadService
         return $extension;
     }
 
-    public function delete(?string $path): void
+    public function delete(?string $path, string $disk = 'public'): void
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        if ($path && Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
         }
     }
 }

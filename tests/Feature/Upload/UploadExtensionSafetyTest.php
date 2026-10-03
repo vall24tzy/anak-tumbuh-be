@@ -26,9 +26,10 @@ use Tests\TestCase;
 //   - jalur HTTP (foto Student: PATCH dan POST, logo School) mengikuti aturan yang sama
 //
 // Di luar scope: urutan delete->upload (F-08), batas dimensi/ukuran (F-07),
-// disk dan akses foto private (F-06). Test ini terikat Storage::fake('public')
-// seperti StudentUpdatePhotoMultipartTest; sesuaikan saat F-06. Butuh ekstensi
-// PHP `gd` dengan dukungan webp.
+// akses foto private (F-06). F-06 (Stage 2B) sudah masuk: kasus HTTP foto Student kini
+// diverifikasi di disk 'private' (disesuaikan dari 'public'); logo School tetap di
+// 'public'; kasus level service memakai disk bawaan 'public'. Butuh ekstensi PHP `gd`
+// dengan dukungan webp.
 //
 // STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
 
@@ -46,6 +47,7 @@ class UploadExtensionSafetyTest extends TestCase
         parent::setUp();
 
         Storage::fake('public');
+        Storage::fake('private');   // F-06: foto Student ada di disk privat, logo School di disk publik
     }
 
     protected function tearDown(): void
@@ -95,12 +97,14 @@ class UploadExtensionSafetyTest extends TestCase
 
     protected function assertOnlyAllowedExtensionsOnDisk(): void
     {
-        foreach (Storage::disk('public')->allFiles() as $path) {
-            $this->assertContains(
-                strtolower(pathinfo($path, PATHINFO_EXTENSION)),
-                self::ALLOWED,
-                "file ber-ekstensi di luar allowlist tersimpan: {$path}"
-            );
+        foreach (['public', 'private'] as $disk) {
+            foreach (Storage::disk($disk)->allFiles() as $path) {
+                $this->assertContains(
+                    strtolower(pathinfo($path, PATHINFO_EXTENSION)),
+                    self::ALLOWED,
+                    "file ber-ekstensi di luar allowlist tersimpan di disk {$disk}: {$path}"
+                );
+            }
         }
     }
 
@@ -213,7 +217,8 @@ class UploadExtensionSafetyTest extends TestCase
             ])->assertStatus(200);
 
             $this->assertSame("students/{$student->id}.jpg", $student->fresh()->photo_path, "nama klien {$clientName}");
-            $this->assertSame(["students/{$student->id}.jpg"], Storage::disk('public')->allFiles());
+            $this->assertSame(["students/{$student->id}.jpg"], Storage::disk('private')->allFiles());
+            $this->assertSame([], Storage::disk('public')->allFiles(), 'foto Student tidak boleh ada di disk publik');
         }
 
         $this->assertOnlyAllowedExtensionsOnDisk();
@@ -234,6 +239,7 @@ class UploadExtensionSafetyTest extends TestCase
 
         $this->assertNull($student->fresh()->photo_path);
         $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame([], Storage::disk('private')->allFiles());
     }
 
     /** @test */
@@ -253,7 +259,8 @@ class UploadExtensionSafetyTest extends TestCase
 
         $id = $response->json('data.id');
         $this->assertSame("students/{$id}.jpg", \App\Models\Student::find($id)->photo_path);
-        $this->assertSame(["students/{$id}.jpg"], Storage::disk('public')->allFiles());
+        $this->assertSame(["students/{$id}.jpg"], Storage::disk('private')->allFiles());
+        $this->assertSame([], Storage::disk('public')->allFiles(), 'foto Student tidak boleh ada di disk publik');
     }
 
     /** @test */
