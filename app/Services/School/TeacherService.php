@@ -97,22 +97,15 @@ class TeacherService
     }
 
     /**
-     * AUTHORIZATION-MATRIX Temuan #3 (docs/authorization-matrix.md): API
-     * Contract §15 kontradiktif untuk skenario cross-school pada endpoint ini
-     * (menulis 404 dan 403 untuk skenario yang sama, di baris berurutan).
-     * Keputusan tim: 403 yang menang (bukan 404 milik show()) — endpoint WRITE
-     * dengan scope jelas dari path, pola sama dengan resetPassword() (bukan
-     * GET, jadi alasan "cegah enumerasi" §26 tidak relevan di sini). 404
-     * HANYA untuk id yang benar-benar tidak eksis di database manapun.
+     * F-49 (MASTER_AUDIT_REMEDIATION_MATRIX v3.1, keputusan FINAL): Teacher
+     * cross-school pada endpoint ini = 404, sama dengan "tidak ada". show()
+     * menyaring school_id sebelum find(), jadi keberadaan Teacher di sekolah
+     * lain tidak bocor. Sengaja TIDAK memakai pola resetPassword() (403); F-49
+     * melarang digeneralisasi ke endpoint write lain.
      */
     public function inactive(int $id): Teacher
     {
-        $teacher = $this->findTeacherOrFail($id);
-        $actor = $this->currentUser();
-
-        if ($teacher->school_id !== $this->headmasterSchoolId($actor)) {
-            throw new HttpException(403, 'Guru ini di luar sekolah Anda');
-        }
+        $teacher = $this->show($id); // reuse: scope own-school + 404 kalau di luar
 
         return DB::transaction(function () use ($teacher) {
             $teacher->update(['status' => 'inactive']);

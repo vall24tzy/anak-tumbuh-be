@@ -23,6 +23,14 @@
 - Addendum resmi: docs/addendum/API-Contract-v1.2-Addendum-Teacher-Lifecycle-403.md
 - Temuan #1 dan #2: HANYA update redaksi dokumen (sesuai saran awal), TIDAK ADA kode yang diubah untuk keduanya -- dikonfirmasi tim, tidak perlu tindakan lebih lanjut di luar update redaksi Matrix/API Contract (dilakukan terpisah oleh pemilik dokumen tsb, bukan bagian task kode ini)
 
+## Update 3 Okt 2026 — Temuan #3 direvisi: kembali ke 404 sesuai F-49
+
+- Keputusan 403 pada update 29 Sep di atas dibatalkan oleh pemilik project. Keputusan itu dibuat pada sesi audit terpisah yang belum memperhitungkan F-49 (`MASTER_AUDIT_REMEDIATION_MATRIX_v3_1_STAGE0_STATUS.md`, `DECIDED — DOC ONLY`, keputusan final yang lebih dahulu ada): `POST /teachers/{id}/inactive` cross-school = 404, tidak digeneralisasi ke endpoint write lain.
+- Kode: `TeacherService::inactive()` kembali memakai `show()` (404 untuk Teacher yang tidak ada atau di luar scope). `resetPassword()` tetap 403 dan tidak disentuh.
+- Test: kasus cross-school di `tests/Feature/School/TeacherLifecycleScopeTest.php` kembali meng-assert 404; tiga test lain di file itu tidak berubah.
+- Addendum `docs/addendum/API-Contract-v1.2-Addendum-Teacher-Lifecycle-403.md` dicabut (file dihapus). Kontradiksi API Contract §15 diselesaikan lewat errata §15 pada Stage 5, dengan 404.
+- Teks pada bagian "Update 29 Sep 2026" di atas dipertahankan sebagai catatan sejarah dan tidak lagi berlaku untuk poin 403. Lihat juga revisi di `docs/authorization-matrix.md` Temuan #3.
+
 ## Status Orang 2 (info manual, Task Board tidak diupdate)
 
 - Seluruh task Orang 2 s.d. IMPORT-002, DASHBOARD-001/002 (+revisi headmaster_count) -- selesai

@@ -197,6 +197,27 @@ REKOMENDASI: Matrix baris #35 & API Contract §21 perlu diamandemen resmi mengga
 
 ### Temuan #3 — `TeacherService::inactive()` pakai 404, bukan 403, untuk cross-school — DIKONFIRMASI TIM & DIPERBAIKI
 
+> **REVISI (3 Okt 2026) — keputusan 403 di bawah DIBATALKAN; hasil akhir kembali ke 404 mengikuti F-49.**
+>
+> Keputusan 403 di bagian ini dibuat pada sesi audit terpisah dan diterapkan lewat commit `e58c6e1`,
+> tanpa memperhitungkan **F-49** di `MASTER_AUDIT_REMEDIATION_MATRIX_v3_1_STAGE0_STATUS.md` (status
+> `DECIDED — DOC ONLY`, keputusan final yang lebih dahulu ada). F-49 menetapkan bahwa
+> `POST /teachers/{id}/inactive` untuk Teacher di sekolah lain = **404** (sama dengan id yang tidak ada,
+> konvensi §26), kode tidak berubah, dan **tidak digeneralisasi** ke endpoint write lain. Pemilik project
+> memutuskan F-49 yang berlaku, sehingga:
+>
+> - `TeacherService::inactive()` kembali memakai `show()` (404 untuk Teacher yang tidak ada atau di luar scope);
+> - test cross-school di `tests/Feature/School/TeacherLifecycleScopeTest.php` kembali meng-assert 404
+>   (`headmaster_inactive_teacher_sekolah_lain_tetap_404_sesuai_f49`);
+> - addendum `docs/addendum/API-Contract-v1.2-Addendum-Teacher-Lifecycle-403.md` dicabut (file dihapus);
+>   rujukan ke addendum itu di bawah hanya tersisa sebagai histori;
+> - `resetPassword()` tetap 403 (tidak disentuh), sesuai larangan generalisasi pada F-49;
+> - kontradiksi API Contract §15 itu sendiri (baris 404 dan 403 untuk skenario yang sama) tetap ada di
+>   dokumen kontrak dan diselesaikan lewat errata §15 pada Stage 5, dengan 404 untuk kasus ini.
+>
+> Temuan #1 dan #2 tidak terdampak. Teks asli Temuan #3 di bawah dipertahankan apa adanya sebagai catatan
+> sejarah keputusan yang dibatalkan; **jangan dibaca sebagai kesimpulan akhir.**
+
 ```
 SOURCE A: API Contract v1.2 Bagian 15 (Teacher Lifecycle, Idempotency & Error Cases) menulis:
           "403 — role selain Headmaster, atau Headmaster mencoba menonaktifkan Teacher di sekolah

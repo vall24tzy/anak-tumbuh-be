@@ -10,17 +10,14 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-// AUTHORIZATION-MATRIX Temuan #3 (docs/authorization-matrix.md): API Contract
-// v1.2 §15 kontradiktif untuk skenario cross-school pada POST
-// /teachers/{id}/inactive (menulis 404 dan 403 untuk skenario yang sama, di
-// baris berurutan). Keputusan tim: 403 yang menang, pola sama dengan
-// TeacherResetPasswordScopeTest (endpoint WRITE, scope jelas dari path,
-// alasan "cegah enumerasi" §26 tidak relevan di endpoint tulis). Root cause
-// lama: inactive() reuse show() yang filter school_id SEBELUM find() ->
-// "tidak ada" dan "ada tapi beda sekolah" tidak bisa dibedakan, keduanya 404.
-// Fix: TeacherService::findTeacherOrFail() (fetch global) + cek school
-// terpisah — show() sendiri SENGAJA tidak diubah (GET tetap 404 utk
-// keduanya, §26).
+// F-49 (MASTER_AUDIT_REMEDIATION_MATRIX v3.1, keputusan FINAL): cross-school
+// pada POST /teachers/{id}/inactive = 404, sama dengan "tidak ada" (§26,
+// keberadaan Teacher di sekolah lain tidak bocor). API Contract v1.2 §15
+// memang kontradiktif untuk skenario ini (404 dan 403); F-49 memutuskan 404.
+// inactive() memakai show() yang menyaring school_id sebelum find(). Sempat
+// diputuskan 403 di commit e58c6e1 (docs/authorization-matrix.md Temuan #3),
+// lalu direkonsiliasi balik ke 404 mengikuti F-49. resetPassword() tetap 403
+// (TeacherResetPasswordScopeTest) dan tidak digeneralisasi (F-49).
 //
 // Setup pakai Model::create() berantai, konsisten dengan
 // tests/Feature/School/TeacherResetPasswordScopeTest.php.
@@ -87,13 +84,13 @@ class TeacherLifecycleScopeTest extends TestCase
     }
 
     /**
-     * Kasus inti Temuan #3: Teacher ADA di database (bukan id ngasal), tapi
-     * di sekolah LAIN dari Headmaster yang menonaktifkan. Harus 403, bukan
-     * 404 seperti sebelum fix.
+     * Kasus inti F-49: Teacher ADA di database (bukan id ngasal), tapi di
+     * sekolah LAIN dari Headmaster yang menonaktifkan. Harus 404, sama dengan
+     * id yang tidak ada (keberadaannya tidak boleh bocor).
      *
      * @test
      */
-    public function headmaster_inactive_teacher_sekolah_lain_ditolak_403_bukan_404(): void
+    public function headmaster_inactive_teacher_sekolah_lain_tetap_404_sesuai_f49(): void
     {
         $schoolA = School::create(['name' => 'SD Satu']);
         $schoolB = School::create(['name' => 'SD Dua']);
@@ -106,7 +103,7 @@ class TeacherLifecycleScopeTest extends TestCase
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson("/api/v1/teachers/{$teacherB->id}/inactive");
 
-        $response->assertStatus(403);
+        $response->assertStatus(404);
 
         // Teacher B TIDAK boleh ikut berubah status-nya hanya karena ditolak scope.
         $this->assertDatabaseHas('teachers', ['id' => $teacherB->id, 'status' => 'active']);
