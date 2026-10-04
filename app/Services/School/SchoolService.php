@@ -4,11 +4,16 @@ namespace App\Services\School;
 
 use App\Models\School;
 use App\Services\Upload\UploadService;
+use App\Traits\ConvertsUniqueViolation;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SchoolService
 {
+    use ConvertsUniqueViolation;
+
     public function __construct(protected UploadService $uploadService) {}
 
     protected function currentUser()
@@ -37,7 +42,15 @@ class SchoolService
         $logoFile = $data['logo'] ?? null;
         unset($data['logo']);
 
-        $school = School::create($data);
+        // F-11 (fallback balapan): `unique:schools,name` di request hanya menolak duplikat sekuensial.
+        // Dua POST konkuren dengan nama sama sama-sama lolos validasi, lalu yang kedua menabrak
+        // constraint DB schools_name_unique -> dulu 500 (atau, tanpa constraint, duplikat tersimpan).
+        // Sekarang jadi 422 validation_failed pada field `name`, bentuk yang sama dengan duplikat biasa.
+        $school = $this->convertUniqueViolation(fn () => DB::transaction(fn () => School::create($data)), [
+            'schools_name_unique' => fn () => ValidationException::withMessages([
+                'name' => [trans('validation.unique', ['attribute' => 'name'])],
+            ]),
+        ]);
 
         if ($logoFile instanceof UploadedFile) {
             $path = $this->uploadService->upload($logoFile, 'logos', $school->id);

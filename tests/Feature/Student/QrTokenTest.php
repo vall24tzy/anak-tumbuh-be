@@ -31,7 +31,7 @@ class QrTokenTest extends TestCase
      */
     protected function setUpScenario(string $nip = '199001012020121001', string $nisn = '0051234567'): array
     {
-        $school = School::create(['name' => 'SD Contoh']);
+        $school = School::create(['name' => 'SD Contoh ' . $nip]);
 
         $academicYear = AcademicYear::create([
             'school_id'  => $school->id,

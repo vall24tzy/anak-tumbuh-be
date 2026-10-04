@@ -6,11 +6,19 @@ use App\Exceptions\ApiException;
 use App\Models\AcademicYear;
 use App\Models\Headmaster;
 use App\Models\Rombel;
+use App\Models\StudentClassAssignment;
+use App\Models\TeacherClassAssignment;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RombelService
 {
+    /** F-19: field Rombel yang terkunci begitu Rombel punya assignment. */
+    protected const LOCKED_FIELDS = ['academic_year_id', 'grade_level'];
+
+    public function __construct(protected TeacherScopeService $teacherScope) {}
+
     protected function currentUser()
     {
         return auth('api')->user();
@@ -39,17 +47,38 @@ class RombelService
         }
     }
 
+    /**
+     * F-21: Query Rombel yang boleh dilihat user. Headmaster: seluruh Rombel sekolahnya (tidak
+     * berubah). Teacher: HANYA Rombel dari active assignment miliknya (via TeacherScopeService,
+     * satu-satunya sumber scope Teacher); tanpa active assignment -> tidak ada Rombel sama sekali.
+     * Dipakai index() dan show() supaya detail tidak lebih longgar dari list.
+     */
+    protected function visibleRombels($user)
+    {
+        $schoolId = $this->schoolIdForUser($user); // F-14: profil inactive -> 403 lebih dulu
+
+        $query = Rombel::where('school_id', $schoolId);
+
+        if ($user->role === 'teacher') {
+            $assignment = $this->teacherScope->activeAssignment($user);
+
+            // whereRaw('1 = 0') alih-alih where('id', null): hasil kosong yang eksplisit.
+            $assignment
+                ? $query->where('id', $assignment->rombel_id)
+                : $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
     public function index()
     {
-        $schoolId = $this->schoolIdForUser($this->currentUser());
-
-        return Rombel::where('school_id', $schoolId)->get();
+        return $this->visibleRombels($this->currentUser())->get();
     }
 
     public function show(int $id)
     {
-        $schoolId = $this->schoolIdForUser($this->currentUser());
-        $rombel = Rombel::where('school_id', $schoolId)->find($id);
+        $rombel = $this->visibleRombels($this->currentUser())->find($id);
 
         if (!$rombel) {
             throw new HttpException(404, 'Rombel tidak ditemukan');
@@ -85,9 +114,51 @@ class RombelService
             $this->assertAcademicYearBelongsToSchool($data['academic_year_id'], $rombel->school_id);
         }
 
-        $rombel->update($data);
+        // F-19: lock baris Rombel supaya cek assignment + update atomik terhadap PATCH lain.
+        return DB::transaction(function () use ($rombel, $data) {
+            $locked = Rombel::whereKey($rombel->getKey())->lockForUpdate()->firstOrFail();
 
-        return $rombel->fresh();
+            $this->assertLockedFieldsUnchangedIfAssigned($locked, $data);
+
+            $locked->update($data);
+
+            return $locked->fresh();
+        });
+    }
+
+    /**
+     * F-19 (keputusan FINAL Matrix v3.1): setelah Rombel punya assignment (Teacher ATAU Student,
+     * aktif maupun historis) academic_year_id dan grade_level tidak boleh berubah lewat PATCH biasa,
+     * karena menggeser Ranking Angkatan retroaktif dan merusak histori. Rombel tanpa assignment
+     * tetap bebas diubah; PATCH field lain (name) tidak terpengaruh. Yang ditolak hanya nilai yang
+     * BENAR-BENAR berbeda dari yang tersimpan, jadi klien yang mengirim ulang objek utuh dengan
+     * nilai yang sama tidak kena 409. Seluruh PATCH ditolak (atomik): tidak ada perubahan parsial.
+     */
+    protected function assertLockedFieldsUnchangedIfAssigned(Rombel $rombel, array $data): void
+    {
+        $changed = [];
+        foreach (self::LOCKED_FIELDS as $field) {
+            if (array_key_exists($field, $data) && (int) $data[$field] !== (int) $rombel->{$field}) {
+                $changed[] = $field;
+            }
+        }
+
+        if ($changed === [] || !$this->rombelHasAnyAssignment($rombel->id)) {
+            return;
+        }
+
+        throw new ApiException(
+            'rombel_field_locked',
+            409,
+            'academic_year_id dan grade_level tidak dapat diubah karena Rombel sudah memiliki assignment',
+            array_map(fn ($f) => ['field' => $f, 'reason' => 'rombel_field_locked', 'message' => 'Terkunci: Rombel sudah memiliki assignment'], $changed)
+        );
+    }
+
+    protected function rombelHasAnyAssignment(int $rombelId): bool
+    {
+        return TeacherClassAssignment::where('rombel_id', $rombelId)->exists()
+            || StudentClassAssignment::where('rombel_id', $rombelId)->exists();
     }
 
     public function destroy(int $id): void

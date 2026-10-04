@@ -16,7 +16,8 @@ class UpdateRombelRequest extends FormRequest
         return [
             'name'             => ['sometimes', 'string', 'max:30'],
             'academic_year_id' => ['sometimes', 'integer', 'exists:academic_years,id'],
-            'grade_level'      => ['sometimes', 'integer', 'min:1'],
+            // F-20: lihat CreateRombelRequest (batas atas = integer 32-bit kolom DB).
+            'grade_level'      => ['sometimes', 'integer', 'min:1', 'max:2147483647'],
         ];
     }
 }

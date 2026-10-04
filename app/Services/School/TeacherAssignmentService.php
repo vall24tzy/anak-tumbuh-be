@@ -7,10 +7,14 @@ use App\Models\Headmaster;
 use App\Models\Rombel;
 use App\Models\Teacher;
 use App\Models\TeacherClassAssignment;
+use App\Traits\ConvertsUniqueViolation;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TeacherAssignmentService
 {
+    use ConvertsUniqueViolation;
+
     protected function currentUser()
     {
         return auth('api')->user();
@@ -79,16 +83,23 @@ class TeacherAssignmentService
             ->exists();
 
         if ($hasActive) {
-            throw new ApiException('teacher_already_has_active_assignment', 409, 'Guru sudah punya assignment aktif pada tahun ajaran ini');
+            throw $this->teacherAlreadyActive();
         }
 
-        return TeacherClassAssignment::create([
+        // F-18: satu Rombel maksimal satu Teacher aktif per Academic Year (Teacher itu = wali kelas).
+        $this->assertRombelHasNoOtherActiveTeacher($data['rombel_id'], $data['academic_year_id']);
+
+        // F-16 + F-18 (fallback balapan): pre-check di atas hanya menutup kasus sekuensial. Dua POST
+        // konkuren sama-sama lolos pre-check lalu yang kedua menabrak partial unique index
+        // (Teacher+AY: uq_tca_one_active_per_teacher_year; Rombel+AY: uq_tca_one_active_per_rombel_year)
+        // -> dulu 500, sekarang 409 dengan kode yang sama dengan jalur sekuensial.
+        return $this->convertUniqueViolation(fn () => DB::transaction(fn () => TeacherClassAssignment::create([
             'teacher_id'       => $data['teacher_id'],
             'school_id'        => $data['school_id'],
             'academic_year_id' => $data['academic_year_id'],
             'rombel_id'        => $data['rombel_id'],
             'is_active'        => true,
-        ]);
+        ])), $this->uniqueConflictMap());
     }
 
     public function update(int $id, array $data): TeacherClassAssignment
@@ -96,9 +107,26 @@ class TeacherAssignmentService
         $assignment = $this->findAssignmentOrFail($id);
         $this->assertAssignmentInScope($assignment, $this->currentUser());
 
+        // F-17: assignment historis (is_active=false) tidak boleh diedit, supaya scope/rombel tidak
+        // bisa dipindah secara retroaktif. Perlu perubahan -> buat assignment baru (POST).
+        // Dicek SETELAH scope (403 lintas sekolah tetap menang) dan SEBELUM validasi rombel.
+        if (!$assignment->is_active) {
+            throw new ApiException(
+                'assignment_inactive_readonly',
+                409,
+                'Assignment yang sudah nonaktif (histori) tidak dapat diubah; buat assignment baru'
+            );
+        }
+
         if (isset($data['rombel_id'])) {
             $this->assertRombelMatchesSchoolAndYear($data['rombel_id'], $assignment->school_id, $assignment->academic_year_id);
-            $assignment->update(['rombel_id' => $data['rombel_id']]);
+            // F-18: memindahkan assignment ke rombel yang sudah punya Teacher aktif lain ditolak.
+            $this->assertRombelHasNoOtherActiveTeacher($data['rombel_id'], $assignment->academic_year_id, $assignment->id);
+
+            $this->convertUniqueViolation(
+                fn () => DB::transaction(fn () => $assignment->update(['rombel_id' => $data['rombel_id']])),
+                $this->uniqueConflictMap()
+            );
         }
 
         return $assignment->fresh();
@@ -112,6 +140,42 @@ class TeacherAssignmentService
         $assignment->update(['is_active' => false]);
 
         return $assignment->fresh();
+    }
+
+    /**
+     * F-18: pre-check sekuensial. $exceptAssignmentId dikecualikan supaya PATCH ke rombel yang
+     * sama dengan miliknya sendiri (no-op) tidak dianggap bentrok dengan dirinya.
+     */
+    protected function assertRombelHasNoOtherActiveTeacher(int $rombelId, int $academicYearId, ?int $exceptAssignmentId = null): void
+    {
+        $taken = TeacherClassAssignment::where('rombel_id', $rombelId)
+            ->where('academic_year_id', $academicYearId)
+            ->where('is_active', true)
+            ->when($exceptAssignmentId, fn ($q) => $q->whereKeyNot($exceptAssignmentId))
+            ->exists();
+
+        if ($taken) {
+            throw $this->rombelAlreadyHasActiveTeacher();
+        }
+    }
+
+    /** Peta constraint -> exception, dipakai fallback balapan di store() dan update(). */
+    protected function uniqueConflictMap(): array
+    {
+        return [
+            'uq_tca_one_active_per_teacher_year' => fn () => $this->teacherAlreadyActive(),
+            'uq_tca_one_active_per_rombel_year'  => fn () => $this->rombelAlreadyHasActiveTeacher(),
+        ];
+    }
+
+    protected function teacherAlreadyActive(): ApiException
+    {
+        return new ApiException('teacher_already_has_active_assignment', 409, 'Guru sudah punya assignment aktif pada tahun ajaran ini');
+    }
+
+    protected function rombelAlreadyHasActiveTeacher(): ApiException
+    {
+        return new ApiException('rombel_already_has_active_teacher', 409, 'Rombel ini sudah punya Teacher aktif pada tahun ajaran ini');
     }
 
     protected function assertRombelMatchesSchoolAndYear(int $rombelId, int $schoolId, int $academicYearId): void
