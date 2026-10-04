@@ -5,7 +5,6 @@ namespace App\Http\Controllers\V1\School;
 use App\Exports\TeacherImportTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\School\TeacherImportRequest;
-use App\Jobs\ProcessTeacherImportJob;
 use App\Models\ImportBatch;
 use App\Services\School\TeacherImportService;
 use App\Traits\ApiResponseTraits;
@@ -15,8 +14,9 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 // API Contract v1.2 §15/§28. Headmaster only. Endpoint utama sesuai task
 // board: POST /api/v1/teachers/import. template() & status() TIDAK ada di
 // API Contract (NOTE-05) — dipertahankan sebagai technical necessity (kolom
-// template disebut eksplisit di Acceptance Criteria; status untuk polling
-// queue >100 baris), pola sama seperti StudentImportController::status().
+// template disebut eksplisit di Acceptance Criteria; status untuk membaca HASIL
+// batch yang sudah selesai, bukan lagi polling queue: F-38), pola sama seperti
+// StudentImportController::status().
 
 class TeacherImportController extends Controller
 {
@@ -42,31 +42,35 @@ class TeacherImportController extends Controller
 
         $batch = ImportBatch::create([
             'type'       => 'teacher',
-            'status'     => 'pending',
+            'status'     => 'processing',
             'created_by' => $user->id,
         ]);
 
-        if ($rowCount <= 100) {
-            $batch->update(['status' => 'processing']);
+        // F-38 (keputusan FINAL pemilik): import SELALU sinkron untuk SEMUA ukuran file (sampai batas
+        // 1.000 baris di atas); tidak ada jalur queue/async dan tidak ada cabang berdasarkan jumlah
+        // baris. Response selalu HTTP 200 dengan lima field kontrak (+ batch_id untuk membaca hasil
+        // lewat status()). File upload tidak pernah disimpan ke storage (dibaca langsung dari request).
+        //
+        // F-37 (tetap berlaku di jalur sinkron): bila commit() melempar exception (mis. 403 profil
+        // Headmaster tidak aktif), batch tidak boleh tertahan di 'processing'; tandai 'failed' lalu
+        // lempar ulang supaya response error tetap seperti sebelumnya.
+        try {
             $result = $this->service->commit($file);
-            $batch->update([
-                'status'      => 'done',
-                'total'       => $result['total_rows'],
-                'success'     => $result['successful_rows'],
-                'failed'      => $result['rejected_rows'],
-                'failed_rows' => $result['errors'],
-            ]);
+        } catch (\Throwable $e) {
+            $batch->update(['status' => 'failed', 'failed_rows' => []]);
 
-            return $this->successResponse(array_merge(['batch_id' => $batch->id], $result));
+            throw $e;
         }
 
-        $storedPath = $file->store('imports');
-        ProcessTeacherImportJob::dispatch($batch->id, $storedPath);
-
-        return $this->successResponse([
-            'batch_id' => $batch->id,
-            'status'   => 'pending',
+        $batch->update([
+            'status'      => 'done',
+            'total'       => $result['total_rows'],
+            'success'     => $result['successful_rows'],
+            'failed'      => $result['rejected_rows'],
+            'failed_rows' => $result['errors'],
         ]);
+
+        return $this->successResponse(array_merge(['batch_id' => $batch->id], $result));
     }
 
     public function status(int $batchId)

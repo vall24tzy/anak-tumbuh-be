@@ -6,7 +6,6 @@ use App\Exports\StudentImportTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\StudentImportCommitRequest;
 use App\Http\Requests\Student\StudentImportPreviewRequest;
-use App\Jobs\ProcessStudentImportJob;
 use App\Models\ImportBatch;
 use App\Services\Student\StudentImportService;
 use App\Traits\ApiResponseTraits;
@@ -54,38 +53,39 @@ class StudentImportController extends Controller
 
         $batch = ImportBatch::create([
             'type'       => 'student',
-            'status'     => 'pending',
+            'status'     => 'processing',
             'created_by' => $user->id,
         ]);
 
-        if ($rowCount <= 100) {
-            $batch->update(['status' => 'processing']);
+        // F-38 (keputusan FINAL pemilik): sama dengan Teacher import. Selalu sinkron untuk semua
+        // ukuran file sampai 1.000 baris, tanpa queue dan tanpa cabang jumlah baris; response
+        // selalu HTTP 200 dengan lima field kontrak (+ batch_id). F-37: exception di commit()
+        // menandai batch 'failed' (tidak tertahan di 'processing') lalu dilempar ulang.
+        try {
             $result = $this->service->commit($file, $rombelId);
-            $batch->update([
-                'status'      => 'done',
-                'total'       => $result['total_rows'],
-                'success'     => $result['successful_rows'],
-                'failed'      => $result['rejected_rows'],
-                'failed_rows' => $result['errors'],
-            ]);
+        } catch (\Throwable $e) {
+            $batch->update(['status' => 'failed', 'failed_rows' => []]);
 
-            return $this->successResponse(array_merge(['batch_id' => $batch->id], $result));
+            throw $e;
         }
 
-        $storedPath = $file->store('imports');
-        ProcessStudentImportJob::dispatch($batch->id, $storedPath, $rombelId);
-
-        return $this->successResponse([
-            'batch_id' => $batch->id,
-            'status'   => 'pending',
+        $batch->update([
+            'status'      => 'done',
+            'total'       => $result['total_rows'],
+            'success'     => $result['successful_rows'],
+            'failed'      => $result['rejected_rows'],
+            'failed_rows' => $result['errors'],
         ]);
+
+        return $this->successResponse(array_merge(['batch_id' => $batch->id], $result));
     }
 
     /**
-     * NOTE-09 (docs/db-gap-analysis.md): endpoint status/polling batch queue
-     * TIDAK ada di API Contract v1.2 — dipertahankan sebagai technical
-     * necessity untuk file >100 baris (queue asinkron), bukan business rule
-     * baru (instruksi task poin 6).
+     * NOTE-09 (docs/db-gap-analysis.md): endpoint status batch TIDAK ada di
+     * API Contract v1.2 — dipertahankan sebagai technical necessity, bukan
+     * business rule baru (instruksi task poin 6). F-38: import kini selalu
+     * sinkron, jadi endpoint ini membaca HASIL batch yang sudah selesai
+     * (bukan lagi polling queue).
      */
     public function status(int $batchId)
     {
