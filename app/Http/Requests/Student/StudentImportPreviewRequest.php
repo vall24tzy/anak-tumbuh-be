@@ -14,7 +14,8 @@ class StudentImportPreviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'], // 5120 KB = 5 MB
+            // F-33: format FINAL .xlsx saja (API Contract §18, OD-12); .xls ditolak 422.
+            'file' => ['required', 'file', 'mimes:xlsx', 'max:5120'], // 5120 KB = 5 MB
         ];
     }
 }

@@ -207,8 +207,7 @@ class TeacherAssignmentService
             throw new HttpException(403, 'Assignment ini di luar sekolah Anda');
         }
 
-        if ($user->role === 'teacher' && $assignment->teacher_id !== $user->activeTeacherId()) {
-            throw new HttpException(403, 'Assignment ini bukan milik Anda');
-        }
+        // F-50: cabang `role === 'teacher'` dihapus (kode mati). assertAssignmentInScope() hanya
+        // dipanggil dari update()/deactivate(), yang rute-nya `role:headmaster` saja.
     }
 }

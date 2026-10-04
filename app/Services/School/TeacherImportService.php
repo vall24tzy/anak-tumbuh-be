@@ -56,7 +56,7 @@ class TeacherImportService
                 // F-13: NIP yang sudah menjadi users.username role lain (SA/Headmaster/Student)
                 // ditolak sebagai error baris field `nip` (validation_failed), bukan lolos lalu gagal
                 // generik `unexpected_error` saat User::create(). `bail` menjaga duplikat per-tabel
-                // tetap satu error. NIP kembar ANTAR-baris dalam file (F-35) tidak tercakup di sini.
+                // tetap satu error. NIP kembar ANTAR-baris dalam file ditangani F-35 (uniqueInFile).
                 'nip'    => ['bail', 'required', 'string', 'max:30', 'unique:teachers,nip', 'unique:users,username'],
                 'gender' => ['required', 'in:laki-laki,perempuan'],
             ],
@@ -65,6 +65,8 @@ class TeacherImportService
 
                 return $this->teacherService->store($row);
             } : null,
+            // F-35: NIP kembar ANTAR-BARIS dalam file dideteksi sebelum proses (code duplicate_in_file).
+            uniqueInFile: ['nip'],
         );
     }
 
@@ -118,10 +120,11 @@ class TeacherImportService
                     // dipanggil, mis. NIP kembar antar-baris di file yang
                     // sama) -> tidak ada field/code terstruktur, tetap
                     // dilaporkan (jangan silent-drop).
+                    // F-35: code spesifik dari ImportService (mis. duplicate_in_file) menang atas default.
                     $errors[] = [
                         'row'     => $row,
                         'field'   => $field !== 'general' ? $field : null,
-                        'code'    => $field !== 'general' ? 'validation_failed' : 'unexpected_error',
+                        'code'    => $failure['codes'][$field] ?? ($field !== 'general' ? 'validation_failed' : 'unexpected_error'),
                         'message' => $message,
                     ];
                 }

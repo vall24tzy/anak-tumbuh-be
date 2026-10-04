@@ -115,12 +115,25 @@ class DashboardService
             ->distinct('student_id')
             ->count('student_id');
 
-        // "inactive"/"graduated": Student yang assignment-nya di rombel ini
-        // sudah 'ended' KARENA transisi lifecycle (bukan pindah rombel) —
-        // dibuktikan dari status Student SEKARANG yang memang inactive/graduated.
+        // "inactive"/"graduated": Student yang assignment-nya di rombel ini sudah 'ended' KARENA
+        // transisi lifecycle (bukan pindah rombel).
+        //
+        // F-41 (Matrix v3.1, keputusan FINAL): atribusi mengikuti assignment TERAKHIR Student pada
+        // Academic Year ini. Student pindah A -> B lalu inactive/graduated di B dihitung di B, bukan di A:
+        // assignment A 'ended' karena transfer (ada assignment sesudahnya), assignment B 'ended' karena
+        // lifecycle (assignment terakhir). Skema student_class_assignments cukup untuk ini (tanpa
+        // kolom penyebab, E-4 tidak terpicu): "terakhir" = id terbesar per (student, academic_year);
+        // baris dibuat berurutan dan tidak pernah dibuat ulang mundur. Sebelumnya semua baris 'ended' di
+        // rombel ini ikut dihitung selama status Student SEKARANG inactive/graduated, sehingga rombel
+        // lama ikut menghitung Student yang sudah pindah. Tidak memakai students.classroom.
+        $latestAssignmentIds = StudentClassAssignment::where('academic_year_id', $academicYearId)
+            ->select(DB::raw('max(id)'))
+            ->groupBy('student_id');
+
         $endedStudentIds = StudentClassAssignment::where('rombel_id', $rombelId)
             ->where('academic_year_id', $academicYearId)
             ->where('status', 'ended')
+            ->whereIn('id', $latestAssignmentIds)
             ->pluck('student_id');
 
         $statusBreakdown = Student::whereIn('id', $endedStudentIds)

@@ -17,7 +17,8 @@ class StudentImportCommitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file'      => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
+            // F-33: format FINAL .xlsx saja (API Contract §18, OD-12); .xls ditolak 422.
+            'file'      => ['required', 'file', 'mimes:xlsx', 'max:5120'],
             'rombel_id' => ['required', 'integer', 'exists:rombels,id'],
         ];
     }
