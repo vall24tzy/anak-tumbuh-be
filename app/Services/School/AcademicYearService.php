@@ -6,6 +6,7 @@ use App\Exceptions\ApiException;
 use App\Models\AcademicYear;
 use App\Models\Headmaster;
 use App\Traits\ConvertsUniqueViolation;
+use App\Traits\PaginatesResults;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AcademicYearService
 {
-    use ConvertsUniqueViolation;
+    use ConvertsUniqueViolation, PaginatesResults;
 
     protected function currentUser()
     {
@@ -33,11 +34,13 @@ class AcademicYearService
             ?? throw new HttpException(403, 'Profil Teacher tidak aktif atau tidak ditemukan');
     }
 
-    public function index()
+    // F-15: paginasi bersama (default 20, max 100, urutan id). total = Academic Year sekolah user (scope
+    // diterapkan SEBELUM paginasi).
+    public function index(array $params = [])
     {
         $schoolId = $this->schoolIdForUser($this->currentUser());
 
-        return AcademicYear::where('school_id', $schoolId)->get();
+        return $this->paginateQuery(AcademicYear::where('school_id', $schoolId), $params);
     }
 
     public function show(int $id)

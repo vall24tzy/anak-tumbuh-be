@@ -3,6 +3,7 @@
 namespace App\Services\School;
 
 use App\Services\User\AuditLogService;
+use App\Traits\PaginatesResults;
 use App\Models\TeacherClassAssignment;
 use App\Models\Headmaster;
 use App\Models\Teacher;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TeacherService
 {
+    use PaginatesResults;
+
     public function __construct(protected AuditLogService $auditLog) {}
 
     protected function currentUser()
@@ -27,13 +30,13 @@ class TeacherService
             ?? throw new HttpException(403, 'Profil Headmaster tidak aktif atau tidak ditemukan');
     }
 
-    public function index()
+    // F-15: paginasi bersama (default 20, max 100, urutan id). total = Teacher di sekolah Headmaster ini
+    // (scope diterapkan SEBELUM paginasi), bukan jumlah global.
+    public function index(array $params = [])
     {
         $schoolId = $this->headmasterSchoolId($this->currentUser());
 
-        return Teacher::with('school')
-            ->where('school_id', $schoolId)
-            ->get();
+        return $this->paginateQuery(Teacher::with('school')->where('school_id', $schoolId), $params);
     }
 
     public function show(int $id)

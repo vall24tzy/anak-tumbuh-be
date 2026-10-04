@@ -3,21 +3,24 @@
 namespace App\Http\Controllers\V1\School;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Common\PaginationRequest;
 use App\Http\Requests\School\CreateTeacherAssignmentRequest;
 use App\Http\Requests\School\UpdateTeacherAssignmentRequest;
 use App\Http\Resources\School\TeacherAssignmentResource;
 use App\Services\School\TeacherAssignmentService;
 use App\Traits\ApiResponseTraits;
+use App\Traits\PaginatesResults;
 
 class TeacherAssignmentController extends Controller
 {
-    use ApiResponseTraits;
+    use ApiResponseTraits, PaginatesResults;
 
     public function __construct(protected TeacherAssignmentService $service) {}
 
-    public function index()
+    // F-15: response {data, meta} lewat helper pagination bersama.
+    public function index(PaginationRequest $request)
     {
-        return $this->successResponse(TeacherAssignmentResource::collection($this->service->index()));
+        return $this->paginatedResponse(TeacherAssignmentResource::class, $this->service->index($request->validated()));
     }
 
     public function store(CreateTeacherAssignmentRequest $request)

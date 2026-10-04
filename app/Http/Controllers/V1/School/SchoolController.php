@@ -3,21 +3,27 @@
 namespace App\Http\Controllers\V1\School;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Common\PaginationRequest;
 use App\Http\Requests\School\CreateSchoolRequest;
 use App\Http\Resources\School\SchoolResource;
 use App\Services\School\SchoolService;
 use App\Traits\ApiResponseTraits;
+use App\Traits\PaginatesResults;
 
 class SchoolController extends Controller
 {
-    use ApiResponseTraits;
+    use ApiResponseTraits, PaginatesResults;
 
     public function __construct(protected SchoolService $service) {}
 
-    public function index()
+    // F-10 (pola F-15): response {data, meta} lewat helper pagination bersama.
+    public function index(PaginationRequest $request)
     {
-        $schools = $this->service->index();
-        return $this->successResponse(SchoolResource::collection($schools), 'Daftar sekolah berhasil diambil');
+        return $this->paginatedResponse(
+            SchoolResource::class,
+            $this->service->index($request->validated()),
+            'Daftar sekolah berhasil diambil'
+        );
     }
 
     public function store(CreateSchoolRequest $request)

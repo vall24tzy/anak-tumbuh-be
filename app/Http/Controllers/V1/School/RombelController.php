@@ -3,21 +3,24 @@
 namespace App\Http\Controllers\V1\School;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Common\PaginationRequest;
 use App\Http\Requests\School\CreateRombelRequest;
 use App\Http\Requests\School\UpdateRombelRequest;
 use App\Http\Resources\School\RombelResource;
 use App\Services\School\RombelService;
 use App\Traits\ApiResponseTraits;
+use App\Traits\PaginatesResults;
 
 class RombelController extends Controller
 {
-    use ApiResponseTraits;
+    use ApiResponseTraits, PaginatesResults;
 
     public function __construct(protected RombelService $service) {}
 
-    public function index()
+    // F-15: response {data, meta} lewat helper pagination bersama.
+    public function index(PaginationRequest $request)
     {
-        return $this->successResponse(RombelResource::collection($this->service->index()));
+        return $this->paginatedResponse(RombelResource::class, $this->service->index($request->validated()));
     }
 
     public function store(CreateRombelRequest $request)

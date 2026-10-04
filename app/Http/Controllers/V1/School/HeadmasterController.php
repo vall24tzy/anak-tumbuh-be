@@ -4,22 +4,24 @@ namespace App\Http\Controllers\V1\School;
 
 use App\Http\Requests\User\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Common\PaginationRequest;
 use App\Http\Requests\School\CreateHeadmasterRequest;
 use App\Http\Resources\School\HeadmasterResource;
 use App\Services\School\HeadmasterService;
 use App\Traits\ApiResponseTraits;
+use App\Traits\PaginatesResults;
 use App\Traits\HandlesNipConflict;
 
 class HeadmasterController extends Controller
 {
-    use ApiResponseTraits, HandlesNipConflict;
+    use ApiResponseTraits, HandlesNipConflict, PaginatesResults;
 
     public function __construct(protected HeadmasterService $service) {}
 
-    public function index()
+    // F-15: response {data, meta} lewat helper pagination bersama.
+    public function index(PaginationRequest $request)
     {
-        $headmasters = $this->service->index();
-        return $this->successResponse(HeadmasterResource::collection($headmasters));
+        return $this->paginatedResponse(HeadmasterResource::class, $this->service->index($request->validated()));
     }
 
     public function store(CreateHeadmasterRequest $request)

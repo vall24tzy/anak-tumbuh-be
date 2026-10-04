@@ -5,17 +5,21 @@ namespace App\Services\School;
 use App\Models\Headmaster;
 use App\Models\User;
 use App\Services\User\AuditLogService;
+use App\Traits\PaginatesResults;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class HeadmasterService
 {
+    use PaginatesResults;
+
     public function __construct(protected AuditLogService $auditLog) {}
 
-    public function index()
+    // F-15: paginasi bersama (default 20, max 100, urutan id). Daftar global (Super Admin).
+    public function index(array $params = [])
     {
-        return Headmaster::with('school')->get();
+        return $this->paginateQuery(Headmaster::with('school'), $params);
     }
 
     public function show(int $id)

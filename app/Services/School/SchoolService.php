@@ -5,6 +5,7 @@ namespace App\Services\School;
 use App\Models\School;
 use App\Services\Upload\UploadService;
 use App\Traits\ConvertsUniqueViolation;
+use App\Traits\PaginatesResults;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -12,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SchoolService
 {
-    use ConvertsUniqueViolation;
+    use ConvertsUniqueViolation, PaginatesResults;
 
     public function __construct(protected UploadService $uploadService) {}
 
@@ -26,9 +27,10 @@ class SchoolService
         return $user->role === 'super_admin';
     }
 
-    public function index()
+    // F-10 (pola F-15): paginasi bersama (default 20, max 100, urutan id). Daftar global (Super Admin).
+    public function index(array $params = [])
     {
-        return School::withCount(['teachers', 'students'])->get();
+        return $this->paginateQuery(School::withCount(['teachers', 'students']), $params);
     }
 
     public function store(array $data)

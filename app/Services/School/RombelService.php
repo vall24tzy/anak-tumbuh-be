@@ -8,12 +8,15 @@ use App\Models\Headmaster;
 use App\Models\Rombel;
 use App\Models\StudentClassAssignment;
 use App\Models\TeacherClassAssignment;
+use App\Traits\PaginatesResults;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RombelService
 {
+    use PaginatesResults;
+
     /** F-19: field Rombel yang terkunci begitu Rombel punya assignment. */
     protected const LOCKED_FIELDS = ['academic_year_id', 'grade_level'];
 
@@ -71,9 +74,11 @@ class RombelService
         return $query;
     }
 
-    public function index()
+    // F-15: paginasi bersama (default 20, max 100, urutan id). total mengikuti visibleRombels() (F-21):
+    // Headmaster = Rombel sekolahnya, Teacher = Rombel dari active assignment-nya, scope SEBELUM paginasi.
+    public function index(array $params = [])
     {
-        return $this->visibleRombels($this->currentUser())->get();
+        return $this->paginateQuery($this->visibleRombels($this->currentUser()), $params);
     }
 
     public function show(int $id)

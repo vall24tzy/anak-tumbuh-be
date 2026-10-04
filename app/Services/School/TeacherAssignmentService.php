@@ -8,12 +8,13 @@ use App\Models\Rombel;
 use App\Models\Teacher;
 use App\Models\TeacherClassAssignment;
 use App\Traits\ConvertsUniqueViolation;
+use App\Traits\PaginatesResults;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TeacherAssignmentService
 {
-    use ConvertsUniqueViolation;
+    use ConvertsUniqueViolation, PaginatesResults;
 
     protected function currentUser()
     {
@@ -27,19 +28,24 @@ class TeacherAssignmentService
             ?? throw new HttpException(403, 'Profil Headmaster tidak aktif atau tidak ditemukan');
     }
 
-    public function index()
+    // F-15: paginasi bersama (default 20, max 100, urutan id). total = assignment dalam scope user
+    // (Headmaster: sekolahnya; Teacher: miliknya sendiri), scope SEBELUM paginasi.
+    public function index(array $params = [])
     {
         $user = $this->currentUser();
 
         if ($user->role === 'headmaster') {
-            return TeacherClassAssignment::where('school_id', $this->headmasterSchoolId($user))->get();
+            return $this->paginateQuery(
+                TeacherClassAssignment::where('school_id', $this->headmasterSchoolId($user)),
+                $params
+            );
         }
 
         // Teacher: hanya lihat assignment miliknya sendiri (F-14 residual: hanya Teacher AKTIF)
         $teacherId = $user->activeTeacherId()
             ?? throw new HttpException(403, 'Profil Teacher tidak aktif atau tidak ditemukan');
 
-        return TeacherClassAssignment::where('teacher_id', $teacherId)->get();
+        return $this->paginateQuery(TeacherClassAssignment::where('teacher_id', $teacherId), $params);
     }
 
     public function show(int $id)
