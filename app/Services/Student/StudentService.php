@@ -10,6 +10,8 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\School\TeacherScopeService;
 use App\Services\Upload\UploadService;
+use Closure;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -174,7 +176,14 @@ class StudentService
             throw new ApiException('cross_school_nisn', 403, 'NISN sudah terdaftar di sekolah lain');
         }
 
-        $student = DB::transaction(function () use ($data, $assignment, $existing) {
+        // F-53: NISN Student BARU (belum ada Student ber-NISN ini) tidak boleh sama dengan username akun
+        // non-Student (SA/Headmaster/Teacher). Validasi aktif di service, SEBELUM insert. NISN yang sama
+        // dengan NISN Student lain (re-enrollment) bukan collision; itu jalur reuse di bawah dan tidak disentuh.
+        if (!$existing) {
+            $this->assertNisnNotStaffUsername($data['nisn']);
+        }
+
+        $student = $this->guardStaffUsernameRace($data['nisn'], fn () => DB::transaction(function () use ($data, $assignment, $existing) {
             if ($existing) {
                 // Reuse — identity permanent, field administratif TIDAK ditimpa
                 // diam-diam (mencegah data loss dari kesamaan NISN yang tidak
@@ -217,7 +226,7 @@ class StudentService
             );
 
             return $student;
-        });
+        }));
 
         if ($logoFile instanceof UploadedFile) {
             $oldPhotoPath = $student->photo_path;
@@ -230,6 +239,44 @@ class StudentService
         }
 
         return $student->fresh()->load(['school', 'user']);
+    }
+
+    /**
+     * F-53: collision NISN vs username role LAIN. users.username = NISN untuk Student, dan username unik
+     * lintas role, jadi NISN yang sama dengan username SA/Headmaster/Teacher tidak bisa dipakai. Ini LOGIC,
+     * bukan constraint: NISN yang sama dengan NISN Student lain sah (reuse) dan tidak boleh ikut ditolak,
+     * jadi query hanya melihat baris yang role-nya BUKAN 'student'. 422 (business validation), bukan 500.
+     */
+    protected function assertNisnNotStaffUsername(string $nisn): void
+    {
+        if (User::where('username', $nisn)->where('role', '!=', 'student')->exists()) {
+            $message = 'NISN sama dengan username akun staf (Super Admin/Kepala Sekolah/Guru) sehingga tidak dapat dipakai';
+
+            throw new ApiException(
+                'nisn_conflicts_with_staff_username',
+                422,
+                $message,
+                [['field' => 'nisn', 'reason' => 'nisn_conflicts_with_staff_username', 'message' => $message]]
+            );
+        }
+    }
+
+    /**
+     * F-53 (jaring pengaman race, bukan pengganti validasi di atas): pre-check bukan atomik dengan insert,
+     * jadi akun staf yang dibuat di antara cek dan INSERT tetap menabrak constraint users.username yang SUDAH
+     * ada (bukan constraint baru; NISN tetap tidak unique global). Pelanggaran itu hanya diterjemahkan jadi
+     * 422 bila penyebabnya memang akun non-Student; penyebab lain (mis. dua Student baru ber-NISN sama
+     * bersamaan) dilempar ulang apa adanya, tidak salah dilabeli sebagai bentrok dengan staf.
+     */
+    protected function guardStaffUsernameRace(string $nisn, Closure $callback)
+    {
+        try {
+            return $callback();
+        } catch (UniqueConstraintViolationException $e) {
+            $this->assertNisnNotStaffUsername($nisn);
+
+            throw $e;
+        }
     }
 
     /**

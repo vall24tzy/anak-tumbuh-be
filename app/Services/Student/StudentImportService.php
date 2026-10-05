@@ -72,9 +72,11 @@ class StudentImportService
         try {
             return $this->studentService->store($row);
         } catch (ApiException $e) {
+            // F-53: error yang menyebut field (details[0].field, mis. nisn_conflicts_with_staff_username)
+            // dilaporkan per-baris dengan field itu; yang tidak punya details tetap field null seperti sebelumnya.
             throw new \RuntimeException(json_encode([
                 'code'    => $e->errorCode(),
-                'field'   => null,
+                'field'   => $e->details()[0]['field'] ?? null,
                 'message' => $e->getMessage(),
             ]));
         } catch (HttpException $e) {
