@@ -38,7 +38,7 @@ Ranking Angkatan, diisi eksplisit, tidak boleh ditebak dari name".
 - Terkait F-19 (`ccfce6d`): `academic_year_id` dan `grade_level` tidak dapat diubah setelah Rombel punya
   assignment (Teacher atau Student, aktif/historis). Ini aturan aplikasi (409 `rombel_field_locked`), tanpa
   perubahan skema.
-- Lihat N-3 di `API-Contract-v1.2-Errata-Stage5.md` (contoh SoT lain memakai `VII-A`/`grade_level: 7`).
+- **Cakupan dipersempit (keputusan pemilik, N-3, Stage 6):** catatan 1–6 ini berlaku untuk **konteks SD saat ini**; platform belum punya struktur jenjang terpisah (SMP/SMA), dan jenjang lain memakai rentang angka berbeda sesuai konvensinya bila/ketika diimplementasikan. Contoh seeder/SoT dengan `VII-A`/`grade_level: 7` adalah data contoh, bukan pelanggaran. Lihat `API-Contract-v1.2-Errata-Stage5.md` §14.
 
 ---
 

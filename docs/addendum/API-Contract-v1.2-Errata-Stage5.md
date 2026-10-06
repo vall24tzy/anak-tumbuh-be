@@ -10,7 +10,7 @@ dan blok revisi di sini, **blok revisi menang** untuk bagian yang disebut.
 
 Sumber keputusan: `MASTER_AUDIT_REMEDIATION_MATRIX_v3_1_STAGE0_STATUS.md` (disingkat Matrix) dan
 keputusan pemilik project yang tidak ada di Matrix (ditandai **[Pemilik]**: F-38, F-53, status endpoint
-import, F-14, catatan bisnis F-20).
+import, F-14, catatan bisnis F-20, dan keputusan N-1/N-2/N-3 pada Stage 6).
 
 Peta commit: F-01 `401eebc` · F-02 `4987936` · F-05 `4796b7a` · F-13 `93943d2` · F-14/F-24/F-29 `bea89e0`,
 `4189659`, `2e1afb1` · F-23/F-30 `2e1afb1` · F-32 `5696c4b` · F-37 `205aa18` · F-40 `3f65862` ·
@@ -113,9 +113,13 @@ terstruktur), `student_create_rejected` (safety net), serta kode domain dari tab
 (`duplicate_assignment`, `assignment_conflict`, `cross_school_nisn`, `nisn_conflicts_with_staff_username`,
 `rombel_mismatch`).
 
-**D. Ketidaksesuaian yang dicatat, bukan diputuskan:** kode `unknown_rombel` yang disebut §9 dan §18 TIDAK
-diemisikan implementasi (tidak ada di `app/`). `rombel_id` yang tidak ada → 422 `validation_failed`
-(rule `exists`); `rombel_id` yang bukan own active rombel → 403. Lihat N-1 di bagian akhir.
+**D. Kode `unknown_rombel` TIDAK ada (keputusan pemilik, N-1, Stage 6 — final).** **Teks v1.2 yang
+digantikan (dipertahankan sebagai histori):** §9 dan §18 menyebut kode `unknown_rombel`. **Revisi:** kode itu
+tidak pernah diemisikan implementasi (tidak ada di `app/`) dan **tidak akan ditambahkan**. Perilaku aktual
+adalah yang berlaku: `rombel_id` yang **tidak ada** → **422 `validation_failed`** (rule `exists`);
+`rombel_id` yang ada tetapi **di luar scope** requester (bukan own active rombel) → **403 `forbidden`**.
+Dua status berbeda itu sudah membedakan dua masalah dengan jelas, jadi tidak perlu kode baru. Tidak ada
+perubahan kode; hanya teks SoT yang diselaraskan ke perilaku aktual.
 
 ---
 
@@ -157,7 +161,7 @@ Ditambahkan karena Matrix §9 mewajibkannya; seluruhnya mendokumentasikan perila
   kolom integer 32-bit; di atasnya 422, bukan 500). **Catatan bisnis [Pemilik], BUKAN validasi tambahan di
   API:** `grade_level` numerik 1–6 mengacu pada SD. TK memakai struktur/group Rombel terpisah (mis.
   "TK A", "TK B", "TK A1/A2") dan **tidak ada pemetaan angka untuk TK** (tidak ada "TK A = 1"). API tidak
-  menolak `grade_level` > 6 dan tidak menegakkan catatan ini; lihat N-3.
+  menolak `grade_level` > 6 dan tidak menegakkan catatan ini. **Cakupan catatan dipersempit (keputusan pemilik, N-3, Stage 6):** berlaku untuk **konteks SD saat ini**. Platform belum punya struktur jenjang terpisah (SMP/SMA); jenjang lain memakai rentang angka berbeda sesuai konvensinya masing-masing bila/ketika diimplementasikan. Contoh SoT/seeder/test yang memakai `VII-A` / `grade_level: 7` adalah data contoh, bukan pelanggaran catatan ini, karena `grade_level` di DB/API tetap integer positif generik.
 - **F-21 — cakupan Teacher.** `GET /rombels` untuk Teacher hanya berisi Rombel dari **active Teacher
   Assignment miliknya** (satu Rombel; kosong bila tidak ada active assignment atau Academic Year-nya tidak
   aktif). `GET /rombels/{id}` di luar cakupan itu → **404** (sama dengan id yang tidak ada). Headmaster
@@ -332,19 +336,18 @@ Dicek terhadap seluruh fix Stage 1–4 + F-53. Hasil:
 - **Pengecualian yang sudah terdokumentasi:** aturan §26 "write pada resource dengan scope jelas → 403"
   punya satu pengecualian final, `POST /teachers/{id}/inactive` lintas sekolah → 404 (F-49, lihat §15).
 - **Catatan, bukan errata:** respons F-53 (422 `nisn_conflicts_with_staff_username`) memungkinkan Teacher
-  menguji apakah suatu string adalah username staf (termasuk di sekolah lain). Lihat N-2.
+  menguji apakah suatu string adalah username staf (termasuk di sekolah lain). **Diterima sebagai trade-off, konsisten dengan `cross_school_nisn` (keputusan pemilik, N-2, Stage 6):** `cross_school_nisn` (403) sudah menyatakan hal serupa untuk NISN lintas sekolah dan sudah lama diterima; pesan F-53 tidak membuka staf yang mana, perannya, atau sekolahnya (hanya "nomor ini bentrok dengan login seseorang"), sedangkan menyamarkannya merugikan kasus sah (Teacher salah ketik NISN dan butuh error yang jelas). Severity rendah; tidak ada perubahan kode.
 
 ---
 
-## Ketidaksesuaian yang butuh keputusan pemilik (dicatat, TIDAK diputuskan di Stage 5)
+## Keputusan pemilik atas ketidaksesuaian N-1, N-2, N-3 (Stage 6, final; tidak ada yang tersisa di daftar NEEDS DECISION)
 
-- **N-1 — `unknown_rombel`.** §9 dan §18 menyebut kode ini, tetapi implementasi tidak pernah
-  mengeluarkannya (lihat §9-D). Pilihan: ubah teks SoT ke perilaku aktual (422 `validation_failed` /
-  403), atau tambahkan kode ke implementasi.
-- **N-2 — enumerasi username staf lewat F-53.** `cross_school_nisn` (403) sudah memiliki sifat serupa
-  untuk NISN lintas sekolah. Pilihan: terima sebagai trade-off (422 jelas lebih berguna bagi Teacher),
-  atau samarkan pesannya.
-- **N-3 — catatan bisnis `grade_level` 1–6 (SD).** Contoh SoT lain memakai `VII-A`/`grade_level: 7`
-  (§14, seeder, test). Bila platform juga melayani jenjang di atas SD, catatan "1–6" perlu dibatasi
-  eksplisit sebagai konteks SD. Tidak ada dampak kode.
+| ID | Keputusan | Dampak kode | Lokasi |
+|---|---|---|---|
+| N-1 | Ubah teks SoT ke perilaku aktual; jangan tambah kode `unknown_rombel` (tidak ada → 422 `validation_failed`, di luar scope → 403) | Tidak ada | §9-D |
+| N-2 | Terima sebagai trade-off, konsisten dengan `cross_school_nisn`; jangan samarkan pesan F-53 | Tidak ada | §26 |
+| N-3 | Persempit catatan `grade_level` 1–6 menjadi eksplisit "konteks SD saat ini" | Tidak ada | §14 (F-20) |
+
+## Catatan di luar repo
+
 - **F-48 (Task Board)** adalah dokumen pemilik di luar repo ini; sinkronisasi status dilakukan pemilik.
