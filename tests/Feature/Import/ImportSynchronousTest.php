@@ -6,6 +6,7 @@ use App\Models\ImportBatch;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\Import\ImportService;
 use App\Services\School\TeacherImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -17,8 +18,8 @@ use RuntimeException;
 use Tests\Concerns\CreatesSchoolFixtures;
 use Tests\TestCase;
 
-// F-38 (keputusan FINAL pemilik): import SELALU sinkron untuk semua ukuran file sampai batas 1.000
-// baris. Tidak ada queue/async, tidak ada cabang berdasarkan jumlah baris, response selalu HTTP 200
+// F-38 (keputusan FINAL pemilik): import SELALU sinkron untuk semua ukuran file sampai batas baris
+// (ImportService::MAX_ROWS). Tidak ada queue/async, tidak ada cabang berdasarkan jumlah baris, response selalu HTTP 200
 // dengan lima field kontrak (total_rows, processed_rows, successful_rows, rejected_rows, errors[])
 // plus batch_id; tidak ada `status:pending`. Berlaku untuk Teacher dan Student import.
 //
@@ -118,15 +119,17 @@ class ImportSynchronousTest extends TestCase
     }
 
     /** @test */
-    public function teacher_500_baris_diproses_langsung(): void
+    public function teacher_tepat_di_batas_atas_baris_diproses_langsung(): void
     {
+        // Batas atas = ImportService::MAX_ROWS (200). Dulu test ini 500 baris saat batasnya 1.000.
         $hm = $this->fxHeadmaster($this->fxSchool(), '1001');
+        $max = ImportService::MAX_ROWS;
 
         $this->assertSynchronousShape(
-            $this->postTeacherImport($hm, $this->makeFile($this->teacherRows(500), ['Nama Lengkap', 'NIP', 'Gender'])),
-            500
+            $this->postTeacherImport($hm, $this->makeFile($this->teacherRows($max), ['Nama Lengkap', 'NIP', 'Gender'])),
+            $max
         );
-        $this->assertSame(500, Teacher::where('nip', '>=', '100000')->count());
+        $this->assertSame($max, Teacher::where('nip', '>=', '100000')->count());
     }
 
     /** @test */
@@ -168,14 +171,15 @@ class ImportSynchronousTest extends TestCase
         $this->assertSame('done', ImportBatch::findOrFail($response->json('data.batch_id'))->status);
     }
 
-    // ---------- Batas 1.000 baris tetap berlaku ----------
+    // ---------- Batas baris (ImportService::MAX_ROWS) tetap berlaku ----------
 
     /** @test */
-    public function lebih_dari_1000_baris_tetap_422_dan_tidak_diproses_sama_sekali(): void
+    public function satu_baris_di_atas_batas_tetap_422_dan_tidak_diproses_sama_sekali(): void
     {
+        // Dulu: 1.001 baris saat batasnya 1.000. Sekarang batas turun ke MAX_ROWS (200) karena import sinkron.
         $hm = $this->fxHeadmaster($this->fxSchool(), '1001');
 
-        $this->postTeacherImport($hm, $this->makeFile($this->teacherRows(1001), ['Nama Lengkap', 'NIP', 'Gender']))
+        $this->postTeacherImport($hm, $this->makeFile($this->teacherRows(ImportService::MAX_ROWS + 1), ['Nama Lengkap', 'NIP', 'Gender']))
             ->assertStatus(422);
 
         $this->assertSame(0, ImportBatch::count());

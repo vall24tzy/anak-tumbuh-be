@@ -39,6 +39,15 @@ use Maatwebsite\Excel\Facades\Excel;
  */
 class ImportService
 {
+    /**
+     * Batas baris per file import (Teacher dan Student). Import diproses SINKRON di dalam request (F-38) dan tiap baris
+     * membuat akun (hash password), sehingga waktu respons linear terhadap jumlah baris. Terukur di dev lokal pada
+     * BCRYPT_ROUNDS bawaan: ~0,6 dtk per baris (101 baris = 60,9 dtk). Batas diturunkan dari 1.000 ke 200 supaya
+     * satu request muat di timeout endpoint import (lihat docs/ops/import-timeout.md). Satu-satunya tempat angka ini
+     * didefinisikan; dipakai TeacherImportController dan StudentImportController.
+     */
+    public const MAX_ROWS = 200;
+
     public function __construct(
         protected array $columnMap,
         protected array $rules,

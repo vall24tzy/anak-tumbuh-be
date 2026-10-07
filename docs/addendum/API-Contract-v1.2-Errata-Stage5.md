@@ -77,7 +77,7 @@ implementasi (living document)". Katalog di bawah disusun dari grep seluruh `new
 | 404 | `not_found` | Resource tidak ada atau di luar scope requester (§26). |
 | 405 | `method_not_allowed` | Method HTTP salah (F-47). |
 | 409 | `conflict` | Konflik state tanpa kode spesifik. |
-| 422 | `validation_failed` | Validasi field gagal, termasuk `per_page` di luar batas, `.xls`, file >1.000 baris, format gambar tidak didukung. |
+| 422 | `validation_failed` | Validasi field gagal, termasuk `per_page` di luar batas, `.xls`, file di atas batas baris import (200), format gambar tidak didukung. |
 | 429 | `rate_limit_exceeded` | Rate limit login terlampaui (F-23, F-47). |
 | lainnya/5xx | `internal_error` | Kesalahan tak terduga. |
 
@@ -248,9 +248,14 @@ batas dimensi; tidak ada aturan NISN vs akun staf.
 2. §18: "File >100 baris diproses lewat batch/queue asinkron; ≤100 baris boleh diproses langsung sinkron
    (technical/performance note, tidak mengubah kontrak response)."
 3. §28 tidak menyebut async tetapi mengacu pola yang sama untuk Teacher Import (§15).
+4. §18 dan §28: batas ukuran "maks 1.000 baris" per file. **Direvisi menjadi 200 baris [Pemilik, setelah pengukuran F-38]:**
+   import sinkron terukur ~0,6 dtk per baris (101 baris = 60,9 dtk; 1.000 baris = 577,5 dtk) dan tiap request harus muat di
+   timeout endpoint import. Angka 200 berlaku untuk Teacher Import dan Student Import (preview dan commit memakai satu konstanta,
+   `ImportService::MAX_ROWS`). Konsekuensi untuk klien: file >200 baris harus dipecah. Konfigurasi timeout server:
+   `docs/ops/import-timeout.md`.
 
 **Revisi Stage 5 — F-38 [Pemilik, FINAL]: seluruh mekanisme asinkron dihapus.**
-- **Semua ukuran file (sampai batas 1.000 baris) diproses SINKRON** di dalam request. Tidak ada
+- **Semua ukuran file (sampai batas 200 baris per file; sebelumnya 1.000) diproses SINKRON** di dalam request. Tidak ada
   queue/job, tidak ada 202, tidak ada `status:"pending"`, dan **tidak ada variasi respons berdasarkan
   jumlah baris**. File upload dibaca langsung dan tidak disimpan ke storage.
 - **Respons commit selalu HTTP 200** dengan `total_rows`, `processed_rows`, `successful_rows`,
@@ -264,7 +269,7 @@ batas dimensi; tidak ada aturan NISN vs akun staf.
   `processing`) dan respons error normal dikembalikan (F-37 diteruskan ke jalur sinkron, `cea2bcd`).
 
 **Format file (F-33).** Request `file: <xlsx>` — **`.xlsx` saja**; `.xls` dan csv ditolak **422
-`validation_failed`**. Maksimum 5 MB dan 1.000 baris (>1.000 baris → 422 `validation_failed`, tidak
+`validation_failed`**. Maksimum 5 MB dan **200 baris** (>200 baris → 422 `validation_failed`, tidak
 diproses). Berlaku untuk Teacher Import dan Student Import (preview dan commit).
 
 **Kegagalan level file (F-34).** File yang tidak bisa dibaca → **422 `import_file_unparseable`**. Kolom

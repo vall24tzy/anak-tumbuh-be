@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\StudentImportCommitRequest;
 use App\Http\Requests\Student\StudentImportPreviewRequest;
 use App\Models\ImportBatch;
+use App\Services\Import\ImportService;
 use App\Services\Student\StudentImportService;
 use App\Traits\ApiResponseTraits;
 use Maatwebsite\Excel\Facades\Excel;
@@ -45,8 +46,9 @@ class StudentImportController extends Controller
 
         $rowCount = $this->service->countRows($file);
 
-        if ($rowCount > 1000) {
-            throw new HttpException(422, 'File melebihi batas maksimal 1.000 baris');
+        // F-38 (batas baris): lihat ImportService::MAX_ROWS (turun dari 1.000 karena import sinkron).
+        if ($rowCount > ImportService::MAX_ROWS) {
+            throw new HttpException(422, 'File melebihi batas maksimal ' . ImportService::MAX_ROWS . ' baris');
         }
 
         $user = auth('api')->user();
@@ -58,7 +60,7 @@ class StudentImportController extends Controller
         ]);
 
         // F-38 (keputusan FINAL pemilik): sama dengan Teacher import. Selalu sinkron untuk semua
-        // ukuran file sampai 1.000 baris, tanpa queue dan tanpa cabang jumlah baris; response
+        // ukuran file sampai batas baris di atas, tanpa queue dan tanpa cabang jumlah baris; response
         // selalu HTTP 200 dengan lima field kontrak (+ batch_id). F-37: exception di commit()
         // menandai batch 'failed' (tidak tertahan di 'processing') lalu dilempar ulang.
         try {
