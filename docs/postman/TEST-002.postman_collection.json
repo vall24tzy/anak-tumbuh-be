@@ -9634,7 +9634,7 @@
     },
     {
       "name": "10. Import Guru (Headmaster)",
-      "description": "POST /teachers/import (.xlsx saja, maks 5 MB, maks 1.000 baris). F-38: SEMUA ukuran file diproses SINKRON (tanpa queue; php artisan queue:work tidak diperlukan) dan respons selalu berisi lima field langsung. File uji: test-files/ (jalankan generate_test_files.py dulu).",
+      "description": "POST /teachers/import (.xlsx saja, maks 5 MB, maks 200 baris (ImportService::MAX_ROWS)). F-38: SEMUA ukuran file diproses SINKRON (tanpa queue; php artisan queue:work tidak diperlukan) dan respons selalu berisi lima field langsung. File uji: test-files/ (jalankan generate_test_files.py dulu).",
       "item": [
         {
           "name": "10.01 Download template",
@@ -10421,7 +10421,7 @@
           "response": []
         },
         {
-          "name": "10.13 Import 1.001 baris (>1.000) -> 422",
+          "name": "10.13 Import 1.001 baris (jauh di atas batas 200) -> 422",
           "event": [
             {
               "listen": "test",
@@ -10430,7 +10430,7 @@
                 "exec": [
                   "let j = null; try { j = pm.response.json(); } catch (e) { j = null; }",
                   "pm.test(\"Status 422\", function () { pm.expect(pm.response.code).to.be.oneOf([422]); });",
-                  "pm.test(\"pesan menyebut batas 1.000 baris\", function () { pm.expect(j.error.message).to.include('1.000'); });"
+                  "pm.test(\"pesan menyebut batas 200 baris\", function () { pm.expect(j.error.message).to.include('200'); });"
                 ]
               }
             }
@@ -11970,11 +11970,11 @@
       ]
     },
     {
-      "name": "14. [OPSIONAL] Ukur waktu import 1.000 baris (F-38)",
-      "description": "JALANKAN HANYA bila ingin mengukur. Membuat 1.000 guru baru di School A dan bisa memakan beberapa menit (hash password per baris). Bila gagal/timeout, itu temuan nyata tentang max_execution_time PHP-FPM atau timeout proxy. Folder ini sengaja di akhir supaya tidak mengganggu folder 1-13.",
+      "name": "14. [OPSIONAL] Ukur waktu import pada batas atas 200 baris (F-38)",
+      "description": "JALANKAN HANYA bila ingin mengukur. Membuat 200 guru baru di School A (~2 menit pada biaya hash bawaan). Bila gagal/timeout, itu temuan nyata tentang max_execution_time PHP-FPM, fastcgi_read_timeout nginx, atau timeout CDN/proxy (lihat docs/ops/import-timeout.md). Folder ini sengaja di akhir supaya tidak mengganggu folder 1-13.",
       "item": [
         {
-          "name": "14.01 [UKUR F-38] Import tepat 1.000 baris (batas atas) -> sinkron, catat waktu",
+          "name": "14.01 [UKUR F-38] Import tepat 200 baris (batas atas MAX_ROWS) -> sinkron, catat waktu",
           "request": {
             "method": "POST",
             "header": [
@@ -11993,7 +11993,7 @@
                 "import"
               ]
             },
-            "description": "Pengukuran F-38 (bukan kriteria fungsional). Catat nilai di Console dan variabel _import_1000_ms.",
+            "description": "Pengukuran F-38 (bukan kriteria fungsional). Catat nilai di Console dan variabel _import_200_ms.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12010,7 +12010,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "test-files/teacher_1000_rows.xlsx"
+                  "src": "test-files/teacher_200_rows.xlsx"
                 }
               ]
             }
@@ -12024,8 +12024,65 @@
                 "exec": [
                   "let j = null; try { j = pm.response.json(); } catch (e) { j = null; }",
                   "pm.test(\"Status 200\", function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
-                  "pm.test(\"1.000 baris diproses semua secara sinkron\", function () { pm.expect(j.data.total_rows).to.eql(1000); pm.expect(j.data.successful_rows).to.eql(1000); pm.expect(j.data.rejected_rows).to.eql(0); });",
-                  "console.log(\"F-38 waktu respons import 1.000 baris (ms): \" + pm.response.responseTime); pm.environment.set(\"_import_1000_ms\", String(pm.response.responseTime));"
+                  "pm.test(\"200 baris (batas atas) diproses semua secara sinkron\", function () { pm.expect(j.data.total_rows).to.eql(200); pm.expect(j.data.successful_rows).to.eql(200); pm.expect(j.data.rejected_rows).to.eql(0); });",
+                  "console.log(\"F-38 waktu respons import 200 baris (ms): \" + pm.response.responseTime); pm.environment.set(\"_import_200_ms\", String(pm.response.responseTime));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14.02 [F-38] Import 201 baris (satu di atas batas) -> 422, tidak diproses",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "import"
+              ]
+            },
+            "description": "Batas baris ImportService::MAX_ROWS = 200: 201 baris ditolak 422 sebelum ada batch atau akun dibuat.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hm1_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "test-files/teacher_201_rows.xlsx"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = null; try { j = pm.response.json(); } catch (e) { j = null; }",
+                  "pm.test(\"Status 422\", function () { pm.expect(pm.response.code).to.eql(422); });",
+                  "pm.test(\"code = validation_failed\", function () { pm.expect(j.error.code).to.eql(\"validation_failed\"); });"
                 ]
               }
             }

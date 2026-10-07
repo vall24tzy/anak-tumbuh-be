@@ -10,7 +10,7 @@ run berikutnya (atau jalankan `php artisan migrate:fresh --seed`).
 Yang dihasilkan (folder test-files/):
   - file .xlsx untuk Import Guru (valid, partial, struktur salah, kosong,
     korup, xlsx rusak sungguhan, NIP kembar + NIP bertepi spasi, 101 baris,
-    1.000 baris (opsional, ukur waktu), 1.001 baris, >5 MB) + .csv dan .xls
+    tepat 200 baris dan 201 baris (batas ImportService::MAX_ROWS, folder 14), 1.001 baris, >5 MB) + .csv dan .xls
     (format salah; F-33)
   - file gambar/non-gambar untuk tes upload (logo sekolah, foto Student)
   - meng-update variabel imp_* di TEST-002.postman_environment.json
@@ -79,7 +79,7 @@ write_xlsx("teacher_101_rows.xlsx", HEAD,
            [[f"Guru Besar {i}", f"85{S}{i:03d}", "laki-laki" if i % 2 else "perempuan"]
             for i in range(1, 102)])
 
-# 6) 1.001 baris -> ditolak (>1.000)
+# 6) 1.001 baris -> ditolak (jauh di atas batas 200)
 write_xlsx("teacher_1001_rows.xlsx", HEAD,
            [[f"Guru Besar {i}", f"86{S}{i:04d}", "laki-laki"] for i in range(1, 1002)])
 
@@ -117,10 +117,14 @@ write_xlsx("teacher_dup_trim.xlsx", HEAD, [
     ["Guru Trim", f"  86{S}2  ", "laki-laki"],      # row 4  OK, harus tersimpan TANPA spasi
 ])
 
-# 8d) tepat 1.000 baris (batas atas; hanya untuk pengukuran waktu F-38, folder 14 opsional)
-write_xlsx("teacher_1000_rows.xlsx", HEAD,
-           [[f"Guru Seribu {i}", f"87{S}{i:04d}", "laki-laki" if i % 2 else "perempuan"]
-            for i in range(1, 1001)])
+# 8d) batas atas import = ImportService::MAX_ROWS (200 sejak F-38; dulu 1.000). Folder 14 (opsional):
+#     200 baris diterima dan diukur waktunya, 201 baris ditolak 422.
+write_xlsx("teacher_200_rows.xlsx", HEAD,
+           [[f"Guru Batas {i}", f"87{S}{i:03d}", "laki-laki" if i % 2 else "perempuan"]
+            for i in range(1, 201)])
+write_xlsx("teacher_201_rows.xlsx", HEAD,
+           [[f"Guru Lebih {i}", f"88{S}{i:03d}", "laki-laki" if i % 2 else "perempuan"]
+            for i in range(1, 202)])
 
 # 8e) format .xls lama (F-33): header biner OLE2 khas .xls. Bukan workbook utuh; cukup agar terdeteksi
 #     bukan xlsx dan ditolak rule mimes:xlsx.

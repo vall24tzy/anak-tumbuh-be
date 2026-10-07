@@ -116,7 +116,7 @@ akan merah di request itu — di luar assertion spesifik per-request.
 | 11 | Dashboard | Per-rombel (Headmaster), global (SA) |
 | 12 | Authorization Sweep | ~90 kombinasi role×endpoint lewat `pm.sendRequest`, harus semua ditolak |
 | 13 | Perilaku final Stage 1-5 | F-53 (NISN vs username staf + kontrol reuse), F-06 (foto private), F-15 (`meta` di keenam endpoint list, `per_page` > 100 = 422, halaman di luar rentang) |
-| 14 | [OPSIONAL] Ukur waktu | Import tepat 1.000 baris sinkron; catat waktu respons (F-38). Lewati bila tidak ingin 1.000 guru baru. |
+| 14 | [OPSIONAL] Ukur waktu | Import tepat 200 baris (batas atas, sinkron; catat waktu respons) dan 201 baris (422). Lewati bila tidak ingin 200 guru baru. |
 
 Detail lengkap tiap request ada di **deskripsi request itu sendiri** di Postman (klik
 request → tab di bawah URL bar) — bukan diulang di sini supaya tidak ada 2 sumber

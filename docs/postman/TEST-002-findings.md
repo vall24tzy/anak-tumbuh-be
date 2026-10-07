@@ -312,7 +312,7 @@ Daftar lengkap perubahan collection (kolom 2: BARU / UBAH / HAPUS):
 | 13.08 [F-15] GET /teachers?per_page=101 -> 422 validation_failed | BARU | F-15 (941b0a1) |
 | 13.09 [F-15] GET /teachers?page=99999 (di luar rentang) -> 200, data kosong, meta valid | BARU | F-15 (941b0a1) |
 | 13.10 [F-15] Keenam endpoint list mengembalikan {data, meta} | BARU | F-15/F-10 (941b0a1) |
-| 14.01 [UKUR F-38] Import tepat 1.000 baris (batas atas) -> sinkron, catat waktu | BARU | F-38: pengukuran waktu (opsional) |
+| 14.01 [UKUR F-38] Import tepat 200 baris (batas atas MAX_ROWS) -> sinkron, catat waktu | BARU | F-38: pengukuran waktu (opsional) |
 | 4.10b [RECOVERY - bukan test coverage] Pulihkan AY1 setelah bug idempotent 4.10 | HAPUS | F-02 (4987936): request pemulihan state karena bug idempotent 4.10; bug sudah diperbaiki sehingga request ini tidak lagi diperlukan |
 
 Catatan: request lain (folder 0-3, 7, 8, 11, 12) tidak berubah; `[LOGIN]` rate limit (F-23) tidak ditambah test dua dimensi
@@ -337,4 +337,9 @@ Dua penyebab itu menjelaskan 95 dari 99 assertion gagal; sisa kecil (dugaan: 11.
    Sebelum F-35 backend memprosesnya dan gagal saat insert (`unexpected_error`); sekarang kembaran antar-baris dideteksi sebelum proses dan
    dilaporkan `field: nip`, `code: duplicate_in_file`, pesan menyebut "baris 2". Backend benar, assertion usang: sudah dikoreksi
    (nama request kini memuat `[F-35]`). Jumlah test tetap 706; hasil yang diharapkan pada run berikutnya **706 lulus, 0 gagal**.
+
+4. **Batas baris import turun dari 1.000 ke 200 (keputusan pemilik setelah pengukuran waktu F-38).** Dampak pada collection: 10.13 (pesan 422 kini menyebut 200,
+   bukan 1.000), folder 14 (14.01 sekarang tepat 200 baris, 14.02 baru: 201 baris -> 422), generator (`teacher_200_rows.xlsx`, `teacher_201_rows.xlsx`
+   menggantikan `teacher_1000_rows.xlsx`). Variabel environment `_import_1000_ms` diganti `_import_200_ms`. Jumlah test yang diharapkan pada run berikutnya: **711**
+   (709 + 2 assertion dari 14.02 baru); bila angka run berbeda, catat angka sebenarnya.
 

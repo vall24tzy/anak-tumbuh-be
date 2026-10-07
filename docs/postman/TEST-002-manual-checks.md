@@ -35,21 +35,19 @@ Hasil HARUS kosong. Di Tinker:
 ```
 Bila ada hasil: temuan security; hentikan dan laporkan ke pemilik (jangan membuka/menjalankan file tersebut).
 
-## 3. Waktu respons import sinkron (request 10.14 dan 14.01) — F-38
+## 3. Waktu respons import sinkron (request 10.14 dan folder 14) — F-38
 
-Sejak F-38 import diproses SINKRON di dalam request. **Sudah diukur pada run Stage 6** (lingkungan dev lokal Windows,
-`php artisan serve`, `BCRYPT_ROUNDS` belum dicatat): **101 baris = 60,9 dtk; 1.000 baris = 577,5 dtk (9 mnt 37 dtk)**,
-sekitar 0,58 dtk per baris dan linear terhadap jumlah baris. Artinya 101 baris SUDAH melampaui timeout bawaan
-(PHP-FPM `max_execution_time` 30 dtk, nginx 60 dtk), dan 1.000 baris tidak layak sinkron di konfigurasi bawaan.
-Bila terpotong di tengah, sebagian baris sudah tersimpan dan batch tertahan `processing`.
+Import diproses SINKRON di dalam request. **Terukur** (dev lokal Windows, `php artisan serve`): 101 baris = 60,9 dtk dan
+1.000 baris = 577,5 dtk (~0,6 dtk per baris, linear); dengan `BCRYPT_ROUNDS=4` 101 baris = 6,7 dtk, sehingga hash password
+adalah biaya dominan. Batas baris per file kini **200** (`ImportService::MAX_ROWS`); pada biaya di atas, 200 baris ~120 dtk,
+jadi timeout endpoint import dikonfigurasi **180 dtk** (lihat `docs/ops/import-timeout.md`).
 
-Untuk mengetahui apakah biaya terbesar ada di hash password (bisa diturunkan lewat konfigurasi) atau di query:
-1. Cek nilai sekarang: `php artisan tinker` → `config('hashing.bcrypt.rounds')`.
-2. Catat `max_execution_time` runtime server: `php -i | findstr max_execution_time` (CLI/FPM bisa berbeda).
-3. Set `BCRYPT_ROUNDS=4` sementara di `.env`, restart server, jalankan ulang request 10.14 saja, lalu bandingkan:
-   bila turun drastis (mis. dari 61 dtk menjadi di bawah 10 dtk), hash adalah biaya dominan. Kembalikan nilai semula sesudah uji.
-4. Catat hasilnya di `docs/testing/BASELINE-STAGE-0C.md` §5. Keputusan (naikkan timeout dan turunkan batas baris, kurangi biaya
-   per baris, atau tinjau ulang F-38) ada di pemilik project.
+Setelah timeout server dikonfigurasi:
+1. Jalankan **14.01** (tepat 200 baris): harus 200; catat Console `F-38 waktu respons import 200 baris (ms)` (variabel `_import_200_ms`).
+   Bila 502/504/524 atau terputus, ada lapisan (nginx/FPM/CDN/load balancer) yang masih memotong sebelum 180 dtk.
+2. Jalankan **14.02** (201 baris): harus 422 tanpa memproses.
+3. Cek `config('hashing.bcrypt.rounds')` di Tinker dan catat nilainya bersama hasil ukur, supaya angka bisa dibandingkan.
+4. Catat hasil di `docs/testing/BASELINE-STAGE-0C.md` §5.
 
 ## 4. Rate limit login tidak membuat request lain gagal — F-23
 
