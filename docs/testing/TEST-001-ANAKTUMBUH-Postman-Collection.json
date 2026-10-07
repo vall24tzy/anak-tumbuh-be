@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "ANAKTUMBUH.ID — TEST-001 (Modul Orang 1)",
-    "description": "Postman Collection utk TEST-001: testing menyeluruh Student, Student Class Assignment, Student Lifecycle, Habit/Bermasyarakat, QR, Import Siswa, Dashboard Student/Teacher.\n\nCARA PAKAI:\n1. Import file ini ke Postman.\n2. Jalankan berurutan pakai Collection Runner (folder 0 -> 7), delay disarankan >=200ms per request supaya tidak salah kena rate-limit.\n3. Folder 0 (Setup Prasyarat) BUKAN scope TEST-001 (endpoint Orang 2) — cuma bootstrap data supaya folder 1-7 bisa jalan mandiri. Isi username/password Super Admin di request pertama sebelum run.\n4. Request yang butuh file upload (folder 6) perlu Anda isi 'src' di formdata manual lewat Postman UI — Postman tidak bisa embed file binary ke JSON collection.\n\nSTATUS: Collection ini BELUM PERNAH DIJALANKAN — dibuat lewat code review manual (tidak ada PHP/PostgreSQL live di sandbox pembuatnya). Jalankan di dev env nyata, laporkan hasil pass/fail sebenarnya — jangan anggap lulus dari isi file ini saja.",
+    "description": "Postman Collection utk TEST-001: testing menyeluruh Student, Student Class Assignment, Student Lifecycle, Habit/Bermasyarakat, QR, Import Siswa, Dashboard Student/Teacher, plus regresi final Stage 1-5 + F-53 (Folder 8).\n\nCARA PAKAI:\n1. Import file ini ke Postman.\n2. Jalankan berurutan pakai Collection Runner (folder 0 -> 7), ketiga route login berbagi SATU counter per IP (5/menit, F-23) sehingga delay antar-request TIDAK cukup. Jalankan per folder dan jalankan `php artisan cache:clear` sebelum Folder 1, 4, dan 5 (Folder 3 aman setelah Folder 1 bila tidak lebih dari 5 login/menit). Folder 8 tidak punya request login. Request rate limit di Folder 5 sengaja menghabiskan counter ~1 menit.\n3. Folder 0 (Setup Prasyarat) BUKAN scope TEST-001 (endpoint Orang 2) — cuma bootstrap data supaya folder 1-7 bisa jalan mandiri. Isi collection variable `sa_password` (type secret, KOSONG di file) lewat tab Variables > Current value sebelum run; `sa_username` default superadmin1. JANGAN menulis password ke file collection dan JANGAN commit environment/export yang berisi secret.\n4. Request yang butuh file upload (folder 6 dan satu request foto di folder 8) perlu Anda isi 'src' di formdata manual lewat Postman UI — Postman tidak bisa embed file binary ke JSON collection. File uji tambahan (.xls, xlsx rusak, tanpa kolom NISN, trim, foto) dibuat dengan gen_sample_xlsx.py.\n\nSTATUS: Collection ini BELUM PERNAH DIJALANKAN — dibuat lewat code review manual (tidak ada PHP/PostgreSQL live di sandbox pembuatnya). Jalankan di dev env nyata, laporkan hasil pass/fail sebenarnya — jangan anggap lulus dari isi file ini saja.\n\nREVISI Okt 2026: disinkronkan dengan perilaku FINAL Stage 1-5 + F-53 (errata API Contract Stage 5). Perubahan ini juga belum dijalankan; hasil Runner dilaporkan manual.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,6 +9,16 @@
       "key": "base_url",
       "value": "http://localhost:8000/api/v1",
       "type": "string"
+    },
+    {
+      "key": "sa_username",
+      "value": "superadmin1",
+      "type": "string"
+    },
+    {
+      "key": "sa_password",
+      "value": "",
+      "type": "secret"
     },
     {
       "key": "sa_token",
@@ -179,6 +189,16 @@
       "key": "student_d_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "dashboard_level",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_trim_nisn",
+      "value": "1000000099",
+      "type": "string"
     }
   ],
   "item": [
@@ -186,7 +206,7 @@
       "name": "0. Setup Prasyarat (bukan scope TEST-001, cuma bootstrap data)",
       "item": [
         {
-          "name": "Login Super Admin (seeder: superadmin1)",
+          "name": "Login Super Admin (sa_username/sa_password dari collection variable, TANPA literal)",
           "request": {
             "method": "POST",
             "header": [
@@ -208,7 +228,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"superadmin1\",\n  \"password\": \"ganti_ini_di_production\"\n}",
+              "raw": "{\n  \"username\": \"{{sa_username}}\",\n  \"password\": \"{{sa_password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -223,6 +243,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test('sa_password sudah diisi manual di Variables (Current value) sebelum run', function () { pm.expect(pm.collectionVariables.get('sa_password'), 'isi sa_password (secret) dulu').to.be.a('string').and.not.empty; });",
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });",
                   "if (pm.response.code === 200) { pm.collectionVariables.set('sa_token', pm.response.json().data.access_token); }"
                 ]
@@ -728,7 +749,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 201', function () { pm.response.to.have.status(201); });"
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('assignment_b_id', pm.response.json().data.id); }"
                 ]
               }
             }
@@ -1202,9 +1224,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('code protected_field utk field fullname', function () {",
+                  "pm.test('error.code protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });",
+                  "pm.test('details memuat field fullname dengan reason protected_field', function () {",
                   "  const body = pm.response.json();",
-                  "  pm.expect(body.error.details.some(d => d.field === 'fullname' && d.message === 'protected_field')).to.be.true;",
+                  "  pm.expect(body.error.details.some(d => d.field === 'fullname' && d.reason === 'protected_field')).to.be.true;",
                   "});"
                 ]
               }
@@ -1253,9 +1276,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('3 field protected ditolak', function () {",
-                  "  const fields = pm.response.json().error.details.map(d => d.field);",
-                  "  ['poin', 'nisn', 'status'].forEach(f => pm.expect(fields).to.include(f));",
+                  "pm.test('error.code protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });",
+                  "pm.test('3 field protected ditolak, masing-masing reason protected_field', function () {",
+                  "  const det = pm.response.json().error.details;",
+                  "  ['poin', 'nisn', 'status'].forEach(f => pm.expect(det.some(d => d.field === f && d.reason === 'protected_field'), f).to.be.true);",
                   "});"
                 ]
               }
@@ -1310,7 +1334,7 @@
           ]
         },
         {
-          "name": "POST /students - NISN sama, rombel & tahun SAMA -> 409 duplicate_assignment (BUKAN skenario reuse; reuse murni butuh 2 Academic Year)",
+          "name": "POST /students - NISN Student existing (jalur REUSE), rombel & tahun SAMA -> 409 duplicate_assignment (kontrol F-53: BUKAN 422 staf)",
           "request": {
             "method": "POST",
             "header": [
@@ -1349,7 +1373,58 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 409', function () { pm.response.to.have.status(409); });"
+                  "pm.test('status 409', function () { pm.response.to.have.status(409); });",
+                  "pm.test('error.code duplicate_assignment', function () { pm.expect(pm.response.json().error.code).to.eql('duplicate_assignment'); });",
+                  "pm.test('bukan nisn_conflicts_with_staff_username (reuse tidak kena cek F-53)', function () { pm.expect(pm.response.json().error.code).to.not.eql('nisn_conflicts_with_staff_username'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /students - NISN BARU = NIP Teacher A (username staf) -> 422 nisn_conflicts_with_staff_username (F-53)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rombel_id\": \"{{rombel_a_id}}\",\n  \"name\": \"Siswa Bentrok Staf\",\n  \"nisn\": \"{{teacher_a_nip}}\",\n  \"gender\": \"laki-laki\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code nisn_conflicts_with_staff_username', function () { pm.expect(pm.response.json().error.code).to.eql('nisn_conflicts_with_staff_username'); });",
+                  "pm.test('details[0].field = nisn', function () { pm.expect(pm.response.json().error.details[0].field).to.eql('nisn'); });",
+                  "pm.test('Student tidak dibuat (tidak ada data)', function () { pm.expect(pm.response.json()).to.not.have.property('data'); });"
                 ]
               }
             }
@@ -1491,6 +1566,137 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /auth/me - pakai token Student A LAMA (terbit sebelum reset) -> 401 (F-29 token dicabut)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student A - password LAMA (NISN) setelah reset -> 401 (F-29)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login/student/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "student",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nisn\": \"{{student_a_nisn}}\",\n  \"password\": \"{{student_a_nisn}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student A - password BARU (passwordbaru123) -> 200, token baru disimpan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login/student/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "student",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nisn\": \"{{student_a_nisn}}\",\n  \"password\": \"passwordbaru123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('student_a_token', pm.response.json().data.access_token); }"
                 ]
               }
             }
@@ -1820,8 +2026,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('rombel_id ditolak (bukan auto-move)', function () {",
-                  "  pm.expect(pm.response.json().error.details.some(d => d.field === 'rombel_id')).to.be.true;",
+                  "pm.test('error.code field_not_accepted', function () { pm.expect(pm.response.json().error.code).to.eql('field_not_accepted'); });",
+                  "pm.test('rombel_id ditolak (bukan auto-move), reason field_not_accepted', function () {",
+                  "  pm.expect(pm.response.json().error.details.some(d => d.field === 'rombel_id' && d.reason === 'field_not_accepted')).to.be.true;",
                   "});"
                 ]
               }
@@ -1869,7 +2076,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 422', function () { pm.response.to.have.status(422); });"
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
                 ]
               }
             }
@@ -1968,6 +2176,101 @@
               }
             }
           ]
+        },
+        {
+          "name": "PATCH /student-class-assignments/{id} {status: ended} - Teacher A (persiapan kontrol reuse: Student A tanpa assignment aktif) -> 200",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-class-assignments/{{assignment_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-class-assignments",
+                "{{assignment_a_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ended\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /students - NISN Student existing, assignment lama ended (tahun sama) -> 201 REUSE (id sama, nama tidak ditimpa), BUKAN 422 (kontrol F-53)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rombel_id\": \"{{rombel_a_id}}\",\n  \"name\": \"Nama Berbeda Tidak Boleh Menimpa\",\n  \"nisn\": \"{{student_a_nisn}}\",\n  \"gender\": \"laki-laki\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('identity Student A di-REUSE (id sama, bukan Student baru)', function () { pm.expect(String(pm.response.json().data.id)).to.eql(String(pm.collectionVariables.get('student_a_id'))); });",
+                  "pm.test('field administratif TIDAK ditimpa saat reuse', function () { pm.expect(pm.response.json().data.fullname).to.eql('Siswa Satu Update'); });"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -2053,7 +2356,7 @@
           ]
         },
         {
-          "name": "Login password Student yang inactive -> 403",
+          "name": "Login password Student yang inactive, kredensial BENAR (passwordbaru123) -> 403",
           "request": {
             "method": "POST",
             "header": [
@@ -2091,7 +2394,54 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student inactive, kredensial SALAH -> 401 (bukan 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login/student/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "student",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nisn\": \"{{student_a_nisn}}\",\n  \"password\": \"salah-total\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
                 ]
               }
             }
@@ -2392,6 +2742,50 @@
               }
             }
           ]
+        },
+        {
+          "name": "GET /dashboard/teacher - snapshot F-41 (Rombel A: Student A inactive, C+D graduated, belum ada yang aktif)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/teacher",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "teacher"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('F-41: atribusi mengikuti assignment TERAKHIR -> active 0, inactive 1 (A), graduated 2 (C,D)', function () {",
+                  "  const sc = pm.response.json().data.student_count;",
+                  "  pm.expect(sc.active, 'active').to.eql(0);",
+                  "  pm.expect(sc.inactive, 'inactive').to.eql(1);",
+                  "  pm.expect(sc.graduated, 'graduated').to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -2587,7 +2981,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 409', function () { pm.response.to.have.status(409); });"
+                  "pm.test('status 409', function () { pm.response.to.have.status(409); });",
+                  "pm.test('error.code duplicate_habit_entry', function () { pm.expect(pm.response.json().error.code).to.eql('duplicate_habit_entry'); });"
                 ]
               }
             }
@@ -2635,7 +3030,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 422', function () { pm.response.to.have.status(422); });"
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });",
+                  "pm.test('details menyebut field initiative', function () { pm.expect(pm.response.json().error.details.some(d => d.field === 'initiative')).to.be.true; });"
                 ]
               }
             }
@@ -2879,7 +3276,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 422', function () { pm.response.to.have.status(422); });"
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
                 ]
               }
             }
@@ -2926,7 +3324,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 422', function () { pm.response.to.have.status(422); });"
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
                 ]
               }
             }
@@ -3270,7 +3669,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 401', function () { pm.response.to.have.status(401); });"
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
                 ]
               }
             }
@@ -3360,7 +3760,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 401', function () { pm.response.to.have.status(401); });"
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
                 ]
               }
             }
@@ -3445,7 +3846,7 @@
           ]
         },
         {
-          "name": "Rate limit login QR: kirim manual 6x berturut dalam 1 menit -> request ke-6 harus 429",
+          "name": "Rate limit login (F-23): request ke-6 dalam 1 menit dari IP yang sama -> 429 rate_limit_exceeded",
           "request": {
             "method": "POST",
             "header": [
@@ -3474,16 +3875,36 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "F-23 (errata §10): dua counter independen, per IP (`throttle:5,1`, DIPAKAI BERSAMA semua route login) dan per identifier (`login-identifier`: username/nisn), masing-masing 5/menit. Pre-request script mengirim 5 percobaan QR palsu lebih dulu, jadi request utama ini selalu yang ke-6 (atau lebih) dalam jendela 1 menit. Postman dari satu IP HANYA dapat membuktikan counter PER IP + envelope 429; counter per-identifier yang independen (IP berbeda) hanya terbukti di PHPUnit LoginRateLimitTest. EFEK SAMPING: counter login IP ini habis ~1 menit; jalankan ulang Folder 1-5 sesudah `php artisan cache:clear`."
           },
           "response": [],
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// F-23: isi counter per-IP (5/menit) dengan 5 percobaan QR palsu secara berurutan, lalu request utama = ke-6 => 429.",
+                  "// Jika counter sudah terisi login sebelumnya (#65-#69 di Folder 5), percobaan priming sendiri 429 - request utama tetap 429.",
+                  "const url = pm.variables.replaceIn('{{base_url}}') + '/auth/login/student/qr';",
+                  "let n = 0;",
+                  "function hit() {",
+                  "  if (n++ >= 5) { return; }",
+                  "  pm.sendRequest({ url: url, method: 'POST', header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ qr_payload: 'coba-lagi' }) } }, function () { hit(); });",
+                  "}",
+                  "hit();"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('catatan manual', function(){}) // Jalankan Runner ulangi request ini 6x cepat (Collection Runner, 0 delay) - assertion 429 tidak otomatis di sini karena tergantung state rate-limiter server saat run, cek manual response code request ke-6 = 429 (throttle:5,1)."
+                  "pm.test('status 429', function () { pm.response.to.have.status(429); });",
+                  "pm.test('error.code rate_limit_exceeded', function () { pm.expect(pm.response.json().error.code).to.eql('rate_limit_exceeded'); });"
                 ]
               }
             }
@@ -3578,7 +3999,7 @@
           ]
         },
         {
-          "name": "POST /student-imports/preview - file BUKAN .xlsx -> 422",
+          "name": "POST /student-imports/preview - file .txt (BUKAN .xlsx) -> 422 validation_failed",
           "request": {
             "method": "POST",
             "header": [
@@ -3615,7 +4036,54 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 422', function () { pm.response.to.have.status(422); });"
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /student-imports/preview - file .xls (format lama) -> 422 validation_failed (F-33: .xlsx SAJA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "preview"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/PATH/KE/sample-siswa.xls"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });",
+                  "pm.test('catatan', function(){}) // Buat sample-siswa.xls: ekstensi .xls (isi boleh apa saja). Isi manual 'src' via Postman UI."
                 ]
               }
             }
@@ -3664,7 +4132,60 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /student-imports/commit - rombel_id TIDAK ADA di master (999999) -> 422 validation_failed (N-1: tidak ada kode unknown_rombel)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/commit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "commit"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/PATH/KE/sample-siswa-valid.xlsx"
+                },
+                {
+                  "key": "rombel_id",
+                  "value": "999999",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });",
+                  "pm.test('details menyebut rombel_id', function () { pm.expect(pm.response.json().error.details.some(d => d.field === 'rombel_id')).to.be.true; });",
+                  "pm.test('kode unknown_rombel TIDAK ada', function () { pm.expect(pm.response.text()).to.not.include('unknown_rombel'); });"
                 ]
               }
             }
@@ -3715,9 +4236,15 @@
                 "exec": [
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });",
                   "if (pm.response.code === 200) { pm.collectionVariables.set('import_batch_id', pm.response.json().data.batch_id); }",
-                  "pm.test('response ada processed_rows, successful_rows, rejected_rows, errors', function () {",
+                  "pm.test('lima field kontrak ada (total_rows, processed_rows, successful_rows, rejected_rows, errors)', function () {",
                   "  const d = pm.response.json().data;",
                   "  ['total_rows','processed_rows','successful_rows','rejected_rows','errors'].forEach(k => pm.expect(d).to.have.property(k));",
+                  "  pm.expect(d.errors).to.be.an('array');",
+                  "});",
+                  "pm.test('batch_id integer dan TIDAK ada status pending (F-38 sinkron)', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(Number.isInteger(d.batch_id), 'batch_id integer').to.be.true;",
+                  "  pm.expect(d).to.not.have.property('status');",
                   "});"
                 ]
               }
@@ -3771,6 +4298,12 @@
                   "pm.test('errors[] ada dengan code validation_failed', function () {",
                   "  const errors = pm.response.json().data.errors;",
                   "  pm.expect(errors.some(e => e.code === 'validation_failed')).to.be.true;",
+                  "});",
+                  "pm.test('item errors[] berbentuk {row, field, code, message}', function () {",
+                  "  pm.response.json().data.errors.forEach(e => ['row','field','code','message'].forEach(k => pm.expect(e).to.have.property(k)));",
+                  "});",
+                  "pm.test('partial processing: baris valid tetap diproses (successful_rows > 0 bila file memuat baris valid)', function () {",
+                  "  const d = pm.response.json().data; pm.expect(d.successful_rows + d.rejected_rows).to.eql(d.total_rows);",
                   "});"
                 ]
               }
@@ -3821,7 +4354,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('catatan', function(){}) // Siapkan file dummy >5MB (bisa xlsx isi banyak baris/sheet besar)."
+                  "pm.test('catatan', function(){}) // Siapkan file dummy >5MB (bisa xlsx isi banyak baris/sheet besar).",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
                 ]
               }
             }
@@ -3871,14 +4405,260 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('catatan', function(){}) // Generate file 1001 baris pakai script terpisah (openpyxl/pandas), tidak praktis dibuat manual di Postman. Verifikasi manual."
+                  "pm.test('catatan', function(){}) // Generate file 1001 baris pakai script terpisah (openpyxl/pandas), tidak praktis dibuat manual di Postman. Verifikasi manual.",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "POST /student-imports/commit - file > 100 baris (dan <=1000) -> queue async, status pending",
+          "name": "POST /student-imports/commit - file .xls (format lama) -> 422 validation_failed (F-33)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/commit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "commit"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/PATH/KE/sample-siswa.xls"
+                },
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /student-imports/commit - xlsx RUSAK (zip utuh, isi worksheet dirusak) -> 422 import_file_unparseable (F-34)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/commit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "commit"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/PATH/KE/sample-siswa-rusak.xlsx"
+                },
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code import_file_unparseable', function () { pm.expect(pm.response.json().error.code).to.eql('import_file_unparseable'); });",
+                  "pm.test('catatan', function(){}) // File HARUS xlsx asli yang worksheet-nya dirusak (pakai gen_sample_xlsx.py). File sampah ber-ekstensi .xlsx ditolak lebih awal oleh rule mimes (422 validation_failed), bukan kasus ini."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /student-imports/commit - header kolom wajib hilang (tanpa kolom NISN) -> 422 import_header_invalid (F-34)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/commit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "commit"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/PATH/KE/sample-siswa-tanpa-kolom-nisn.xlsx"
+                },
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code import_header_invalid', function () { pm.expect(pm.response.json().error.code).to.eql('import_header_invalid'); });",
+                  "pm.test('details memuat kolom yang hilang (nisn)', function () { pm.expect(pm.response.json().error.details.some(d => d.field === 'nisn')).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /student-imports/commit - NISN/nama bertepi spasi di-trim (F-36) -> 200, 1 baris sukses",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/commit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "commit"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/PATH/KE/sample-siswa-trim.xlsx"
+                },
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('1 baris sukses, 0 ditolak', function () { const d = pm.response.json().data; pm.expect(d.total_rows).to.eql(1); pm.expect(d.successful_rows).to.eql(1); pm.expect(d.rejected_rows).to.eql(0); });",
+                  "pm.test('catatan', function(){}) // File berisi 1 baris: Nama Lengkap '  Siswa Trim  ', NISN ' 1000000099 ', Gender laki-laki (gen_sample_xlsx.py)."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /students - hasil import trim: NISN tersimpan tanpa spasi dan nama ter-trim (F-36)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Student ber-NISN 1000000099 ada, nama = \"Siswa Trim\" (tanpa spasi tepi)', function () {",
+                  "  const row = pm.response.json().data.find(s => s.nisn === pm.collectionVariables.get('student_trim_nisn'));",
+                  "  pm.expect(row, 'baris NISN ter-trim').to.exist;",
+                  "  pm.expect(row.fullname).to.eql('Siswa Trim');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /student-imports/commit - file > 100 baris (<=1000) -> 200 SINKRON, lima field langsung, TANPA status pending (F-38)",
           "request": {
             "method": "POST",
             "header": [
@@ -3921,17 +4701,24 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('status pending (queue) utk >100 baris', function () {",
-                  "  pm.expect(pm.response.json().data.status).to.eql('pending');",
-                  "  pm.collectionVariables.set('import_batch_id', pm.response.json().data.batch_id);",
-                  "});"
+                  "pm.test('lima field langsung, tanpa status pending, batch_id integer', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  ['total_rows','processed_rows','successful_rows','rejected_rows','errors'].forEach(k => pm.expect(d).to.have.property(k));",
+                  "  pm.expect(d).to.not.have.property('status');",
+                  "  pm.expect(Number.isInteger(d.batch_id), 'batch_id integer').to.be.true;",
+                  "  pm.expect(d.total_rows).to.be.above(100);",
+                  "  pm.expect(d.processed_rows).to.eql(d.total_rows);",
+                  "  pm.expect(d.successful_rows + d.rejected_rows).to.eql(d.total_rows);",
+                  "  pm.collectionVariables.set('import_batch_id', d.batch_id);",
+                  "});",
+                  "console.log('F-38 waktu respons import >100 baris (ms):', pm.response.responseTime); // dicatat manual untuk keputusan CLOSED F-38 (risiko waktu respons)"
                 ]
               }
             }
           ]
         },
         {
-          "name": "GET /student-imports/status/{batchId} - poll hasil queue",
+          "name": "GET /student-imports/status/{batchId} - baca HASIL batch yang sudah selesai (status done), bukan polling",
           "request": {
             "method": "GET",
             "header": [
@@ -3964,10 +4751,54 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('ada processed_rows (NOTE-05 fix)', function () {",
-                  "  pm.expect(pm.response.json().data).to.have.property('processed_rows');",
-                  "});",
-                  "pm.test('catatan', function(){}) // Kalau status masih 'processing', jalankan worker queue (php artisan queue:work) lalu ulangi request ini."
+                  "pm.test('batch selesai: status done + ringkasan + errors[] tersimpan', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.status).to.eql('done');",
+                  "  ['total_rows','processed_rows','successful_rows','rejected_rows','errors'].forEach(k => pm.expect(d).to.have.property(k));",
+                  "  pm.expect(d.processed_rows).to.eql(d.total_rows);",
+                  "  pm.expect(d.successful_rows + d.rejected_rows).to.eql(d.total_rows);",
+                  "  pm.expect(String(d.batch_id)).to.eql(String(pm.collectionVariables.get('import_batch_id')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /student-imports/status/{batchId} - Teacher B (BUKAN pemilik batch) -> 404 (F-32)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_b_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-imports/status/{{import_batch_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-imports",
+                "status",
+                "{{import_batch_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('error.code not_found', function () { pm.expect(pm.response.json().error.code).to.eql('not_found'); });"
                 ]
               }
             }
@@ -4010,7 +4841,66 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('field dashboard lengkap: wali_kelas, habit_summary_today, poin, gamification_level (F-40)', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  ['wali_kelas','habit_summary_today','poin','gamification_level'].forEach(k => pm.expect(d).to.have.property(k));",
+                  "  pm.expect(Number.isInteger(d.gamification_level), 'gamification_level integer').to.be.true;",
+                  "});",
+                  "pm.test('poin = 120 (habit tier1+mandiri 60 + bermasyarakat 3 positif+mandiri 60) -> Level 2 (threshold 100), BUKAN Level 3', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.poin).to.eql(120);",
+                  "  pm.expect(d.gamification_level).to.eql(2);",
+                  "});",
+                  "pm.test('level dihitung dari threshold (0,50,100,200,400,757): level tertinggi dengan batas <= poin', function () {",
+                  "  const T = [[0,0],[50,1],[100,2],[200,3],[400,4],[757,5]]; const d = pm.response.json().data;",
+                  "  let lv = 0; T.forEach(t => { if (d.poin >= t[0]) { lv = t[1]; } });",
+                  "  pm.expect(d.gamification_level).to.eql(lv);",
+                  "  pm.collectionVariables.set('dashboard_level', d.gamification_level);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /gamification/me - Student -> level SAMA dengan dashboard/student (F-40)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/gamification/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "gamification",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('poin 120 dan gamification_level sama dengan dashboard/student', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.poin).to.eql(120);",
+                  "  pm.expect(String(d.gamification_level)).to.eql(String(pm.collectionVariables.get('dashboard_level')));",
+                  "});"
                 ]
               }
             }
@@ -4048,7 +4938,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('bentuk: rombel{id,name}, student_count{active,inactive,graduated}, habit_submission_today', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(String(d.rombel.id)).to.eql(String(pm.collectionVariables.get('rombel_a_id')));",
+                  "  ['active','inactive','graduated'].forEach(k => pm.expect(d.student_count).to.have.property(k));",
+                  "  pm.expect(d).to.have.property('habit_submission_today');",
+                  "});",
+                  "pm.test('F-41: inactive=1 (Student A) dan graduated=2 (Student C, D) mengikuti assignment TERAKHIR; active >= 1 (Student habit + hasil import)', function () {",
+                  "  const sc = pm.response.json().data.student_count;",
+                  "  pm.expect(sc.inactive, 'inactive').to.eql(1);",
+                  "  pm.expect(sc.graduated, 'graduated').to.eql(2);",
+                  "  pm.expect(sc.active, 'active').to.be.at.least(1);",
+                  "});"
                 ]
               }
             }
@@ -4125,6 +5027,920 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Regresi lintas-modul Stage 1-5 + F-53 (TAMBAHAN: F-09/F-11, F-15/F-10, F-18, F-21, F-06; di luar cluster Siswa & Kebiasaan, tanpa request login)",
+      "item": [
+        {
+          "name": "POST /schools - nama > 150 karakter -> 422 validation_failed (F-09)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"address\": \"Jl. Uji\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /schools - nama duplikat -> 422 validation_failed (F-11)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SD Test TEST-001\",\n  \"address\": \"Jl. Uji\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });",
+                  "pm.test('details menyebut field name', function () { pm.expect(pm.response.json().error.details.some(d => d.field === 'name')).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /teachers?per_page=100 (Headmaster) -> {data, meta}, 2 Teacher milik sekolah (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers?per_page=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('total dihitung SETELAH scope: 2 Teacher (A, B), per_page 100, page 1, total_pages 1', function () {",
+                  "  const r = pm.response.json(); pm.expect(r.data.length).to.eql(2);",
+                  "  pm.expect(r.meta.page).to.eql(1); pm.expect(r.meta.per_page).to.eql(100); pm.expect(r.meta.total).to.eql(2); pm.expect(r.meta.total_pages).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /teachers (default) -> per_page 20 (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('default per_page = 20, page = 1', function () { const m = pm.response.json().meta; pm.expect(m.per_page).to.eql(20); pm.expect(m.page).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /teachers?per_page=101 -> 422 validation_failed (bukan dipotong diam-diam)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers?per_page=101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "101"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /teachers?page=0 -> 422 validation_failed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers?page=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /teachers?page=999 -> 200, data kosong, meta valid (halaman di luar rentang)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers?page=999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "999"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('data [] dan meta.page=999, total tetap 2, total_pages >= 1', function () { const r = pm.response.json(); pm.expect(r.data).to.eql([]); pm.expect(r.meta.page).to.eql(999); pm.expect(r.meta.total).to.eql(2); pm.expect(r.meta.total_pages).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /rombels?per_page=100 (Headmaster) -> total 2 Rombel sekolah (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rombels?per_page=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rombels"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('total 2 (Rombel A, B)', function () { pm.expect(pm.response.json().meta.total).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /academic-years (Headmaster) -> total 1 (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academic-years",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academic-years"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('total 1', function () { pm.expect(pm.response.json().meta.total).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /teacher-class-assignments?per_page=100 (Headmaster) -> total 2 (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teacher-class-assignments?per_page=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teacher-class-assignments"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('total 2 (Teacher A->Rombel A, Teacher B->Rombel B)', function () { pm.expect(pm.response.json().meta.total).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /schools?per_page=100 (Super Admin) -> {data, meta} (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools?per_page=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('total >= 1 (School global, tidak difilter)', function () { pm.expect(pm.response.json().meta.total).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /headmasters?per_page=100 (Super Admin) -> {data, meta} (F-15/F-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/headmasters?per_page=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "headmasters"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('total >= 1', function () { pm.expect(pm.response.json().meta.total).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /teacher-class-assignments/{id} - pindahkan Teacher B ke Rombel A (sudah ada Teacher A aktif) -> 409 rombel_already_has_active_teacher (F-18)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teacher-class-assignments/{{assignment_b_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teacher-class-assignments",
+                "{{assignment_b_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rombel_id\": \"{{rombel_a_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', function () { pm.response.to.have.status(409); });",
+                  "pm.test('error.code rombel_already_has_active_teacher', function () { pm.expect(pm.response.json().error.code).to.eql('rombel_already_has_active_teacher'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /rombels - Teacher A hanya melihat Rombel dari active assignment-nya (F-21)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rombels",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rombels"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages}', function () { const m = pm.response.json().meta; ['page','per_page','total','total_pages'].forEach(k => pm.expect(m).to.have.property(k)); });",
+                  "pm.test('tepat 1 Rombel = Rombel A', function () { const r = pm.response.json(); pm.expect(r.data.length).to.eql(1); pm.expect(String(r.data[0].id)).to.eql(String(pm.collectionVariables.get('rombel_a_id'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /rombels/{id} - Teacher A ke Rombel B (di luar active assignment) -> 404 (F-21)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rombels/{{rombel_b_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rombels",
+                "{{rombel_b_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('error.code not_found', function () { pm.expect(pm.response.json().error.code).to.eql('not_found'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /rombels/{id} - Teacher A ke Rombel A (miliknya) -> 200 (F-21)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rombels/{{rombel_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rombels",
+                "{{rombel_a_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /students/{id} (_method=PATCH, multipart) - Teacher A upload foto Student -> 200, photo = URL endpoint terautentikasi (F-06)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_a_new_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_a_new_id}}"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "_method",
+                  "value": "PATCH",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": "/PATH/KE/foto-valid.jpg"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('photo = URL .../students/{id}/photo (bukan URL storage publik)', function () {",
+                  "  const p = pm.response.json().data.photo; const id = pm.collectionVariables.get('student_a_new_id');",
+                  "  pm.expect(p).to.be.a('string'); pm.expect(p.endsWith('/students/' + id + '/photo'), p).to.be.true; pm.expect(p).to.not.include('/storage/');",
+                  "});",
+                  "pm.test('catatan', function(){}) // foto-valid.jpg: gambar jpg/png/webp <= 2 MB dan <= 4096x4096 px (gen_sample_xlsx.py membuatnya). Request ini memakai POST + _method=PATCH (F-46)."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /students/{id}/photo - TANPA token -> 401 (F-06)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_a_new_id}}/photo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_a_new_id}}",
+                "photo"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /students/{id}/photo - Teacher A (own rombel) -> 200 image, Cache-Control no-store, nosniff (F-06)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_a_new_id}}/photo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_a_new_id}}",
+                "photo"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Content-Type image/*', function () { pm.expect(pm.response.headers.get('Content-Type')).to.match(/^image\\//); });",
+                  "pm.test('Cache-Control memuat no-store dan private', function () { const c = pm.response.headers.get('Cache-Control'); pm.expect(c).to.include('no-store'); pm.expect(c).to.include('private'); });",
+                  "pm.test('X-Content-Type-Options nosniff', function () { pm.expect(pm.response.headers.get('X-Content-Type-Options')).to.eql('nosniff'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /students/{id}/photo - Teacher B (di luar scope) -> 404 (F-06)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_b_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_a_new_id}}/photo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_a_new_id}}",
+                "photo"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('error.code not_found', function () { pm.expect(pm.response.json().error.code).to.eql('not_found'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /students/{id}/photo - Student pemilik foto -> 200 (F-06)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_a_new_id}}/photo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_a_new_id}}",
+                "photo"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Content-Type image/*', function () { pm.expect(pm.response.headers.get('Content-Type')).to.match(/^image\\//); });"
                 ]
               }
             }
