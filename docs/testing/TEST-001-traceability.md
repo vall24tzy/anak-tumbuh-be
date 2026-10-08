@@ -41,7 +41,7 @@ sendiri belum pernah dijalankan sama sekali.
 | 25 | Login username+password NISN/NISN | [Postman] | Folder 1 |
 | 26 | Reset password Teacher→Student, SA & HM ditolak | [Postman] | Folder 1 — **F-29 (baru):** setelah reset, token Student LAMA → 401 (request 30), password lama (NISN) → 401 (31), password baru → 200 (32) |
 | 27 | Change-own-password Student → 403 | [Postman] | Folder 1 |
-| 28 | Import (invalid/>5MB/>1000 baris/rombel tidak ada vs di luar scope/partial/errors[]/existing NISN/**sinkron >100 baris**/revalidasi/rombel lain ditolak/.xlsx saja/xlsx rusak/header hilang/trim/pemilik batch) | [Postman, parsial] | Folder 6 — semua ada requestnya, TAPI semua file uji (valid, baris invalid, >5MB, 1001 baris, 150 baris, .xls, xlsx rusak, tanpa kolom NISN, trim) perlu Anda buat di luar Postman (`gen_sample_xlsx.py`) dan isi manual ke formdata `src`. **F-38:** tidak ada lagi antrean/`status:pending`; request 96 memeriksa 200 + lima field langsung; request 97 membaca HASIL batch (`status:done`), bukan polling. **N-1:** `rombel_id` tidak ada → 422 `validation_failed`; ada tapi di luar scope → 403 `forbidden` (kode `unknown_rombel` tidak ada) |
+| 28 | Import (invalid/>5MB/>200 baris/rombel tidak ada vs di luar scope/partial/errors[]/existing NISN/**sinkron >100 baris**/revalidasi/rombel lain ditolak/.xlsx saja/xlsx rusak/header hilang/trim/pemilik batch) | [Postman, parsial] | Folder 6 — semua ada requestnya, TAPI semua file uji (valid, baris invalid, >5MB, 201 baris, 150 baris, .xls, xlsx rusak, tanpa kolom NISN, trim) perlu Anda buat di luar Postman (`gen_sample_xlsx.py`) dan isi manual ke formdata `src`. **F-38:** tidak ada lagi antrean/`status:pending`; request 96 memeriksa 200 + lima field langsung; request 97 membaca HASIL batch (`status:done`), bukan polling. **N-1:** `rombel_id` tidak ada → 422 `validation_failed`; ada tapi di luar scope → 403 `forbidden` (kode `unknown_rombel` tidak ada) |
 | 29 | Dashboard student/teacher sesuai scope | [Postman] | Folder 7 + snapshot Folder 3 — `dashboard/student` memuat `gamification_level` (poin 120 → Level 2, sama dengan `GET /gamification/me`, F-40); `dashboard/teacher` mengikuti assignment TERAKHIR (F-41): snapshot deterministik active 0 / inactive 1 / graduated 2 |
 | 30 | Weekend/holiday tetap diterima | [Code Review] | Tidak ada validasi hari (`Carbon::dayOfWeek` atau sejenis) di manapun pada `StudentHabitService`/`StoreHabitEntryRequest`/`StoreBermasyarakatEntryRequest` — dipastikan lewat pembacaan kode langsung, bukan ada test eksplisit yang "membolehkan", karena memang tidak ada mekanisme block sama sekali |
 | 31 | F-53 NISN Student baru = username akun staf → 422 `nisn_conflicts_with_staff_username`; NISN Student lain tetap reuse | [Postman] | Folder 1 (request 26: NISN = NIP Teacher A → 422, tanpa data); kontrol reuse: request 25 (409 duplicate_assignment) dan Folder 2 (request 44: 201). Race window (akun staf dibuat di antara cek dan INSERT) dan preview import tidak mendeteksi bentrok: batas yang diketahui (baseline §12), PHPUnit |
@@ -104,8 +104,18 @@ Sumber acuan: `docs/addendum/API-Contract-v1.2-Errata-Stage5.md` (§7, §9, §10
 - Reuse NISN lintas Academic Year (butuh 2 tahun ajaran).
 - Counter rate limit per-identifier yang independen (butuh IP berbeda) — PHPUnit.
 - Konkurensi/race (F-03, F-11, F-16, F-18, F-53 race window) — simulasi di PHPUnit, bukan paralel nyata.
-- F-38 waktu respons file besar: request 96 hanya mencatat waktu (console); file 1.000 baris dengan `BCRYPT_ROUNDS` produksi diukur manual.
+- F-38 waktu respons file besar: request 96 hanya mencatat waktu (console); file 200 baris (batas `ImportService::MAX_ROWS`) dengan `BCRYPT_ROUNDS` produksi diukur manual.
 - F-06 migrasi foto lama pada data nyata.
 - Pre-request script request 80 (`pm.sendRequest` berantai) belum pernah dijalankan.
 
 Status tetap: **BELUM DIJALANKAN**.
+
+## Catatan Revisi (batas import 200 baris)
+
+Commit `082d5d0` menurunkan batas baris import dari 1.000 ke 200 (keputusan pemilik setelah pengukuran F-38). Perubahan di TEST-001:
+
+1. Folder 6, request "file > 1.000 baris" menjadi "file 201 baris (satu di atas batas 200)". File uji `gen('3004', 1001)` di `gen_sample_xlsx.py` diganti 201 baris, nama file `file-201-baris.xlsx`. Ditambah assertion pesan 422 menyebut `200`.
+2. Teks "1.000 baris" di baris AC #28 dan catatan F-38 diganti 200.
+3. Batas tepat 200 baris untuk Student Import belum punya request Postman (TEST-002 14.01/14.02 hanya memakai `POST /teachers/import`); status: belum tercakup, bukan diklaim lulus.
+
+Status tetap: request yang berubah (satu request di Folder 6) BELUM DIJALANKAN ulang.

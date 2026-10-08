@@ -4362,7 +4362,7 @@
           ]
         },
         {
-          "name": "POST /student-imports/commit - file > 1.000 baris -> 422 (di luar limit)",
+          "name": "POST /student-imports/commit - file 201 baris (satu di atas batas 200) -> 422, tidak diproses (F-38)",
           "request": {
             "method": "POST",
             "header": [
@@ -4387,7 +4387,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "/PATH/KE/file-1001-baris.xlsx"
+                  "src": "/PATH/KE/file-201-baris.xlsx"
                 },
                 {
                   "key": "rombel_id",
@@ -4405,8 +4405,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('catatan', function(){}) // Generate file 1001 baris pakai script terpisah (openpyxl/pandas), tidak praktis dibuat manual di Postman. Verifikasi manual.",
-                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                  "pm.test('catatan', function(){}) // Generate file 201 baris (ImportService::MAX_ROWS + 1) pakai gen_sample_xlsx.py, tidak praktis dibuat manual di Postman. Batas 200 baris = keputusan pemilik (errata Stage 5 sec18/sec28).",
+                  "pm.test('error.code validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });",
+                  "pm.test('pesan menyebut batas 200 baris', function () { pm.expect(pm.response.json().error.message).to.include('200'); });"
                 ]
               }
             }
