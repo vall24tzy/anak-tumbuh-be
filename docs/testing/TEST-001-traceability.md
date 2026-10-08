@@ -10,7 +10,7 @@ Dokumen ini memetakan setiap item AC (Task Board v23, Dokumen v4.0 §14) ke sala
 **PENTING:** Seluruh isi dokumen ini (termasuk kolom "Code Review") adalah hasil pembacaan kode
 manual di sandbox tanpa PHP/PostgreSQL live — BUKAN hasil eksekusi nyata. "Code Review: OK" berarti
 "logikanya secara pembacaan kode sudah benar", bukan "sudah dites jalan". Postman Collection-nya
-sendiri belum pernah dijalankan sama sekali.
+sendiri sudah dijalankan Orang 1 (7-8 Okt 2026; laporan: Folder 0-8 PASS, 0 Failed; hasil run tidak tersimpan di file ini). Kolom "Code Review" tetap hasil pembacaan kode, bukan hasil run.
 
 | # | Item AC | Cakupan | Detail |
 |---|---|---|---|
@@ -61,7 +61,7 @@ sendiri belum pernah dijalankan sama sekali.
 - **124 request** di Postman Collection (revisi Okt 2026; sebelumnya 86), mencakup 7 domain modul Orang 1 secara end-to-end (termasuk bootstrap data Folder 0) plus Folder 8 (regresi lintas-modul Stage 1-5 + F-53).
 - **2 item** butuh setup manual tambahan di luar Postman (concurrency race #8/#21; pembuatan file uji import #28 dan foto #41). Rate-limit (#24) kini punya assertion otomatis (hanya counter per IP).
 - **6 item** diverifikasi lewat pembacaan kode (bukan request HTTP) karena sifatnya "pembuktian ketiadaan sesuatu" (tidak ada validasi X) atau "mekanisme internal" (transaksi atomik, computed field) yang lebih valid dibuktikan dari kode daripada dari 1 response HTTP.
-- **Status keseluruhan: BELUM DIJALANKAN** (termasuk revisi Okt 2026; tidak ada PHP/PostgreSQL/Postman di sandbox penyusun). Ini deliverable "siap dites", bukan laporan "sudah lulus tes".
+- **Status keseluruhan: DIJALANKAN Orang 1 (7-8 Okt 2026); laporan: Folder 0-8 PASS, 0 Failed.** Hasil run tidak tersimpan di repo, jadi angka itu laporan, bukan bukti tersimpan. Item [Code Review] dan [Manual/Env] di tabel tidak tercakup oleh run Postman.
 
 ## Catatan Revisi Collection (27 Sep 2026, hasil review terhadap kode)
 
@@ -106,7 +106,7 @@ Sumber acuan: `docs/addendum/API-Contract-v1.2-Errata-Stage5.md` (§7, §9, §10
 - Konkurensi/race (F-03, F-11, F-16, F-18, F-53 race window) — simulasi di PHPUnit, bukan paralel nyata.
 - F-38 waktu respons file besar: request 96 hanya mencatat waktu (console); file 200 baris (batas `ImportService::MAX_ROWS`) dengan `BCRYPT_ROUNDS` produksi diukur manual.
 - F-06 migrasi foto lama pada data nyata.
-- Pre-request script request 80 (`pm.sendRequest` berantai) belum pernah dijalankan.
+- Pre-request script request 80 (`pm.sendRequest` berantai): tidak ada log terpisah; ikut berjalan dalam run Folder 5 menurut laporan Orang 1.
 
 Status tetap: **BELUM DIJALANKAN**.
 
@@ -119,3 +119,12 @@ Commit `082d5d0` menurunkan batas baris import dari 1.000 ke 200 (keputusan pemi
 3. Batas tepat 200 baris untuk Student Import belum punya request Postman (TEST-002 14.01/14.02 hanya memakai `POST /teachers/import`); status: belum tercakup, bukan diklaim lulus.
 
 Status tetap: request yang berubah (satu request di Folder 6) BELUM DIJALANKAN ulang.
+
+## Catatan Status (8 Okt 2026)
+
+Pernyataan "BELUM DIJALANKAN" di catatan revisi di atas bersifat historis (benar saat ditulis) dan sudah tidak berlaku:
+
+1. Orang 1 menjalankan Folder 0-8 lewat Postman Runner pada DB hasil `migrate:fresh --seed`; laporan: semua PASS, 0 Failed. Hasil run tidak tersimpan di file, jadi tidak dapat diverifikasi dari repo.
+2. Request Folder 6 "file 201 baris" dijalankan manual setelah batas 200 baris: 422 `validation_failed`, pesan "File melebihi batas maksimal 200 baris", 3/3 test lulus.
+3. Nama request #96 diubah dari "(<=1000)" menjadi "(<=200)" (hanya nama; assertion tidak berubah).
+4. Password Super Admin lama ("ganti_ini_di_production") sudah tidak ada di tree. Nilai itu masih ada di riwayat git (commit 25cc67f seeder, 7396a1a collection) dan dianggap bocor; rotasi di environment mana pun yang pernah memakainya adalah keputusan pemilik, bukan bagian file ini.
