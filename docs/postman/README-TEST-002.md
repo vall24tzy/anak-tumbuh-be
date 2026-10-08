@@ -19,8 +19,11 @@ di-set otomatis oleh script `Tests` tiap request.
   folder 6) murni **fixture**, dipakai untuk memicu skenario di modul Orang 2 (dashboard
   Headmaster butuh data Student, reset-password Student adalah endpoint Orang 2 walau
   targetnya Student).
-- **LEVEL-RANKING-001** — belum ada endpoint (task Orang 1 belum jalan saat suite ini
-  dibuat). Tidak ada yang bisa dites.
+- **LEVEL-RANKING-001** — endpoint gamification level dan ranking SUDAH ada (task Orang 1 selesai
+  setelah suite ini pertama kali dibuat), tetapi tetap di luar scope TEST-002. Terkunci oleh PHPUnit
+  (`GamificationLevelDataTest`, `GamificationLevelTest`, `RankingTest`) dan sebagian oleh TEST-001
+  (`GET /gamification/me`). TEST-002 hanya menyentuh `gamification_level` lewat `dashboard/student`
+  (folder 11).
 - **AUDIT_LOGS isi/format** — endpoint sendiri tidak ada (`audit_logs` cuma infrastruktur
   internal AUTH-003), tidak bisa dites lewat HTTP.
 
