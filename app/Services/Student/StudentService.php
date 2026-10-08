@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\School\TeacherScopeService;
 use App\Services\Upload\UploadService;
+use App\Services\User\InitialPasswordHasher;
 use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
@@ -193,7 +194,10 @@ class StudentService
                 $newUser = User::create([
                     'role'     => 'student',
                     'username' => $data['nisn'],
-                    'password' => $data['nisn'], // auto-hash via cast 'hashed' (User model)
+                    // F-55: password awal = NISN (guessable by design) -> round rendah, di-hash eksplisit SEKALI di sini;
+                    // cast 'hashed' (User) menerima hash yang cost-nya <= round konfigurasi dan tidak meng-hash ulang.
+                    // Satu titik untuk create biasa DAN import (StudentImportService memanggil store()).
+                    'password' => InitialPasswordHasher::make($data['nisn']),
                 ]);
 
                 $student = Student::create([

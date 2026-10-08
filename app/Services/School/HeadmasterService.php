@@ -5,9 +5,9 @@ namespace App\Services\School;
 use App\Models\Headmaster;
 use App\Models\User;
 use App\Services\User\AuditLogService;
+use App\Services\User\InitialPasswordHasher;
 use App\Traits\PaginatesResults;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class HeadmasterService
@@ -44,7 +44,8 @@ class HeadmasterService
             $user = User::create([
                 'role'     => 'headmaster',
                 'username' => $data['nip'],
-                'password' => Hash::make($data['nip']),
+                // F-55: password awal = NIP (guessable by design) -> round rendah; reset-password tetap round penuh.
+                'password' => InitialPasswordHasher::make($data['nip']),
             ]);
 
             return Headmaster::create([

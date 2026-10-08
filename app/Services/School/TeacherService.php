@@ -3,13 +3,13 @@
 namespace App\Services\School;
 
 use App\Services\User\AuditLogService;
+use App\Services\User\InitialPasswordHasher;
 use App\Traits\PaginatesResults;
 use App\Models\TeacherClassAssignment;
 use App\Models\Headmaster;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TeacherService
@@ -85,7 +85,9 @@ class TeacherService
             $user = User::create([
                 'role'     => 'teacher',
                 'username' => $data['nip'],
-                'password' => Hash::make($data['nip']),
+                // F-55: password awal = NIP (guessable by design) -> round rendah; reset-password tetap round penuh.
+                // Satu titik untuk create biasa DAN import (TeacherImportService memanggil store()).
+                'password' => InitialPasswordHasher::make($data['nip']),
             ]);
 
             return Teacher::create([
