@@ -16,5 +16,16 @@ Berlaku untuk `.env` produksi. Semua nilai diisi saat deploy; **jangan commit**.
 | `SEED_SUPER_ADMIN_PASSWORD` | lihat dokumen provisioning (F-30) | Di luar patch ini. |
 
 Cek cepat setelah deploy: `curl -sI http://<domain>/api/v1/auth/me` → `308` ke `https://`; `curl -sI https://<domain>/api/v1/auth/me` →
-`Strict-Transport-Security`; `curl -si -X OPTIONS https://<domain>/api/v1/auth/login/staff -H 'Origin: https://evil.example' -H 'Access-Control-Request-Method: POST'`
-→ tanpa `Access-Control-Allow-Origin`.
+`Strict-Transport-Security`.
+
+Cek CORS setelah deploy (ganti `<domain>` dengan domain API dan `<domain-fe>` dengan domain FE; `-i` menampilkan header respons):
+
+1. Origin tidak terdaftar (negatif):
+   `curl -si -X OPTIONS https://<domain>/api/v1/auth/login/staff -H 'Origin: https://evil.example' -H 'Access-Control-Request-Method: POST'`
+   - **Lulus** bila `Access-Control-Allow-Origin` tidak ada sama sekali, **atau** nilainya hanya salah satu origin di `CORS_ALLOWED_ORIGINS`.
+   - **Gagal** bila nilainya `https://evil.example` atau `*`.
+2. Origin FE yang benar (positif):
+   `curl -si -X OPTIONS https://<domain>/api/v1/auth/login/staff -H 'Origin: https://<domain-fe>' -H 'Access-Control-Request-Method: POST'`
+   - **Lulus** bila `Access-Control-Allow-Origin` berisi persis `https://<domain-fe>`. Bila tidak, browser FE akan ditolak.
+
+Kenapa header bisa tetap muncul pada cek 1: dengan **satu** origin terdaftar, library CORS mengirim origin terdaftar itu apa adanya, bukan origin pemanggil; browser menolak karena nilai header tidak cocok dengan origin pemanggil, jadi keamanannya tetap terjaga. Dengan **dua atau lebih** origin terdaftar, header baru dikirim hanya bila origin pemanggil cocok (lihat komentar di `tests/Feature/Security/CorsPolicyTest.php`).
