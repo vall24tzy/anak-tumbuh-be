@@ -372,7 +372,7 @@ penuh di commit — semuanya GRATIS dari kode yang sudah diaudit, tanpa reimplem
 **Trade-off yang diterima sadar:** `StudentService::store()` memanggil
 `TeacherScopeService::activeAssignment()` (1 query) di SETIAP baris, walau hasilnya pasti sama
 persis untuk seluruh file (sudah divalidasi sekali di awal). Ini N+1-ish untuk file besar (sampai
-1.000 baris), tapi TIDAK diperbaiki di sini karena perbaikannya butuh mengubah signature
+1.000 baris [batas sekarang 200 baris sejak `082d5d0`]), tapi TIDAK diperbaiki di sini karena perbaikannya butuh mengubah signature
 `StudentService::store()` (di luar file-focus task ini: `app/Services/Import/ImportService.php,
 app/Services/Student/StudentImportService.php, routes/v1/student.php`). Correctness diutamakan
 di atas micro-optimization untuk task ini.
@@ -402,6 +402,8 @@ RECOMMENDATION: Dipertahankan sebagai technical necessity (bukan business rule b
         dokumen SoT langsung).
 ```
 
+**NOTE-09 (import) — STATUS (diperbarui 9 Okt 2026):** SOURCE A/B dan IMPACT di atas ("File >100 baris diproses async lewat queue") adalah **riwayat**. Sudah digantikan oleh: F-38 (`cea2bcd`) — import selalu sinkron, job/queue dihapus; batas 200 baris per file (`082d5d0`, `ImportService::MAX_ROWS`); endpoint status kini membaca HASIL batch yang sudah selesai dan hanya terbaca oleh pemilik batch, selain itu 404 (F-32); serta sudah diformalkan di `docs/addendum/API-Contract-v1.2-Errata-Stage5.md` §18/§28 (RECOMMENDATION "addendum resmi" di atas kini terpenuhi). Teks lama sengaja tidak dihapus. Catatan: ID "NOTE-09" dipakai dua kali di dokumen ini (baris 145 = filter date habit GET; blok ini = polling status import), sehingga blok ini memakai penanda "NOTE-09 (import)".
+
 **Preview TIDAK butuh `rombel_id`:** `ImportService::preview()` murni validasi struktural/format
 (Form Request-style), tidak pernah memanggil `rowProcessor`/business logic — jadi `rombel_id` tidak
 punya efek apa pun di situ walau dikirim. Endpoint `preview` di kontrak juga tidak mencantumkan
@@ -428,6 +430,8 @@ di DB Design yang juga sama sifatnya: technical support table, bukan business en
 **Field response `status()` disamakan penuh ke response `commit` (5 field, bukan 4)** — ditambahkan
 `processed_rows` (nilai = `total_rows`, sinkron dengan `StudentImportService::normalizeResult()` yang
 juga menyamakan keduanya untuk jalur commit sinkron).
+
+**NOTE-10 — STATUS (diperbarui 9 Okt 2026):** alasan "state di antara job dispatch dan client polling" pada paragraf Keputusan **tidak berlaku lagi**: tidak ada job/queue sejak F-38 (`cea2bcd`); import diproses sinkron di dalam request. Tabel `import_batches` tetap dipakai dan kini ditulis sinkron oleh controller; status endpoint membaca hasil batch (pemilik saja, F-32). Definisi kolom `import_batches` belum ada di errata DB (`docs/addendum/DB-Design-v1.5-Errata-Stage5.md` hanya menyebut tabel tetap dipakai): register MERGE-001 butir C-11, terbuka. Teks lama tidak dihapus.
 
 ## NOTE-11 (28 Sep 2026, direvisi 28 Sep 2026 — revisi 3) — LEVEL-RANKING-001: keputusan final tim
 

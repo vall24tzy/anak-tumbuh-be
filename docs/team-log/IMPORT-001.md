@@ -14,6 +14,7 @@
 - ImportService.php (generic engine) TIDAK disentuh sama sekali -- teknik 'smuggling' RuntimeException(json{code,field,message}) dipakai di StudentImportService::processRow() supaya row-error tetap punya code terstruktur tanpa mengubah file generik (tetap reusable utk IMPORT-002/Teacher nanti)
 - Response di-normalize ke shape final API Contract sec9/sec18: {total_rows, processed_rows, successful_rows, rejected_rows, errors:[{row,field,code,message}]}
 - NOTE-09 (docs/db-gap-analysis.md): endpoint status/polling queue dipertahankan sbg technical necessity, tidak ada di API Contract v1.2, belum diformalkan jadi addendum resmi
+  - [Diperbarui 9 Okt 2026] Queue sudah dihapus (F-38, `cea2bcd`): import selalu sinkron, batas 200 baris per file (`082d5d0`). Endpoint status kini membaca HASIL batch yang sudah selesai (bukan polling) dan hanya terbaca oleh pemilik batch, selain itu 404 (F-32). Sudah diformalkan di `docs/addendum/API-Contract-v1.2-Errata-Stage5.md` §18/§28; teks "belum diformalkan" di atas adalah riwayat.
 - Trade-off sadar: StudentService::store() query TeacherScopeService per-baris (N+1-ish utk file besar) -- tidak diperbaiki krn perbaikannya butuh ubah StudentService.php (di luar file-focus task ini)
 
 ## Test Case (manual review -- tidak ada PHP/DB live di sandbox, perlu dijalankan ulang di dev env)
@@ -43,3 +44,4 @@ tests/Feature/Student/StudentImportTest.php (8 test case):
 - Catatan: tabel `import_batches` tidak ada di 16 Final Entity List DB Design v1.5 §4, tapi tetap
   dipakai (tanpa perubahan skema) karena technical necessity untuk status/polling queue — sudah
   diinstruksikan Task Board poin 6. Bukan skema baru yang dikarang, tabel lama dipakai ulang.
+  - [Diperbarui 9 Okt 2026] Alasan "status/polling queue" di atas adalah riwayat: tidak ada queue sejak F-38 (`cea2bcd`). Tabel `import_batches` tetap dipakai dan kini ditulis sinkron oleh controller; status endpoint membaca hasil batch (pemilik saja, F-32). Definisi kolom `import_batches` belum ada di errata DB (register MERGE-001 butir C-11, terbuka).
