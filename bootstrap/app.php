@@ -17,6 +17,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // SECURITY-001 (HTTPS): hanya aktif bila TRUSTED_PROXIES diisi. Di belakang reverse proxy/CDN,
+        // tanpa ini Laravel melihat semua request sebagai http dan EnforceHttps akan mengalihkan tanpa henti.
+        $trustedProxies = env('TRUSTED_PROXIES');
+        if (is_string($trustedProxies) && trim($trustedProxies) !== '') {
+            $middleware->trustProxies(
+                at: trim($trustedProxies) === '*' ? '*' : array_map('trim', explode(',', $trustedProxies))
+            );
+        }
+
+        // SECURITY-001: paksa HTTPS + HSTS (aktif hanya bila config('app.force_https') = true).
+        $middleware->append(\App\Http\Middleware\EnforceHttps::class);
+
         $middleware->alias([
             // Stage 0-B (F-14/F-24/F-29): Authenticate bawaan + cek sidik jari password + gate lifecycle.
             'jwt' => \App\Http\Middleware\AuthenticateActiveSession::class,
@@ -84,9 +96,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $e, $request) use ($responder) {
             if ($request->is('api/*')) {
                 return $responder->errorResponse(
-                    app()->environment('production')
-                        ? 'Terjadi kesalahan pada server'
-                        : $e->getMessage(),
+                    // SECURITY-001: pesan exception mentah hanya saat APP_DEBUG=true. Sebelumnya hanya
+                    // dicek lewat APP_ENV=production, sehingga APP_DEBUG=false di env lain tetap membocorkan pesan.
+                    config('app.debug')
+                        ? $e->getMessage()
+                        : 'Terjadi kesalahan pada server',
                     500
                 );
             }

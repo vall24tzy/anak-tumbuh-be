@@ -112,6 +112,19 @@ return [
 
     'seed_super_admin_password' => env('SEED_SUPER_ADMIN_PASSWORD'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Paksa HTTPS (SECURITY-001)
+    |--------------------------------------------------------------------------
+    |
+    | true = EnforceHttps mengalihkan http -> https (308) dan mengirim HSTS; URL yang dibuat
+    | aplikasi memakai skema https. Default false supaya lingkungan dev/test tidak berubah;
+    | WAJIB true di produksi (.env.example sudah true). Di belakang proxy/CDN isi juga TRUSTED_PROXIES.
+    |
+    */
+
+    'force_https' => (bool) env('FORCE_HTTPS', false),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', env('APP_PREVIOUS_KEYS', ''))
