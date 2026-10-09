@@ -20,7 +20,8 @@ Route::prefix('auth')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
 
         Route::middleware('role:super_admin')->group(function () {
-            Route::post('change-password', [AuthController::class, 'changePassword']);   
+            Route::post('change-password', [AuthController::class, 'changePassword'])
+                ->middleware('throttle.password');   
         });
     });
 });

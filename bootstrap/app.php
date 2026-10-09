@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\EnforceHttps::class);
 
         $middleware->alias([
+            'throttle.password' => \App\Http\Middleware\ThrottlePasswordChange::class,
             // Stage 0-B (F-14/F-24/F-29): Authenticate bawaan + cek sidik jari password + gate lifecycle.
             'jwt' => \App\Http\Middleware\AuthenticateActiveSession::class,
             'role' => \App\Http\Middleware\CheckRole::class,
