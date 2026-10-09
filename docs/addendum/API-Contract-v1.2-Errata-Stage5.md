@@ -56,7 +56,39 @@ Perilaku yang mengikat:
   diminta, `total_pages` minimal 1). Daftar kosong: `total: 0`, `total_pages: 1`.
 - Belum didukung: filter (`?academic_year_id=`, `?status=`) dan sort (`?sort=`, `?order=`) pada enam
   endpoint ini (Matrix F-15: "bila didukung"). Parameter itu diabaikan, bukan ditolak.
-- Endpoint list lain (mis. `GET /students`) **tidak** berubah oleh F-15.
+- **Teks Stage 5 yang DIGANTIKAN (dipertahankan sebagai histori, 5 Okt 2026):** "Endpoint list lain (mis. `GET /students`)
+  tidak berubah oleh F-15." **Revisi (9 Okt 2026, instruksi pemilik):** `GET /students` dan
+  `GET /student-class-assignments` **akan dipaginasi** dengan konvensi §7 yang sama (Opsi A; dikerjakan Orang 1, modul
+  Student, bukan bagian Stage 0-6 Orang 2). Status saat dokumen ini ditulis: kedua endpoint **belum** dipaginasi; blok ini
+  adalah arah, bukan klaim bahwa kodenya sudah ada. Uji otorisasi lintas sekolah/rombel untuk keduanya **PENDING pagination**.
+  Enam endpoint pada tabel di atas tidak berubah; endpoint list lain di luar dua endpoint itu tetap tidak berubah oleh F-15.
+
+---
+
+## Lampiran A — Endpoint teknis, template, dan route infrastruktur (penyelarasan; MERGE-001 A-1, A-2, A-3)
+
+Dibaca dari `routes/api.php`, `routes/web.php`, `routes/v1/teacher-import.php`, dan `bootstrap/app.php` (`health: '/up'`),
+bukan dari ingatan. Tidak ada perubahan kode; hanya teks SoT yang diselaraskan ke route aktual.
+
+**Teks v1.2 (dipertahankan):** §Teacher menyebut `POST /teachers/import` tanpa endpoint template; template kosong hanya disebut
+untuk Student (`GET /api/v1/student-imports/template`, §18). v1.2 tidak menyebut route infrastruktur apa pun.
+
+**Revisi (blok revisi menang):**
+
+| Route | Akses (middleware) | Respons | Catatan |
+|---|---|---|---|
+| `GET /api/test` | `jwt` (`AuthenticateActiveSession`), **tanpa** `role:`; semua role ber-token aktif (Super Admin, Headmaster, Teacher, Student) | 200, body teks `ok` (BUKAN envelope `{data}`); tanpa token/invalid → 401; profil tidak aktif → 403 (F-14/F-24); token lama setelah password berubah atau logout → 401 (F-29) | **Endpoint teknis non-kontrak.** Di luar prefix `/v1`. Tidak dihapus dan responsnya tidak diubah; gerbangnya disamakan dengan route terproteksi lain (F-14 residual). Dikunci oleh `ApiTestRouteGateTest`. |
+| `GET /api/v1/teachers/import/template` | `jwt` + `role:headmaster` | Unduhan berkas `.xlsx` (`template_import_guru.xlsx`), bukan JSON. Kolom: `Nama Lengkap`, `NIP`, `Gender`; satu baris contoh | **Ditambahkan ke kontrak** (padanan Teacher dari template Student §18). Route aktual `TeacherImportController::template`. Role selain Headmaster → 403. |
+
+**Pengecualian resmi route infrastruktur (instruksi pemilik, 9 Okt 2026; TIDAK dihapus):** route berikut bukan bagian API
+Contract, tidak memakai envelope `{data}`/`{error}` karena berada di luar `api/*` (atau milik framework), dan dikecualikan dari
+aturan "setiap route harus ada di kontrak":
+
+| Route | Sumber | Perilaku | Alasan ada |
+|---|---|---|---|
+| `GET /up` | `bootstrap/app.php` (`health: '/up'`, bawaan Laravel 11) | 200 bila aplikasi hidup; tanpa autentikasi; respons bawaan framework | Health check load balancer/uptime monitor. Dikecualikan dari paksa-HTTPS (SECURITY-001) supaya probe http tidak gagal. |
+| `GET /` | `routes/web.php` | Halaman `welcome` | Bawaan skeleton Laravel. |
+| `GET /login` | `routes/web.php` (nama route `login`) | 401, JSON `{"message":"Unauthenticated."}` (bentuk Laravel, bukan envelope error API) | Menjadi target redirect autentikasi bawaan agar request tanpa token tidak berakhir 500. **Bukan endpoint login**: login yang sebenarnya `POST /api/v1/auth/login/*` (§10). |
 
 ---
 

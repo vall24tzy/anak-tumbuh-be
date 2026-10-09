@@ -81,6 +81,44 @@ tetap mengisi target, jadi perilaku yang ada tidak berubah. Tidak ada perubahan 
 
 ---
 
+## Tabel di luar Final Entity List §4 — `import_batches` (MERGE-001 C-11; F-32, F-37, F-38)
+
+**Teks v1.5 (dipertahankan):** §4 Final Entity List memuat 16 entitas dan **tidak** menyebut `import_batches`; v1.5 tidak
+punya definisi tabel ini. Riwayat keputusan memakainya ada di `docs/db-gap-analysis.md` NOTE-10 dan
+`docs/team-log/IMPORT-001.md` (di sana alasannya masih "polling queue", sudah berstatus riwayat sejak F-38).
+
+**Revisi (blok revisi menang): `import_batches` adalah tabel infrastruktur teknis (sifatnya seperti `audit_logs`), bukan entitas
+bisnis.** Dipakai untuk menyimpan HASIL import sinkron Teacher dan Student agar dapat dibaca ulang lewat
+`GET /teachers/import/status/{batchId}` dan `GET /student-imports/status/{batchId}` (API Errata §18). Tidak ada queue/job sejak F-38.
+Definisi di bawah **dibaca dari migration aktual** `2026_09_15_150154_create_import_batches_table.php` dan model `ImportBatch`
+(satu-satunya migration yang menyentuh tabel ini; tidak ada migration `alter`), bukan dari ingatan.
+
+| Kolom | Tipe (Laravel → PostgreSQL) | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | `id()` → bigserial PK | No | auto | `batch_id` di respons commit dan path status. |
+| `type` | `string` → varchar(255) | No | — | `'student'` atau `'teacher'`; status endpoint hanya membaca jenis yang sesuai. |
+| `status` | `string` → varchar(255) | No | `'pending'` | Nilai yang ditulis aplikasi: `processing` (saat dibuat), `done`, `failed` (F-37). `pending` hanya default skema dan tidak pernah ditulis aplikasi. |
+| `total` | `unsignedInteger` → integer | No | `0` | Jumlah baris data; dikembalikan sebagai `total_rows` dan `processed_rows`. |
+| `success` | `unsignedInteger` → integer | No | `0` | Dikembalikan sebagai `successful_rows`. |
+| `failed` | `unsignedInteger` → integer | No | `0` | Dikembalikan sebagai `rejected_rows`. |
+| `failed_rows` | `json` → json | Yes | NULL | Cast `array`. Berisi `errors[]` hasil commit (`row`, `field`, `code`, `message`), `[]` bila batch `failed`. Nama kolom adalah warisan; isinya daftar error per baris. |
+| `created_by` | `foreignId` → bigint | Yes | NULL | FK `users.id`, `ON DELETE SET NULL` (`import_batches_created_by_foreign`). Satu-satunya dasar kepemilikan (F-32): batch hanya terbaca oleh pembuatnya; `created_by` NULL tidak terbaca siapa pun (404). |
+| `created_at`, `updated_at` | `timestamps` → timestamp(0) | Yes | NULL | Standar Laravel. |
+
+Index/constraint: hanya PK dan FK `created_by`. Tidak ada `school_id`, tidak ada index pada `type`/`created_by`, dan tidak ada
+CHECK pada `status` (akses selalu by PK, lalu disaring `type` dan `created_by`). Model: `fillable` = `type, status, total, success,
+failed, failed_rows, created_by`.
+
+**Komentar migration yang USANG (migration TIDAK diubah; dokumen saja):**
+1. `// 'student', nanti 'teacher' dst` — kini dipakai kedua jenis (`student` dan `teacher`).
+2. `// pending, processing, done` — daftar status tidak lengkap: ada juga `failed` (F-37), dan `pending` tidak pernah ditulis aplikasi.
+3. Tabel ini awalnya untuk polling queue (NOTE-09/NOTE-10); sejak F-38 ditulis sinkron dan dibaca sebagai riwayat hasil.
+
+**Belum diverifikasi:** pemetaan tipe PostgreSQL di atas adalah pemetaan standar Laravel dari migration; belum dicocokkan dengan
+skema database sungguhan. Perintah: `php artisan db:table import_batches` (atau `\d import_batches` di psql).
+
+---
+
 ## Dampak lanjutan yang dicatat (tanpa mengubah teks DB Design)
 
 - **§6 / §7 (ringkasan constraint dan index lintas tabel):** bila ringkasan itu dipakai sebagai rujukan,
