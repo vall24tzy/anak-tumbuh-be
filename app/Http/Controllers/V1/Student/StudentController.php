@@ -5,8 +5,10 @@ namespace App\Http\Controllers\V1\Student;
 use App\Http\Requests\User\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\CreateStudentRequest;
+use App\Http\Requests\Student\PaginatedListRequest;
 use App\Http\Requests\Student\UpdateStudentRequest;
 use App\Http\Resources\Student\StudentResource;
+use App\Services\Student\StudentHabitService;
 use App\Services\Student\StudentService;
 use App\Traits\ApiResponseTraits;
 
@@ -19,9 +21,14 @@ class StudentController extends Controller
 
     public function __construct(protected StudentService $service) {}
 
-    public function index()
+    public function index(PaginatedListRequest $request)
     {
-        return $this->successResponse(StudentResource::collection($this->service->index()));
+        $paginator = $this->service->index($request->validated());
+
+        return $this->successResponse(
+            StudentResource::collection($paginator->getCollection()),
+            meta: StudentHabitService::paginationMeta($paginator),
+        );
     }
 
     public function store(CreateStudentRequest $request)

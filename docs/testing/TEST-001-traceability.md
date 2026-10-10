@@ -58,7 +58,7 @@ sendiri sudah dijalankan Orang 1 (7-8 Okt 2026; laporan: Folder 0-8 PASS, 0 Fail
 | 42 | F-23 dua counter rate limit login independen | [Postman, parsial] + [PHPUnit] | Lihat #24. Counter per-identifier dari IP berbeda hanya di PHPUnit |
 
 ## Ringkasan
-- **124 request** di Postman Collection (revisi Okt 2026; sebelumnya 86), mencakup 7 domain modul Orang 1 secara end-to-end (termasuk bootstrap data Folder 0) plus Folder 8 (regresi lintas-modul Stage 1-5 + F-53).
+- **127 request** di Postman Collection (revisi Okt 2026; sebelumnya 86; +3 request pagination 10 Okt 2026), mencakup 7 domain modul Orang 1 secara end-to-end (termasuk bootstrap data Folder 0) plus Folder 8 (regresi lintas-modul Stage 1-5 + F-53).
 - **2 item** butuh setup manual tambahan di luar Postman (concurrency race #8/#21; pembuatan file uji import #28 dan foto #41). Rate-limit (#24) kini punya assertion otomatis (hanya counter per IP).
 - **6 item** diverifikasi lewat pembacaan kode (bukan request HTTP) karena sifatnya "pembuktian ketiadaan sesuatu" (tidak ada validasi X) atau "mekanisme internal" (transaksi atomik, computed field) yang lebih valid dibuktikan dari kode daripada dari 1 response HTTP.
 - **Status keseluruhan: DIJALANKAN Orang 1 (7-8 Okt 2026); laporan: Folder 0-8 PASS, 0 Failed.** Hasil run tidak tersimpan di repo, jadi angka itu laporan, bukan bukti tersimpan. Item [Code Review] dan [Manual/Env] di tabel tidak tercakup oleh run Postman.
@@ -128,3 +128,7 @@ Pernyataan "BELUM DIJALANKAN" di catatan revisi di atas bersifat historis (benar
 2. Request Folder 6 "file 201 baris" dijalankan manual setelah batas 200 baris: 422 `validation_failed`, pesan "File melebihi batas maksimal 200 baris", 3/3 test lulus.
 3. Nama request #96 diubah dari "(<=1000)" menjadi "(<=200)" (hanya nama; assertion tidak berubah).
 4. Password Super Admin lama ("ganti_ini_di_production") sudah tidak ada di tree. Nilai itu masih ada di riwayat git (commit 25cc67f seeder, 7396a1a collection) dan dianggap bocor; rotasi di environment mana pun yang pernah memakainya adalah keputusan pemilik, bukan bagian file ini.
+
+
+## Catatan Revisi (pagination C-02, 10 Okt 2026)
+`GET /students` dan `GET /student-class-assignments` kini dipaginasi (lihat `docs/addendum/API-Contract-v1.2-Addendum-Pagination-Students.md`); kalimat "`GET /students` tidak dipaginasi" pada catatan revisi Okt 2026 di atas adalah riwayat. Perubahan collection: (1) `GET /students - Teacher A` menambah asersi `meta`; (2) `GET /students - hasil import trim` memakai `?per_page=100` supaya NISN uji tidak tergeser ke halaman 2; (3) tiga request baru di Folder 8: `GET /students?per_page=101` -> 422, `GET /student-class-assignments?per_page=1` -> 200 + meta, `GET /student-class-assignments?per_page=101` -> 422. Belum dijalankan di Postman.

@@ -5,7 +5,7 @@
 **Tanggal:** 27 Sep 2026
 
 *Catatan status (diperbarui 9 Okt 2026): task ini output-nya Postman Collection (bukan patch kode PHP).
-Collection kini 124 request, Folder 0-8, sudah dijalankan Orang 1 pada 7-8 Okt 2026; laporan Orang 1:
+Collection kini 127 request (124 + 3 request pagination, 10 Okt 2026), Folder 0-8, sudah dijalankan Orang 1 pada 7-8 Okt 2026; laporan Orang 1:
 PASS, 0 Failed. Itu laporan, BUKAN bukti tersimpan: tidak ada file hasil Runner di repo, jadi jangan
 dianggap lulus dari keberadaan file ini saja. Riwayat: versi awal (27 Sep 2026) = 86 request, 8 folder,
 belum pernah dijalankan karena tidak ada PostgreSQL/server live di sandbox pembuatnya.

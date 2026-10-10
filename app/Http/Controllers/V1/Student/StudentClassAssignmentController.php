@@ -4,9 +4,11 @@ namespace App\Http\Controllers\V1\Student;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\CreateStudentClassAssignmentRequest;
+use App\Http\Requests\Student\PaginatedListRequest;
 use App\Http\Requests\Student\UpdateStudentClassAssignmentRequest;
 use App\Http\Resources\Student\StudentClassAssignmentResource;
 use App\Services\Student\StudentClassAssignmentService;
+use App\Services\Student\StudentHabitService;
 use App\Traits\ApiResponseTraits;
 
 // API Contract v1.2 §19. update() mengikuti Keputusan Tim NOTE-05
@@ -19,9 +21,14 @@ class StudentClassAssignmentController extends Controller
 
     public function __construct(protected StudentClassAssignmentService $service) {}
 
-    public function index()
+    public function index(PaginatedListRequest $request)
     {
-        return $this->successResponse(StudentClassAssignmentResource::collection($this->service->index()));
+        $paginator = $this->service->index($request->validated());
+
+        return $this->successResponse(
+            StudentClassAssignmentResource::collection($paginator->getCollection()),
+            meta: StudentHabitService::paginationMeta($paginator),
+        );
     }
 
     public function store(CreateStudentClassAssignmentRequest $request)

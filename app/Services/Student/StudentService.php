@@ -12,8 +12,10 @@ use App\Services\School\TeacherScopeService;
 use App\Services\Upload\UploadService;
 use App\Services\User\InitialPasswordHasher;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -55,32 +57,46 @@ class StudentService
      * GET /api/v1/students — scope Matrix #9: SA global, HM own school,
      * Teacher own active rombel, Student OWN (tanpa classmates list).
      */
-    public function index()
+    /**
+     * GET /students — dipaginasi (API Contract v1.2 §7: page, per_page default 20,
+     * maksimum 100, meta). Scope per role TIDAK berubah, hanya dibungkus paginator.
+     * orderBy('id') = urutan deterministik supaya halaman tidak bergeser/ganda
+     * (detail teknis, bukan sort baru untuk client).
+     */
+    public function index(array $params = []): LengthAwarePaginator
     {
         $user = $this->currentUser();
 
-        return match ($user->role) {
-            'super_admin' => Student::with(['school', 'user'])->get(),
+        $query = match ($user->role) {
+            'super_admin' => Student::with(['school', 'user']),
             'headmaster'  => Student::with(['school', 'user'])
-                                ->where('school_id', $this->headmasterSchoolId($user))->get(),
-            'teacher'     => $this->indexForTeacher($user),
+                                ->where('school_id', $this->headmasterSchoolId($user)),
+            'teacher'     => $this->indexQueryForTeacher($user),
             'student'     => Student::with(['school', 'user'])
-                                ->where('id', $user->student?->id)->get(),
-            default       => collect(),
+                                ->where('id', $user->student?->id),
+            default       => Student::with(['school', 'user'])->whereRaw('1 = 0'),
         };
+
+        return $query->orderBy('id')->paginate(
+            (int) ($params['per_page'] ?? 20),
+            ['*'],
+            'page',
+            (int) ($params['page'] ?? 1),
+        );
     }
 
-    protected function indexForTeacher($user)
+    protected function indexQueryForTeacher($user): Builder
     {
         $assignment = $this->teacherScope->activeAssignment($user);
 
         if (!$assignment) {
-            return collect();
+            // Teacher tanpa active assignment: 200 + daftar kosong (perilaku lama
+            // dipertahankan, hanya kini lewat paginator).
+            return Student::with(['school', 'user'])->whereRaw('1 = 0');
         }
 
         return Student::with(['school', 'user'])
-            ->whereHas('activeClassAssignment', fn ($q) => $q->where('rombel_id', $assignment->rombel_id))
-            ->get();
+            ->whereHas('activeClassAssignment', fn ($q) => $q->where('rombel_id', $assignment->rombel_id));
     }
 
     /**

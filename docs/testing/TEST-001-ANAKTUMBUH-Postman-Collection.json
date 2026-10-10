@@ -1090,7 +1090,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta pagination default: page 1, per_page 20, total >= 1 (C-02, Contract §7)', function () { const m = pm.response.json().meta; pm.expect(m.page).to.eql(1); pm.expect(m.per_page).to.eql(20); pm.expect(m.total).to.be.at.least(1); pm.expect(m.total_pages).to.be.at.least(1); });"
                 ]
               }
             }
@@ -4631,12 +4632,18 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/students",
+              "raw": "{{base_url}}/students?per_page=100",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "students"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "100"
+                }
               ]
             }
           },
@@ -5942,6 +5949,138 @@
                 "exec": [
                   "pm.test('status 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('Content-Type image/*', function () { pm.expect(pm.response.headers.get('Content-Type')).to.match(/^image\\//); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /students?per_page=101 (Teacher A) -> 422 validation_failed (C-02, Contract §7 maks 100)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students?per_page=101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "101"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = validation_failed (per_page > 100 ditolak, bukan dipotong)', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /student-class-assignments?per_page=1 (Teacher A) -> 200, {data, meta}, satu baris per halaman (C-02)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-class-assignments?per_page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-class-assignments"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('meta {page, per_page, total, total_pages} dan paling banyak 1 baris', function () { const r = pm.response.json(); ['page','per_page','total','total_pages'].forEach(k => pm.expect(r.meta).to.have.property(k)); pm.expect(r.meta.per_page).to.eql(1); pm.expect(r.data.length).to.be.at.most(1); pm.expect(r.meta.total).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /student-class-assignments?per_page=101 (Teacher A) -> 422 validation_failed (C-02)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/student-class-assignments?per_page=101",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "student-class-assignments"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "101"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = validation_failed (per_page > 100 ditolak, bukan dipotong)', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
                 ]
               }
             }

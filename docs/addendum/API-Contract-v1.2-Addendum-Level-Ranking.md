@@ -95,6 +95,8 @@ eksplisit ("no classmates list, KECUALI nama pada entri ranking rombel/angkatan 
 tidak ada dua SoT yang saling bertentangan secara permanen. Sampai amandemen itu terjadi, perilaku
 `name` di ranking berjalan sesuai keputusan tim ini, dicatat transparan di sini dan di NOTE-11.
 
+**[Diperbarui 10 Okt 2026]** Konflik ini ditutup lewat `docs/addendum/SoT-Amendment-Ranking-Name.md` (register MERGE-001 C-01); salinan pembaruan Dokumen v4.0 dan Authorization Matrix (9 Okt 2026) sudah memuat pengecualian `name` pada entri ranking, tetapi belum menggantikan salinan lama di project/repo. Teks "belum terjadi" di atas dibiarkan sebagai riwayat.
+
 ## 7. Dependency "hingga TEST-001/TEST-002"
 
 Klarifikasi: bukan syarat pemblokir. Dibaca sebagai keterangan jadwal pada Task Board ("dijadwalkan

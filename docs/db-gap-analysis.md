@@ -470,6 +470,8 @@ kebutuhan fungsional ranking (angka poin tanpa nama tidak berarti apa-apa bagi p
 Dokumen v4.0 PERLU diamandemen resmi supaya konsisten (di luar scope task ini) — dicatat di sini
 supaya tidak jadi penyimpangan diam-diam.
 
+**NOTE-11 — STATUS (diperbarui 10 Okt 2026):** Konflik ini ditutup lewat `docs/addendum/SoT-Amendment-Ranking-Name.md` (register MERGE-001 C-01); salinan pembaruan Dokumen v4.0 dan Authorization Matrix (9 Okt 2026) sudah memuat pengecualian `name` pada entri ranking, tetapi belum menggantikan salinan lama di project/repo. Teks "belum terjadi" di atas dibiarkan sebagai riwayat.
+
 **(c) Query `rombel_id` / `academic_year_id` — REVISI (mempersempit draf sebelumnya).**
 Ranking HANYA untuk Academic Year AKTIF sekolah caller (dasar: Dokumen v4.0 §9 "Ranking memakai
 active/current Class Assignment context") — ini KEPUTUSAN TIM yang mempersempit parameter opsional

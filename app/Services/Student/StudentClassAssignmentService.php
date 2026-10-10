@@ -9,6 +9,8 @@ use App\Models\Rombel;
 use App\Models\Student;
 use App\Models\StudentClassAssignment;
 use App\Services\School\TeacherScopeService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 // API Contract v1.2 §19, DB Design v1.5 §5.9. SATU-SATUNYA source of truth
@@ -36,28 +38,40 @@ class StudentClassAssignmentService
      * GET /api/v1/student-class-assignments — scope sesuai Matrix #25:
      * SA global, HM school, Teacher active rombel, Student OWN.
      */
-    public function index()
+    /**
+     * GET /student-class-assignments — dipaginasi (API Contract v1.2 §7: page,
+     * per_page default 20, maksimum 100, meta). Scope per role TIDAK berubah.
+     * orderBy('id') = urutan deterministik untuk pagination (detail teknis).
+     */
+    public function index(array $params = []): LengthAwarePaginator
     {
         $user = $this->currentUser();
 
-        return match ($user->role) {
-            'super_admin' => StudentClassAssignment::all(),
-            'headmaster'  => StudentClassAssignment::where('school_id', $this->headmasterSchoolId($user))->get(),
-            'teacher'     => $this->indexForTeacher($user),
-            'student'     => StudentClassAssignment::where('student_id', $user->student?->id)->get(),
-            default       => collect(),
+        $query = match ($user->role) {
+            'super_admin' => StudentClassAssignment::query(),
+            'headmaster'  => StudentClassAssignment::where('school_id', $this->headmasterSchoolId($user)),
+            'teacher'     => $this->indexQueryForTeacher($user),
+            'student'     => StudentClassAssignment::where('student_id', $user->student?->id),
+            default       => StudentClassAssignment::whereRaw('1 = 0'),
         };
+
+        return $query->orderBy('id')->paginate(
+            (int) ($params['per_page'] ?? 20),
+            ['*'],
+            'page',
+            (int) ($params['page'] ?? 1),
+        );
     }
 
-    protected function indexForTeacher($user)
+    protected function indexQueryForTeacher($user): Builder
     {
         $assignment = $this->teacherScope->activeAssignment($user);
 
         if (!$assignment) {
-            return collect();
+            return StudentClassAssignment::whereRaw('1 = 0');
         }
 
-        return StudentClassAssignment::where('rombel_id', $assignment->rombel_id)->get();
+        return StudentClassAssignment::where('rombel_id', $assignment->rombel_id);
     }
 
     /**

@@ -20,6 +20,7 @@
   * Caller tanpa konteks kelas + rombel_id apa pun -> 403 (asumsi tim)
 - DashboardService, migration/schema, threshold seeder, 7 service Headmaster::where('user_id') tanpa filter status -- SEMUA TIDAK disentuh (instruksi eksplisit)
 - docs/addendum/API-Contract-v1.2-Addendum-Level-Ranking.md dibuat (8 poin, termasuk poin 6: konflik sadar menampilkan name vs Dokumen v4.0 sec9/Matrix #9, Matrix & Dokumen v4.0 perlu diamandemen resmi -- di luar scope task ini)
+  - [Diperbarui 10 Okt 2026] Konflik ini ditutup lewat `docs/addendum/SoT-Amendment-Ranking-Name.md` (register MERGE-001 C-01); salinan pembaruan Dokumen v4.0 dan Authorization Matrix (9 Okt 2026) sudah memuat pengecualian `name` pada entri ranking, tetapi belum menggantikan salinan lama di project/repo.
 - docs/db-gap-analysis.md NOTE-11 ditulis ulang total (revisi 3) -- gap (a)-(e), termasuk (e) gap Headmaster inactive lintas-task yang SENGAJA tidak diperbaiki di sini
 
 ## Static verification (dilakukan di sandbox ini)
@@ -43,6 +44,7 @@ Perlu dijalankan manual di dev env:
 - Meta pada hasil kosong memakai paginator Laravel asli (whereRaw 1=0 lalu paginate), bukan ditulis manual
 - Nama field 'level' (bukan 'gamification_level') adalah keputusan tim, didokumentasikan di addendum poin 2
 - KONFLIK SoT poin C.6/addendum poin 6 menunggu amandemen resmi Authorization Matrix baris #9 dan Dokumen v4.0 sec9 -- belum dilakukan, di luar scope task ini
+  - [Diperbarui 10 Okt 2026] Konflik ini ditutup lewat `docs/addendum/SoT-Amendment-Ranking-Name.md` (register MERGE-001 C-01); salinan pembaruan Dokumen v4.0 dan Authorization Matrix (9 Okt 2026) sudah memuat pengecualian `name` pada entri ranking, tetapi belum menggantikan salinan lama di project/repo.
 
 ## Status Orang 2 (info manual, Task Board tidak diupdate)
 
