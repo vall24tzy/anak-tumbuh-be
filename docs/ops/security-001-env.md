@@ -29,3 +29,81 @@ Cek CORS setelah deploy (ganti `<domain>` dengan domain API dan `<domain-fe>` de
    - **Lulus** bila `Access-Control-Allow-Origin` berisi persis `https://<domain-fe>`. Bila tidak, browser FE akan ditolak.
 
 Kenapa header bisa tetap muncul pada cek 1: dengan **satu** origin terdaftar, library CORS mengirim origin terdaftar itu apa adanya, bukan origin pemanggil; browser menolak karena nilai header tidak cocok dengan origin pemanggil, jadi keamanannya tetap terjaga. Dengan **dua atau lebih** origin terdaftar, header baru dikirim hanya bila origin pemanggil cocok (lihat komentar di `tests/Feature/Security/CorsPolicyTest.php`).
+
+## Logging dan monitoring dasar
+
+Keputusan pemilik (11 Okt 2026): rotasi harian, retensi 14 hari, level `warning`; monitoring dasar = uptime check eksternal ke `/up`.
+
+- **Konfigurasi (`.env`):** `LOG_CHANNEL=stack`, `LOG_STACK=daily`, `LOG_DAILY_DAYS=14`, `LOG_LEVEL=warning`. `config/logging.php` (channel `daily`)
+  membaca `LOG_DAILY_DAYS` (default 14) dan `LOG_LEVEL`; tidak ada perubahan struktur config.
+- **Lokasi:** `storage/logs/` (satu berkas per hari, bernama `laravel-YYYY-MM-DD.log`). Direktori harus dapat ditulis oleh user web server.
+- **Isi pada level `warning`:** warning ke atas, antara lain exception tak tertangani yang dilaporkan Laravel, `audit_logs write failed (non-blocking)`
+  dan `import file unparseable`. Pesan level `info` tidak tertulis.
+- **Yang dicatat kode (hasil pemindaian `app/`):** hanya dua panggilan `Log::warning` (`AuditLogService`, `ImportService`); keduanya mencatat nama/pesan
+  exception, bukan password, `new_password`, token, atau isi request. Catatan sisa risiko: pesan exception dari pembaca Excel dapat memuat potongan
+  isi berkas unggahan; pesan kegagalan `audit_logs` dapat memuat id pelaku/target dan nama aksi.
+- **Perlu dicek di server (belum diverifikasi):** `zend.exception_ignore_args=On` di `php.ini` produksi. Bila `Off`, jejak exception pada pemanggilan
+  yang menerima password sebagai argumen dapat memuat potongan argumen itu di log.
+- **Aksi sensitif yang berhasil** (reset/ganti password, regenerate QR) dicatat di tabel `audit_logs`, bukan di berkas log pada level `warning`.
+  Keputusan pemilik (11 Okt 2026): **memadai**, karena Acceptance Criteria SECURITY-001 menyebut `audit_logs` sebagai tempat pencatatan `password_reset`
+  dan `qr_regenerate`; tidak perlu log file tambahan. Catatan: kolom "Prompt Siap Pakai" butir 9 pada Task Board v23 juga menyebut log file standar untuk
+  aksi sensitif; keputusan ini menafsirkan Acceptance Criteria sebagai yang berlaku.
+- **Monitoring dasar:** pasang uptime check eksternal ke `GET https://<domain>/up`; sehat = HTTP 200. `/up` hanya menandakan aplikasi dapat dimuat,
+  bukan bahwa database sehat. `/up` dikecualikan dari paksa-HTTPS. Cek manual: `curl -si https://<domain>/up`.
+  Layanan, interval, dan tujuan notifikasi dipilih saat DEPLOYMENT-001 (butuh domain produksi); rekomendasi pemilik: layanan gratis apa pun, interval 5 menit,
+  notifikasi ke email pemilik. Ini butir checklist DEPLOYMENT-001, bukan penghalang penutupan SECURITY-001.
+
+## Status advisory CVE-2026-48019 (handoff)
+
+- **Advisory:** CVE-2026-48019 / GHSA-5vg9-5847-vvmq, "CRLF injection in default email rule" (severity High, CVSS 8.9). CRLF injection pada aturan validasi
+  `email` Laravel yang, bersama Symfony Mailer/Mime, dapat memengaruhi email keluar pada aplikasi yang mengirim email ke alamat dari pengguna.
+  Diperbaiki di Laravel **12.60.0** dan **13.10.0**; versi terdampak tertulis `< 12.60.0` dan `<= 13.9.0`.
+- **Versi terkunci proyek:** `laravel/framework` **11.56.1** (dibaca dari `composer.lock`). Tidak ada rilis 11.x yang menambalnya.
+- **Analisis paparan (keputusan pemilik: dicatat tidak terdampak):** tidak ada pengiriman email dan tidak ada aturan validasi `email`. Dasarnya:
+  pemindaian `app/` dan `routes/` tidak menemukan `Mail::`, `Mailable`, `Notification`, `->notify(`, maupun aturan `email`; `MAIL_MAILER=log`;
+  `User` hanya memakai trait `Notifiable` (tidak mengirim apa pun tanpa `->notify(`). Pemindaian di `config/`, `database/`, dan `resources/` tidak dicakup.
+- **Penjaga:** `tests/Feature/Security/MailExposureGuardTest.php` gagal bila kode di `app/` atau `routes/` mulai memakai email, dengan pesan
+  "Evaluasi ulang CVE-2026-48019 sebelum memakai email".
+- **Dukungan Laravel 11:** menurut tabel dukungan resmi di laravel.com/docs/releases (diverifikasi pemilik, 11 Okt 2026), perbaikan keamanan
+  Laravel 11 berakhir pada 12 Maret 2026, sehingga perbaikan 11.x tidak akan terbit.
+- **Rekomendasi:** jadwalkan upgrade ke Laravel 12 sebelum DEPLOYMENT-001. Keputusan pemilik menyusul. Versi minimum yang memperbaiki seluruh entri
+  `laravel/framework` pada audit di bawah adalah **12.69.0** (berdasarkan rentang versi pada keluaran audit).
+- **Hasil `composer audit` (dijalankan pemilik, 11 Okt 2026):** `Found 6 security vulnerability advisories affecting 2 packages`.
+
+  | # | Paket | Advisory | Judul | Versi terdampak (menurut audit) | Dilaporkan |
+  |---|---|---|---|---|---|
+  | 1 | laravel/framework | CVE-2026-102279 / GHSA-jh5r-qr3c-85q8 | XSS in Debug Page Information | `<12.69.0`, `>=13.0.0,<13.30.0` | 2026-09-29 |
+  | 2 | laravel/framework | GHSA-crmm-hgp2-wgrp (tanpa CVE) | Temporary Signed URL Path Confusion | `<12.61.1`, `>=13.0.0,<13.12.0` | 2026-06-17 |
+  | 3 | laravel/framework | GHSA-5vg9-5847-vvmq (tanpa CVE) | CRLF injection in default email rule | `<12.60.0`, `>=13.0.0,<=13.9.0` | 2026-06-17 |
+  | 4 | laravel/framework | CVE-2026-48019 / GHSA-5vg9-5847-vvmq | CRLF injection in default email rule | `>=9.0.0,<10.0.0`, `>=10.0.0,<11.0.0`, `>=11.0.0,<12.0.0`, `>=12.0.0,<12.60.0`, `>=13.0.0,<13.10.0` | 2026-05-19 |
+  | 5 | league/commonmark | GHSA-97jj-33gv-5xf9 (tanpa CVE) | DisallowedRawHtml bypassed when a disallowed tag name ends the raw-HTML literal | `>=1.3.0,<=2.10.1` | 2026-09-30 |
+  | 6 | league/commonmark | GHSA-3q6v-r5mr-hxv8 (tanpa CVE) | Quadratic-time denial of service in the GitHub Flavored Markdown Table extension block-start scan | `>=2.0.0,<=2.10.1` | 2026-09-30 |
+
+  Baris 3 dan 4 adalah advisory yang sama (GHSA-5vg9-5847-vvmq) yang tercatat dua kali, jadi enam entri = lima isu berbeda. Baris 4 menandai
+  cabang 11.x (`>=11.0.0,<12.0.0`) sebagai terdampak. Versi terkunci: `laravel/framework` 11.56.1 dan `league/commonmark` 2.10.0 (paket transitif),
+  dibaca dari `composer.lock`.
+- **Analisis paparan (pencarian statis di `app/`, `routes/`, `bootstrap/`, `config/`; belum dijalankan; isi advisory #2, #5, dan #6 tidak dibaca penyusun, hanya judulnya):**
+  - **#1 CVE-2026-102279:** menurut deskripsi CVE di sumber yang dibaca penyusun (Debian security tracker, OpenCVE), kerentanan terjadi pada halaman debug saat
+    `APP_DEBUG=true`; mitigasi sementara yang disebut sumber adalah `APP_DEBUG=false`. Dengan `APP_DEBUG=false` di produksi (butir checklist di bawah), halaman itu tidak tampil.
+    Lingkungan dev dengan debug aktif tetap terpapar. Halaman advisory GitHub tidak dapat dibuka penyusun (404), jadi rincian severity belum diverifikasi.
+  - **#2 Temporary Signed URL:** tidak ditemukan `temporarySignedRoute`, `signedRoute`, `hasValidSignature`, atau middleware `signed`.
+  - **#3 dan #4 CRLF email:** lihat bagian di atas (tidak ada pengiriman email atau aturan `email`; dijaga `MailExposureGuardTest`).
+  - **#5 dan #6 league/commonmark:** tidak ditemukan pemakaian `Str::markdown`, `CommonMark`, atau markdown di `app/`, `routes/`, `bootstrap/` (satu-satunya
+    kemunculan kata markdown adalah daftar service provider framework di `bootstrap/cache/services.php`).
+  - Kesimpulan penyusun: tidak ditemukan jalur kode aplikasi yang memakai fitur terdampak (kecuali #1 yang bergantung pada `APP_DEBUG`). Ini hasil pembacaan statis, bukan jaminan.
+- **NEEDS DECISION (pemilik):** menerima risiko di atas untuk DEPLOYMENT-001, atau upgrade ke Laravel 12.69.0+ (menutup #1 sampai #4). Untuk #5 dan #6, versi perbaikan
+  tidak tertulis di keluaran audit (cek halaman advisory); memperbarui paket transitif `league/commonmark` adalah opsi terpisah dari upgrade framework dan belum diverifikasi.
+
+## Checklist verifikasi produksi (dilakukan di DEPLOYMENT-001)
+
+SECURITY-001 ditutup sebagai selesai di kode; nilai produksi diverifikasi di DEPLOYMENT-001. Kotak di bawah sengaja kosong; centang hanya setelah dicek di server.
+
+- [ ] `APP_DEBUG=false` (respons error tidak menampilkan stack trace/SQL/path)
+- [ ] `APP_ENV=production`
+- [ ] `APP_KEY` dan `JWT_SECRET` berbeda dari dev (dibuat baru, bukan disalin)
+- [ ] `SEED_SUPER_ADMIN_PASSWORD` diisi (dan password Super Admin lama dirotasi di setiap lingkungan yang pernah di-seed)
+- [ ] `CORS_ALLOWED_ORIGINS` berisi domain FE yang benar (cek negatif dan positif di bagian "Cek cepat setelah deploy")
+- [ ] `FORCE_HTTPS=true` dan `TRUSTED_PROXIES` sesuai topologi proxy/CDN (http dialihkan 308 tanpa loop; header HSTS ada)
+- [ ] Throttle aktif: enam login gagal beruntun ke `/api/v1/auth/login/staff` menghasilkan 429 `rate_limit_exceeded` pada permintaan ke-6; reset-password dan change-password dibatasi 10/menit per user
+- [ ] Log harian aktif: berkas `storage/logs/laravel-YYYY-MM-DD.log` terbentuk, `LOG_DAILY_DAYS=14`, `LOG_LEVEL=warning`; `zend.exception_ignore_args=On`
+- [ ] Uptime check eksternal ke `/up` terpasang (rekomendasi: interval 5 menit, notifikasi ke email pemilik) dan melaporkan 200
