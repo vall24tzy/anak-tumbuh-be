@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,7 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // SECURITY-001: URL yang dibuat aplikasi (mis. URL foto Student) memakai https bila dipaksa.
+        if (config('app.force_https')) {
+            URL::forceScheme('https');
+        }
+
         $this->registerLoginIdentifierLimiter();
+        $this->registerPasswordChangeLimiter();
     }
 
     /**
@@ -50,6 +57,23 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return Limit::perMinute(5)->by('ip:' . $request->ip());
+        });
+    }
+
+    /**
+     * SECURITY-001 butir 5 (keputusan pemilik): limiter `password-change` untuk reset-password
+     * (headmasters, teachers, students) dan auth/change-password.
+     *  - Kunci = ID user penggugah (dari jwt), TANPA IP; kuota 10 request/menit.
+     *  - Satu limiter bernama = satu bucket per user yang DIBAGI keempat route (bukan 10 per route).
+     *  - Diterapkan oleh middleware `throttle.password` (ThrottlePasswordChange), BUKAN `throttle:` bawaan, supaya berjalan
+     *    setelah jwt dan role (lihat penjelasan di kelasnya). Karena itu hanya request yang lolos autentikasi dan role
+     *    yang dihitung; request tanpa token (401) atau role salah (403) tidak memakai kuota.
+     *  - Terlampaui = 429 `rate_limit_exceeded` (F-47), pola sama dengan F-23. Login tidak diubah.
+     */
+    protected function registerPasswordChangeLimiter(): void
+    {
+        RateLimiter::for('password-change', function (Request $request) {
+            return Limit::perMinute(10)->by('user:' . (auth('api')->id() ?? 'anon'));
         });
     }
 }

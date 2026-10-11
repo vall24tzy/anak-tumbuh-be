@@ -5,7 +5,7 @@ School, Headmaster, Teacher, Academic Year, Master Rombel, Teacher Class Assignm
 Teacher Lifecycle, Import Guru, Dashboard Headmaster/Super Admin, Upload (logo/foto),
 Reset Password & Change Password.
 
-**187 request**, dikelompokkan 13 folder berurutan (0-12). Dijalankan lewat **Collection
+**218 request**, dikelompokkan 15 folder berurutan (0-14; folder 14 opsional). Dijalankan lewat **Collection
 Runner** (GUI Postman) atau **newman** (CLI) — bukan diklik satu-satu, karena banyak
 request saling bergantung (token, id) lewat *collection/environment variables* yang
 di-set otomatis oleh script `Tests` tiap request.

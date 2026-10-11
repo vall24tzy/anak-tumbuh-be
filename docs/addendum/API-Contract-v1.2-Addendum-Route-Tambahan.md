@@ -2,6 +2,7 @@
 
 **Tanggal:** 10 Okt 2026 · **Sumber:** dicek ke kode (`routes/`, controller, export), bukan dijalankan.
 **Status:** didokumentasikan; tidak ada perubahan kode.
+**Rekonsiliasi (merge 10 Okt 2026):** isi dokumen ini tumpang tindih dengan `API-Contract-v1.2-Errata-Stage5.md` Lampiran A (Orang 2, 9 Okt 2026, instruksi pemilik). Bila ada beda, **Lampiran A menang**: `GET /api/test` dan route infrastruktur (`/up`, `/`, `/login`) **dipertahankan, tidak dihapus**; kalimat "ditinjau di SECURITY-001" pada bagian 2 dan 3 di bawah adalah riwayat.
 
 ## 1. `GET /api/v1/teachers/import/template`
 
