@@ -91,14 +91,40 @@ Keputusan pemilik (11 Okt 2026): rotasi harian, retensi 14 hari, level `warning`
   - **#5 dan #6 league/commonmark:** tidak ditemukan pemakaian `Str::markdown`, `CommonMark`, atau markdown di `app/`, `routes/`, `bootstrap/` (satu-satunya
     kemunculan kata markdown adalah daftar service provider framework di `bootstrap/cache/services.php`).
   - Kesimpulan penyusun: tidak ditemukan jalur kode aplikasi yang memakai fitur terdampak (kecuali #1 yang bergantung pada `APP_DEBUG`). Ini hasil pembacaan statis, bukan jaminan.
-- **NEEDS DECISION (pemilik):** menerima risiko di atas untuk DEPLOYMENT-001, atau upgrade ke Laravel 12.69.0+ (menutup #1 sampai #4). Untuk #5 dan #6, versi perbaikan
-  tidak tertulis di keluaran audit (cek halaman advisory); memperbarui paket transitif `league/commonmark` adalah opsi terpisah dari upgrade framework dan belum diverifikasi.
+- **Keputusan pemilik (12 Okt 2026), Opsi B:** `laravel/framework` tetap **11.56.1**, tanpa upgrade sebelum go-live. Risiko advisory pada tabel di atas
+  (6 entri = 5 isu) **diterima secara tertulis oleh pemilik**, dengan syarat di bagian "Penerimaan risiko Opsi B" di bawah. Upgrade ke 12.69.0+ tetap
+  direkomendasikan pasca go-live. Untuk #5 dan #6, versi perbaikan tidak tertulis di keluaran audit (cek halaman advisory); memperbarui paket transitif
+  `league/commonmark` adalah opsi terpisah dari upgrade framework dan belum diverifikasi.
+
+## Penerimaan risiko Opsi B (12 Okt 2026)
+
+Keputusan pemilik: tetap di Laravel 11.56.1 sampai go-live; risiko diterima secara tertulis dengan **lima syarat**:
+
+1. **`APP_DEBUG=false` di produksi, WAJIB dan tidak boleh ditawar.** Ini menutup paparan #1 (CVE-2026-102279), yang hanya terjadi pada halaman debug.
+2. **Penjaga test diperluas:** `tests/Feature/Security/MailExposureGuardTest.php` (email; advisory #3 dan #4) dan
+   `tests/Feature/Security/FrameworkAdvisoryGuardTest.php` (signed URL; advisory #2, dan markdown; advisory #5 dan #6). Test gagal bila kode di `app/` atau `routes/`
+   mulai memakai fitur terkait, dengan pesan "Evaluasi ulang penerimaan risiko Laravel 11 sebelum memakai fitur ini" beserta ID advisory yang dibaca dari tabel di atas.
+3. **`composer audit` dijalankan saat deploy** dan hasilnya dicatat (advisory yang diketahui dan diterima).
+4. **Tanggal upgrade pasca go-live dituliskan** (baris di bawah).
+5. **Keputusan ini dicatat sebagai penerimaan risiko pemilik** (bagian ini).
+
+**Pemicu evaluasi ulang penerimaan risiko:**
+
+- advisory baru (hasil `composer audit`) yang menyentuh fitur yang dipakai aplikasi;
+- fitur baru yang memakai email, signed URL, atau markdown (test penjaga gagal);
+- perubahan hosting atau topologi (misalnya pindah server, proxy/CDN).
+
+**Batas penerimaan risiko:** advisory tidak hilang karena diterima; Laravel 11 tidak akan menerima perbaikan (lihat "Dukungan Laravel 11" di atas). Penjaga test hanya
+memindai `app/` dan `routes/` dan hanya mengenali pola yang terdaftar; ia bukan pengganti review kode.
+
+**Tanggal upgrade pasca go-live: DIISI PEMILIK**
 
 ## Checklist verifikasi produksi (dilakukan di DEPLOYMENT-001)
 
 SECURITY-001 ditutup sebagai selesai di kode; nilai produksi diverifikasi di DEPLOYMENT-001. Kotak di bawah sengaja kosong; centang hanya setelah dicek di server.
 
-- [ ] `APP_DEBUG=false` (respons error tidak menampilkan stack trace/SQL/path)
+- [ ] **WAJIB:** `APP_DEBUG=false` (respons error tidak menampilkan stack trace/SQL/path); syarat penerimaan risiko Laravel 11, tidak boleh ditawar
+- [ ] `composer audit` dijalankan, hasil dicatat (advisory yang diketahui dan diterima)
 - [ ] `APP_ENV=production`
 - [ ] `APP_KEY` dan `JWT_SECRET` berbeda dari dev (dibuat baru, bukan disalin)
 - [ ] `SEED_SUPER_ADMIN_PASSWORD` diisi (dan password Super Admin lama dirotasi di setiap lingkungan yang pernah di-seed)
