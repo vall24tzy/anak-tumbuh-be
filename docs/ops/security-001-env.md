@@ -105,7 +105,7 @@ Keputusan pemilik: tetap di Laravel 11.56.1 sampai go-live; risiko diterima seca
    `tests/Feature/Security/FrameworkAdvisoryGuardTest.php` (signed URL; advisory #2, dan markdown; advisory #5 dan #6). Test gagal bila kode di `app/` atau `routes/`
    mulai memakai fitur terkait, dengan pesan "Evaluasi ulang penerimaan risiko Laravel 11 sebelum memakai fitur ini" beserta ID advisory yang dibaca dari tabel di atas.
 3. **`composer audit` dijalankan saat deploy** dan hasilnya dicatat (advisory yang diketahui dan diterima).
-4. **Tanggal upgrade pasca go-live dituliskan** (baris di bawah).
+4. **Titik evaluasi ulang risiko Laravel 11 ditetapkan (pengganti tanggal upgrade, keputusan pemilik 13 Okt 2026)** (baris di bawah).
 5. **Keputusan ini dicatat sebagai penerimaan risiko pemilik** (bagian ini).
 
 **Pemicu evaluasi ulang penerimaan risiko:**
@@ -117,7 +117,13 @@ Keputusan pemilik: tetap di Laravel 11.56.1 sampai go-live; risiko diterima seca
 **Batas penerimaan risiko:** advisory tidak hilang karena diterima; Laravel 11 tidak akan menerima perbaikan (lihat "Dukungan Laravel 11" di atas). Penjaga test hanya
 memindai `app/` dan `routes/` dan hanya mengenali pola yang terdaftar; ia bukan pengganti review kode.
 
-**Tanggal upgrade pasca go-live: DIISI PEMILIK**
+**Tanggal upgrade pasca go-live: belum ditentukan (keputusan pemilik 13 Okt 2026); pemilik belum memutuskan akan upgrade selama Laravel 11 masih berfungsi.
+Penerimaan risiko ini dievaluasi ulang, dan keputusan upgrade diambil saat salah satu pemicu terjadi:**
+- `php artisan test` gagal di `FrameworkAdvisoryGuardTest` atau `MailExposureGuardTest` (artinya fitur terpapar mulai dipakai).
+- `composer audit` pada deploy berikutnya menunjukkan advisory baru yang menyentuh fitur yang dipakai aplikasi.
+- Versi PHP di server tidak lagi mendapat dukungan keamanan (PHP 8.2: 31 Des 2026) atau hosting mensyaratkan versi lebih baru.
+- Aplikasi akan menambah fitur email, signed URL, atau markdown.
+- Evaluasi berkala: setiap 3 bulan sekali, jalankan `composer audit` dan catat hasilnya.
 
 ## Checklist verifikasi produksi (dilakukan di DEPLOYMENT-001)
 
