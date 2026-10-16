@@ -21,3 +21,9 @@ yarn-error.log
 .env.testing
 
 docs/postman/test-files/
+
+# Hasil backup database (OPS-001): jangan pernah di-commit
+*.dump
+*.dump.sha256
+*.counts.tsv
+backup.log
