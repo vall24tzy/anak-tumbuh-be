@@ -1,7 +1,7 @@
 # OPS-001 — Bukti verifikasi lokal (Windows, PostgreSQL 17.11)
 
 **Pelaksana:** pemilik project (Orang 2), di komputernya sendiri. **Penyusun dokumen:** hanya memandu langkah dan menyalin keluaran asli yang ditempelkan pemilik; penyusun tidak menjalankan perintah apa pun.
-**Basis:** HEAD `91231bd` (working tree bersih sebelum uji). **Waktu:** 15 Okt 2026 (stempel waktu pada log memakai UTC).
+**Basis:** HEAD `91231bd` (uji A, B, D) dan `8116a3c` (uji G); working tree bersih sebelum uji. **Waktu:** 15 Okt 2026 (uji A, B, D) dan sesudah keputusan pemilik 16 Okt 2026 (uji G); stempel waktu pada log memakai UTC.
 **Status:** hasil di bawah adalah **laporan pemilik** (keluaran terminal yang ditempelkan), bukan berkas log yang tersimpan di repo. Pelengkap dokumen `docs/ops/ops-001-bukti.md` (bukti sandbox Orang 1, PostgreSQL 16.15); berkas itu tidak diubah.
 Tidak ada password, `.env`, atau isi dump yang dimasukkan ke dokumen ini. Password Super Admin uji diketik lewat `read -rs` dan tidak pernah dicetak.
 
@@ -28,7 +28,8 @@ Tidak ada password, `.env`, atau isi dump yang dimasukkan ke dokumen ini. Passwo
 | A. `migrate:fresh --seed` pada DB kosong | **PASS** | Semua angka sama dengan uji A di sandbox 16.15 (bagian 5) |
 | B. backup → restore → banding isi → smoke test | **PASS, dengan pembungkus `psql`** | Tanpa pembungkus, `backup.sh` **GAGAL** di Windows (BUG-1, bagian 6.1). Smoke test positif lulus, negatif gagal sebagaimana mestinya |
 | D. concurrency 5 index × 3 skenario | **PASS 15/15**, kontrol negatif **FAIL** sebagaimana mestinya | Dijalankan dengan pembungkus `psql` aktif |
-| E1/E2. alur deploy PASS dan FAIL → restore | **BELUM DIJALANKAN** | Ditunda ke tahap terpisah (lihat bagian 8) |
+| E1/E2. alur deploy PASS dan FAIL → restore | **DILEWATI** (keputusan pemilik, 16 Okt 2026) | Tidak dijalankan secara lokal; bukti simulasi hanya dari sandbox penyusun OPS-001 (bagian 8) |
+| G. `php artisan test` pada PostgreSQL 17.11 | **PASS: 518 passed (2814 assertions)** | Bagian 7a |
 
 Perbedaan perilaku PostgreSQL 16.15 (bukti Orang 1) vs 17.11 (di sini): **tidak ada perbedaan perilaku PostgreSQL yang terlihat** pada hasil migrasi, seed, backup, restore, smoke test, dan concurrency. Satu-satunya perbedaan nyata berasal dari **Windows/Git Bash**, bukan dari versi PostgreSQL (BUG-1). Selisih waktu (bagian 7) bersifat indikatif saja.
 
@@ -352,18 +353,89 @@ Schema sementara di DB tiruan sesudahnya: `0`.
 
 Waktu indikatif lain: backup 3 dtk (79.348 byte); restore sekitar 7 dtk dari mulai sampai selesai verifikasi; keduanya data kecil dan bukan pengukuran yang valid untuk produksi.
 
-## 8. Uji E (alur deploy PASS dan FAIL → restore): belum dijalankan
+## 7a. Uji G — `php artisan test` pada PostgreSQL 17.11
 
-Tidak dijalankan pada sesi ini; ditunda ke tahap terpisah dan akan ditambahkan di dokumen ini setelah dijalankan. Alasan: langkahnya panjang (maintenance `down`/`up`, menggulung migration di DB tiruan, simulasi rilis rusak, tukar nama database) dan `php artisan down` menulis berkas di `storage/framework/` repo pemilik, sehingga perlu dikerjakan hati-hati dan terpisah. Akibatnya butir "simulasi deploy penuh" pada runbook bagian 10 tetap kosong.
+Dijalankan sesudah keputusan pemilik 16 Okt 2026. Basis HEAD `8116a3c`, working tree bersih (`git status --short` kosong). Database khusus `anak_tumbuh_ops_g` (baru dibuat di server uji 17.11, port 5434), **bukan** database aplikasi pemilik. Suite memakai `RefreshDatabase`, yang menghapus isi database yang dipakai; karena itu targetnya diperiksa dulu (di bawah).
+
+Dua pengaturan inline pada perintah test:
+- `APP_ENV=testing`: `phpunit.xml` menaruh `APP_ENV=testing` tanpa `force`, sehingga `APP_ENV=local` yang masih ter-export di sesi akan menimpanya dan `.env.testing` tidak terbaca. Awalan inline membuat kondisi sama dengan test biasa.
+- `APP_URL=http://localhost`: `.env` yang dibuat dari `.env.example` berbasis `https`, yang membuat dua test `EnforceHttpsTest` gagal (runbook bagian 9).
+
+`DB_HOST`, `DB_PORT=5434`, `DB_USERNAME`, dan `DB_PASSWORD` (kosong) di-export pada sesi dan menang atas `.env`/`.env.testing`; `DB_DATABASE` ditulis inline.
+
+Catatan jalannya: server 17.11 sempat tidak berjalan (`Connection refused` pada port 5434; penyebab tidak diketahui, dugaan komputer dimatikan atau di-restart) dan dinyalakan lagi dengan `pg_ctl ... start`; folder data tidak hilang. Satu perintah `pg_ctl` sempat salah ketik (`-1` bukan `-l`, ditolak `illegal option -- 1`) dan diulang dengan benar.
+
+```
+$ git log --oneline -1
+8116a3c (HEAD -> main, origin/main, origin/HEAD) docs(ops): bukti verifikasi lokal OPS-001 (Windows, PostgreSQL 17.11) dan temuan BUG-1
+$ git status --short
+$ php -v | head -1
+PHP 8.3.30 (cli) (built: Jan 13 2026 22:50:40) (ZTS Visual C++ 2019 x64)
+$ psql -d postgres -Atc "SHOW server_version" -c "SHOW port"
+17.11
+5434
+$ psql -d postgres -Atc "SELECT datname FROM pg_database WHERE datname LIKE 'anak_tumbuh_ops_%' ORDER BY 1"
+anak_tumbuh_ops_a
+anak_tumbuh_ops_b
+anak_tumbuh_ops_b_restored
+anak_tumbuh_ops_mutant
+$ psql -d postgres -c "CREATE DATABASE anak_tumbuh_ops_g;"
+CREATE DATABASE
+```
+
+Pemeriksaan target sebelum test (hanya membaca):
+
+```
+$ APP_ENV=testing APP_URL=http://localhost DB_DATABASE=anak_tumbuh_ops_g php artisan tinker --execute="echo app()->environment().' | '.config('database.connections.pgsql.database').' @ '.config('database.connections.pgsql.host').':'.config('database.connections.pgsql.port').' | '.config('app.url').PHP_EOL;"
+testing | anak_tumbuh_ops_g @ 127.0.0.1:5434 | http://localhost
+```
+
+Test (15 baris terakhir keluaran, apa adanya; log lengkap hanya di terminal pemilik):
+
+```
+$ APP_ENV=testing APP_URL=http://localhost DB_DATABASE=anak_tumbuh_ops_g php artisan test --no-ansi 2>&1 | tee /tmp/ujiG.log | tail -n 15
+  ✓ patch foto student nama klien php phtml phar ditolak validasi dan tidak… 0.16s
+  ✓ create student dengan foto nama klien pht tersimpan sebagai jpg          0.28s
+  ✓ create school dengan logo nama klien pht tersimpan sebagai png           0.10s
+
+   PASS  Tests\Feature\Upload\UploadReplaceOrderTest
+  ✓ replace sukses menyimpan file baru lalu menghapus file lama              0.14s
+  ✓ replace dengan ekstensi sama menimpa file dan tidak menghapus file baru  0.09s
+  ✓ decode gagal pada file rusak tidak mengubah file lama                    0.24s
+  ✓ format di luar allowlist ditolak dan file lama tetap ada                 0.08s
+  ✓ penyimpanan gagal tidak menghapus file lama dan tidak mengembalikan pat… 0.19s
+  ✓ update foto student yang gagal membiarkan photo path dan file lama utuh  0.13s
+
+  Tests:    518 passed (2814 assertions)
+  Duration: 99.68s
+```
+
+Versi yang dipakai:
+
+```
+$ php artisan --version | cat
+Laravel Framework 11.56.1
+$ psql -d anak_tumbuh_ops_g -Atc "SELECT version()"
+PostgreSQL 17.11 on x86_64-windows, compiled by msvc-19.44.35229, 64-bit
+$ psql -d anak_tumbuh_ops_g -Atc "SHOW port" -c "SHOW data_directory"
+5434
+C:/pg17-data-uji
+```
+
+**Hasil: PASS.** 518 passed, 2814 assertions; tidak ada test merah (daftar penuh hanya dilihat pemilik; yang tercatat di sini adalah 15 baris akhir). Angkanya sama dengan run terakhir pemilik pada pengaturan biasa (518 passed, 2814 assertions, dilaporkan di `docs/testing/BASELINE-STAGE-0C.md` §18); server PostgreSQL pada run biasa itu tidak dicatat dan tidak diverifikasi di sini. Uji G menjalankan suite aplikasi, **bukan** skrip OPS-001. Tabel sisa suite berada di `anak_tumbuh_ops_g` (dibersihkan pada pembersihan lingkungan uji).
+
+## 8. Uji E (alur deploy PASS dan FAIL → restore): DILEWATI secara lokal
+
+Keputusan pemilik (16 Okt 2026): uji E **tidak dijalankan di mesin pemilik**. Alasan: bukti simulasi E1/E2 sudah ada dari sandbox penyusun OPS-001 (lingkungan Claude, Linux, PostgreSQL 16.15, **bukan mesin manusia**; `docs/ops/ops-001-bukti.md`) dan dipakai sebagai bukti simulasi; langkah lokal panjang dan memakai `php artisan down`, yang menulis berkas di `storage/framework/` repo pemilik; pengulangan yang bermakna dilakukan di server nyata/staging, yang menjadi bagian DEPLOYMENT-001. Akibatnya butir "simulasi deploy penuh" pada runbook bagian 10 tetap kosong.
 
 ## 9. Temuan
 
 | Kelas | Temuan | Bukti / status |
 |---|---|---|
-| **BUG** (khusus Windows) | **BUG-1:** `scripts/backup.sh` gagal di Git Bash dengan `psql.exe` karena `psql.exe` menulis `\r\n` ke pipa; nilai snapshot dari `coproc` membawa `\r` dan ditolak `pg_dump --snapshot` (`invalid snapshot identifier`). Tidak terlihat di sandbox Linux Orang 1 | Bagian 6.1 (log gagal + `od -c`). `restore.sh` (baris 62, 68, 81, 90) juga membaca keluaran `psql` ke variabel lewat `$(...)`, dan `test-partial-unique-concurrency.sh` memanggil `psql`; apakah keduanya gagal tanpa pembungkus **tidak diuji** |
-| **NEEDS DECISION** | Apakah Windows native perlu didukung (patch minimal terpisah, mis. membuang `\r` dari keluaran `psql` di `scripts/lib/ops-common.sh`), atau skrip OPS-001 dinyatakan hanya untuk Linux/WSL (produksi memang Linux). Patch minimal belum dibuat dan tidak ada skrip yang diubah | Menunggu keputusan pemilik |
-| **NEEDS DECISION** | Versi PostgreSQL yang dianggap "lokal tim" pada runbook bagian 1: 17.11 (server uji), 14.5 (Laragon pemilik), atau 14.24 (service Windows). Ketiganya tercatat apa adanya di runbook | Menunggu keputusan pemilik |
-| **DOKUMENTASI** | Runbook bagian 1 menulis "PHP ≥ 8.2", tetapi `composer.lock` memuat paket yang mensyaratkan 8.3 (`intervention/image`, `intervention/gif`) dan `vendor/composer/platform_check.php` memeriksa `PHP_VERSION_ID >= 80300`; PHP minimum efektif tampaknya 8.3. Dari pembacaan berkas, tidak dijalankan dengan PHP 8.2 | Usulan: perbaiki baris itu (tidak diterapkan di patch ini) |
+| **BUG** (khusus Windows; status: keterbatasan terdokumentasi) | **BUG-1:** `scripts/backup.sh` gagal di Git Bash dengan `psql.exe` karena `psql.exe` menulis `\r\n` ke pipa; nilai snapshot dari `coproc` membawa `\r` dan ditolak `pg_dump --snapshot` (`invalid snapshot identifier`). Tidak terlihat di sandbox Linux Orang 1 | Bagian 6.1 (log gagal + `od -c`). `restore.sh` (baris 62, 68, 81, 90) juga membaca keluaran `psql` ke variabel lewat `$(...)`, dan `test-partial-unique-concurrency.sh` memanggil `psql`; apakah keduanya gagal tanpa pembungkus **tidak diuji** **Status (keputusan pemilik, 16 Okt 2026): keterbatasan terdokumentasi, bukan akan dipatch; skrip OPS-001 tidak diubah.** |
+| **DIPUTUSKAN** (sebelumnya NEEDS DECISION) | Dukungan Windows native: **tidak ada patch pada skrip**. Platform skrip: Linux/WSL; **terbukti hanya di Linux sandbox penyusun OPS-001**; **WSL belum diuji**; Git Bash Windows native **tidak didukung** (hanya berjalan dengan pembungkus `psql` yang membuang `\r`, BUG-1). Platform server produksi: **belum diputuskan** (DEPLOYMENT-001). | Keputusan pemilik 16 Okt 2026 |
+| **DIPUTUSKAN** (sebelumnya NEEDS DECISION) | Versi PostgreSQL: **diuji** 17.11 (lokal) dan 16.15 (sandbox); **usulan target produksi** 17.x (belum diputuskan; DEPLOYMENT-001); **tidak dipakai menjalankan skrip**: 14.x (14.5 Laragon, 14.24 service Windows) dan mencapai akhir dukungan 12 Nov 2026. | Keputusan pemilik 16 Okt 2026 |
+| **DOKUMENTASI** (dikerjakan) | PHP minimum di dokumentasi: **8.3**. `composer.lock`: `intervention/image` 4.3.2 dan `intervention/gif` 5.0.1 mensyaratkan `^8.3`, dan `vendor/composer/platform_check.php` memeriksa `PHP_VERSION_ID >= 80300`. `composer.json` masih `^8.2` dan **tidak diubah sekarang**; dicatat sebagai keputusan DEPLOYMENT-001. | Runbook bagian 1 diperbarui |
 | **TECHNICAL NOTE** | Kegagalan pertama dari tugas (`pg_dump v14` vs server v17) berasal dari lingkungan Orang 1 dan tidak direproduksi di komputer pemilik, yang tidak punya server 17. Pengaman versi skrip tidak diubah dan tidak terpicu | Bagian 3 butir 1 |
 | **TECHNICAL NOTE** | Backup, restore, banding tabel, dan uji concurrency dijalankan **dengan pembungkus `psql`**; hasilnya tidak membuktikan skrip berjalan apa adanya di Windows | Bagian 4 |
 | **TECHNICAL NOTE** | Git Bash (mintty): alias `winpty` untuk `psql`/`php`, tampilan terminal tertimpa pada keluaran `psql.exe`, dan `cmd.exe /c ver` menggantung; hanya memengaruhi tampilan/kenyamanan, bukan skrip | Bagian 3 butir 4, 5, 7 |
@@ -371,14 +443,17 @@ Tidak dijalankan pada sesi ini; ditunda ke tahap terpisah dan akan ditambahkan d
 
 ## 10. Belum terverifikasi
 
-- Uji E1/E2 (alur deploy PASS dan FAIL → restore, tukar nama database).
+- Uji E1/E2 **secara lokal dilewati** (keputusan pemilik); yang ada hanya bukti simulasi dari sandbox penyusun (Linux, PostgreSQL 16.15, bukan mesin manusia). Pengulangan di server nyata/staging: DEPLOYMENT-001.
+- Skrip OPS-001 di **Linux**: terbukti hanya di sandbox penyusun; belum di server nyata. **WSL belum diuji.**
+- Skrip OPS-001 apa adanya (tanpa pembungkus) di Git Bash Windows native: gagal (BUG-1); `restore.sh` dan skrip concurrency tanpa pembungkus tidak diuji; skrip tidak dipatch.
 - `chmod 600`/`umask 077` pada berkas backup: tidak dapat dibuktikan di NTFS; wajib diverifikasi di server Linux.
-- Skrip OPS-001 apa adanya (tanpa pembungkus) di Windows; restore dan concurrency tanpa pembungkus.
-- Linux/WSL dengan PostgreSQL 17.x; PostgreSQL 16 di Windows.
-- Staging dan produksi; backup terjadwal (cron), retensi pada server nyata, lokasi offsite (`BACKUP_OFFSITE_CMD`), enkripsi backup, data berukuran realistis, durasi nyata.
+- PostgreSQL 16.x di Windows; PostgreSQL 17.x di Linux/WSL.
+- Staging dan produksi: backup terjadwal (cron), retensi pada server nyata, lokasi offsite (`BACKUP_OFFSITE_CMD`), enkripsi backup, data berukuran realistis, durasi nyata.
+- Platform server, versi PostgreSQL, dan versi PHP produksi: **belum diputuskan** (DEPLOYMENT-001).
 - `APP_ENV=production` melindungi DB aplikasi (uji dijalankan dengan `APP_ENV=local`).
 - Pengaman versi klien/server pada skrip (tidak terpicu dalam uji ini).
 - Hanya mendengar di localhost untuk server uji (pengaturan bawaan, tidak diperiksa ulang).
+- Uji G hanya dijalankan pada PostgreSQL 17.11 di Windows (bukan 16.15 atau Linux) dan tidak menguji skrip OPS-001; versi PostgreSQL pada run test biasa pemilik (angka 518/2814 di BASELINE §18) tidak tercatat.
 
 ## 11. Usulan opsional (belum diterapkan, perlu persetujuan)
 

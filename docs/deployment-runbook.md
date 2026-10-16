@@ -11,9 +11,10 @@
 | Item | Ketentuan |
 |---|---|
 | PostgreSQL klien (`psql`, `pg_dump`, `pg_restore`) | **Versi klien mengikuti server produksi.** `pg_dump` harus sama atau lebih baru dari server; `pg_restore` harus **sama atau lebih baru** dari `pg_dump` yang membuat backup. Skrip menolak bila aturan ini dilanggar. |
-| Versi PostgreSQL produksi | **Belum ditentukan** (keputusan DEPLOYMENT-001). |
-| Versi PostgreSQL lokal tim | **Belum diputuskan (NEEDS DECISION, pemilik).** Nilai nyata dari verifikasi lokal 15 Okt 2026 (`docs/ops/ops-001-bukti-lokal.md`): server uji **17.11** (`SELECT version();` = `PostgreSQL 17.11 on x86_64-windows, compiled by msvc-19.44.35229, 64-bit`; zip binaries, Windows 11, port 5434) dengan klien `psql`/`pg_dump`/`pg_restore` **17.11**. Server lain di komputer pemilik yang sama, tidak dipakai uji: **14.5** (Laragon, port 5432) dan **14.24** (service Windows, port 5433). Penyusun OPS-001 (Orang 1) memakai 16.15 di sandbox Linux; itu bukan versi tim. |
-| PHP / Laravel | PHP ≥ 8.2; Laravel **tetap 11.56.1** (risiko 6 advisory diterima pemilik secara tertulis; lihat `docs/ops/security-001-env.md`). Jangan upgrade saat deploy. |
+| Versi PostgreSQL produksi | **Belum ditentukan** (keputusan DEPLOYMENT-001). Usulan target: 17.x. |
+| Versi PostgreSQL (tiga peran; keputusan pemilik 16 Okt 2026) | **Diuji:** 17.11 (lokal, Windows 11, server dari zip binaries di port 5434, klien 17.11; uji A, B, D, G) dan 16.15 (sandbox Linux penyusun OPS-001). **Usulan target produksi:** 17.x (belum diputuskan; DEPLOYMENT-001). **Tidak dipakai menjalankan skrip:** 14.x (14.5 Laragon dan 14.24 service Windows di komputer pemilik); PostgreSQL 14 mencapai akhir dukungan **12 Nov 2026**. Bukti: `docs/ops/ops-001-bukti-lokal.md`. |
+| PHP / Laravel | **PHP ≥ 8.3** (`composer.lock`: `intervention/image` 4.3.2 dan `intervention/gif` 5.0.1 mensyaratkan `^8.3`; `vendor/composer/platform_check.php` memeriksa `PHP_VERSION_ID >= 80300`). `composer.json` masih `^8.2` dan tidak diubah sekarang; dicatat sebagai keputusan DEPLOYMENT-001. Laravel **tetap 11.56.1** (risiko 6 advisory diterima pemilik secara tertulis; lihat `docs/ops/security-001-env.md`). Jangan upgrade saat deploy. |
+| Platform skrip OPS-001 | **Linux/WSL.** Terbukti hanya di Linux sandbox penyusun OPS-001 (PostgreSQL 16.15); **WSL belum diuji**. **Git Bash Windows native tidak didukung**: `psql.exe` menulis `\r\n` ke pipa sehingga `backup.sh` gagal; hanya berjalan dengan pembungkus `psql` di luar repo yang membuang `\r` (BUG-1; `docs/ops/ops-001-bukti-lokal.md`). Skrip tidak dipatch. Platform server produksi: **belum diputuskan** (DEPLOYMENT-001). |
 | Akun database | Backup: hak `SELECT` pada semua tabel. Restore: hak `CREATEDB` (jika memakai `--create-db`) atau database kosong yang sudah disiapkan DBA. |
 | Variabel koneksi | Skrip membaca `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` dari environment, atau dari `.env` bila variabelnya belum diset. Password dikirim lewat `PGPASSWORD`, tidak pernah lewat argumen perintah. |
 
@@ -127,11 +128,14 @@ Menguji 5 index (`academic_years`, `headmasters`, `teacher_class_assignments` ×
 
 ## 10. Checklist verifikasi di staging (harus diulang tim)
 
-- [ ] Isi versi PostgreSQL lokal tim dan versi produksi (bagian 1); pastikan versi klien mengikuti server. — lokal PG17: server uji 17.11 dan klien 17.11 tercatat; versi "lokal tim" dan produksi: NEEDS DECISION; staging: DEPLOYMENT-001.
+- [ ] Isi versi PostgreSQL produksi (bagian 1) dan pastikan versi klien mengikuti server. — lokal PG17: server uji 17.11 dan klien 17.11 tercatat; "versi lokal tim" diputuskan 16 Okt 2026 (diuji 17.11 dan 16.15; usulan target 17.x); versi produksi: DEPLOYMENT-001.
 - [ ] Jalankan `scripts/backup.sh` terjadwal di server nyata; pastikan berkas, izin, retensi, dan peringatan jika backup berhenti. — lokal PG17: backup manual lulus (di Windows hanya dengan pembungkus `psql`; lihat BUG-1 di `docs/ops/ops-001-bukti-lokal.md`); `chmod 600` tidak bisa dibuktikan di NTFS; jadwal, izin, dan retensi: staging: DEPLOYMENT-001.
 - [ ] Putuskan dan uji lokasi backup di luar server (`BACKUP_OFFSITE_CMD`) — DEPLOYMENT-001.
 - [ ] Restore drill ke database terpisah di staging dengan data realistis; ukur durasi dump dan restore. — lokal PG17: restore ke database terpisah lulus (data kecil, 79.348 byte; backup 3 dtk, restore sekitar 7 dtk, indikatif); data realistis: staging: DEPLOYMENT-001.
-- [ ] Simulasi deploy penuh jalur PASS dan jalur FAIL (bagian 6) di staging, termasuk tukar nama database dan `cache:clear`. — lokal PG17: belum dijalankan (uji E tertunda); staging: DEPLOYMENT-001.
+- [ ] Simulasi deploy penuh jalur PASS dan jalur FAIL (bagian 6) di staging, termasuk tukar nama database dan `cache:clear`. — uji E lokal dilewati (keputusan pemilik, 16 Okt 2026); bukti simulasi: sandbox penyusun OPS-001 (Linux, PostgreSQL 16.15, bukan mesin manusia); staging: DEPLOYMENT-001.
 - [ ] Jalankan uji concurrency pada salinan staging. — lokal PG17: lulus 15/15 pada DB fresh dan kontrol negatif gagal sebagaimana mestinya (dengan pembungkus `psql` di Windows); salinan staging: DEPLOYMENT-001.
 - [ ] Pastikan `APP_ENV=production` di produksi sehingga skrip destruktif menolak DB aplikasi.
 - [ ] Putuskan enkripsi file backup dan backup `storage/` (DEPLOYMENT-001).
+- [ ] DEPLOYMENT-001: putuskan **versi PostgreSQL produksi** (usulan 17.x; 14.x mencapai akhir dukungan 12 Nov 2026) dan samakan versi klien.
+- [ ] DEPLOYMENT-001: putuskan **versi PHP produksi** (≥ 8.3) dan tinjau `composer.json` (`^8.2` vs syarat `^8.3` pada `composer.lock`).
+- [ ] DEPLOYMENT-001: putuskan **platform server produksi** (Linux atau Windows); bila Linux/WSL, ulangi uji skrip OPS-001 di platform itu (Git Bash Windows native tidak didukung).
