@@ -95,7 +95,8 @@ class StudentService
             return Student::with(['school', 'user'])->whereRaw('1 = 0');
         }
 
-        return Student::with(['school', 'user'])
+        // INTEG-QR-001: eager load qrToken (qr_regenerated_at di GET /students, khusus Teacher) -> tanpa N+1.
+        return Student::with(['school', 'user', 'qrToken'])
             ->whereHas('activeClassAssignment', fn ($q) => $q->where('rombel_id', $assignment->rombel_id));
     }
 

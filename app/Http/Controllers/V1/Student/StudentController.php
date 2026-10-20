@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\CreateStudentRequest;
 use App\Http\Requests\Student\PaginatedListRequest;
 use App\Http\Requests\Student\UpdateStudentRequest;
+use App\Http\Resources\Student\StudentListResource;
 use App\Http\Resources\Student\StudentResource;
 use App\Services\Student\StudentHabitService;
 use App\Services\Student\StudentService;
@@ -26,7 +27,8 @@ class StudentController extends Controller
         $paginator = $this->service->index($request->validated());
 
         return $this->successResponse(
-            StudentResource::collection($paginator->getCollection()),
+            // INTEG-QR-001: hanya LIST yang memakai StudentListResource (+qr_regenerated_at untuk Teacher).
+            StudentListResource::collection($paginator->getCollection()),
             meta: StudentHabitService::paginationMeta($paginator),
         );
     }
