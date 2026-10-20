@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\Student;
 use App\Models\StudentClassAssignment;
 use App\Models\StudentHabit;
+use App\Models\Teacher;
 use App\Services\Gamification\LevelService;
 use App\Services\School\TeacherScopeService;
 use App\Services\Student\StudentClassAssignmentService;
@@ -214,14 +215,21 @@ class DashboardService
     {
         $headmaster = $this->currentHeadmaster();
 
+        // INTEG-DASHHM-001 (Matrix #68): total_guru = Teacher status 'active' di sekolah Headmaster.
+        // Teacher tidak terikat tahun ajaran, jadi angkanya tidak bergantung pada tahun ajaran aktif.
+        $totalGuru = Teacher::where('school_id', $headmaster->school_id)
+            ->where('status', 'active')
+            ->count();
+
         $activeYear = \App\Models\AcademicYear::where('school_id', $headmaster->school_id)
             ->where('is_active', true)
             ->first();
 
         // Belum ada tahun ajaran aktif -> tidak error, cukup list kosong
         // (school baru/belum setup ACADEMICYEAR-001, bukan kondisi salah).
+        // INTEG-DASHHM-001: total_siswa dan total_rombel = 0 (keduanya terikat tahun ajaran aktif).
         if (!$activeYear) {
-            return ['rombels' => []];
+            return $this->headmasterPayload([], 0, $totalGuru, 0);
         }
 
         $rombels = Rombel::where('school_id', $headmaster->school_id)
@@ -229,7 +237,7 @@ class DashboardService
             ->get(['id', 'name', 'grade_level']);
 
         if ($rombels->isEmpty()) {
-            return ['rombels' => []];
+            return $this->headmasterPayload([], 0, $totalGuru, 0);
         }
 
         $rombelIds = $rombels->pluck('id');
@@ -280,7 +288,28 @@ class DashboardService
             ];
         });
 
-        return ['rombels' => $result->values()->all()];
+        // INTEG-DASHHM-001: total_siswa = jumlah student_count seluruh rombel di atas (definisi SAMA,
+        // dari $studentCounts yang sudah di-query; tidak ada query tambahan untuk siswa/rombel).
+        return $this->headmasterPayload(
+            $result->values()->all(),
+            (int) $studentCounts->sum(),
+            $totalGuru,
+            $rombels->count(),
+        );
+    }
+
+    /**
+     * Bentuk response dashboard/headmaster. Field `rombels` (lama) tetap di depan; tiga total baru
+     * (INTEG-DASHHM-001, Matrix #68, perluasan OD-11) ditaruh di akhir.
+     */
+    protected function headmasterPayload(array $rombels, int $totalSiswa, int $totalGuru, int $totalRombel): array
+    {
+        return [
+            'rombels'      => $rombels,
+            'total_siswa'  => $totalSiswa,
+            'total_guru'   => $totalGuru,
+            'total_rombel' => $totalRombel,
+        ];
     }
 
     /**

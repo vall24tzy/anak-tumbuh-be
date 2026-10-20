@@ -6393,7 +6393,7 @@
       ]
     },
     {
-      "name": "INTEG-O2 (Orang 2): Profil & Dashboard Siswa (INTEG-ME-001)",
+      "name": "INTEG-O2 (Orang 2): Profil, Dashboard, Sekolah, Guru (INTEG-ME-001, INTEG-DASHHM-001)",
       "item": [
         {
           "name": "INTEG-ME-001 GET /auth/me - Student A -> 200, memuat rombel + photo (Matrix #67)",
@@ -6652,6 +6652,168 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-DASHHM-001 GET /dashboard/headmaster - Headmaster -> 200, memuat total_siswa/total_guru/total_rombel (Matrix #68)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/headmaster",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "headmaster"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('field lama (rombels) tetap di depan, tiga total baru di akhir', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(Object.keys(d)).to.eql(['rombels','total_siswa','total_guru','total_rombel']);",
+                  "  ['total_siswa','total_guru','total_rombel'].forEach(k => pm.expect(Number.isInteger(d[k]), k + ' integer').to.be.true);",
+                  "});",
+                  "pm.test('total_siswa = jumlah student_count; total_rombel = jumlah rombel pada response yang sama', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.total_siswa).to.eql(d.rombels.reduce((a, r) => a + r.student_count, 0));",
+                  "  pm.expect(d.total_rombel).to.eql(d.rombels.length);",
+                  "});",
+                  "pm.test('item rombels tidak berubah: id, name, grade_level, student_count, average_submitted_today', function () {",
+                  "  pm.response.json().data.rombels.forEach(r => pm.expect(Object.keys(r)).to.eql(['id','name','grade_level','student_count','average_submitted_today']));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-DASHHM-001 GET /dashboard/headmaster - Teacher A -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/headmaster",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "headmaster"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-DASHHM-001 GET /dashboard/headmaster - Student A -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/headmaster",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "headmaster"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-DASHHM-001 GET /dashboard/headmaster - tanpa token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/headmaster",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "headmaster"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code = unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
                 ]
               }
             }
