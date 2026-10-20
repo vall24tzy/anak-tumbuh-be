@@ -5,7 +5,7 @@
 disetujui tanpa perubahan. Berkas ini mencatat persetujuan itu; berkas ini tidak membuat keputusan baru dan tidak mengubah makna keputusan.
 Nomor versi Dokumen Keputusan tetap v4.0 (pola amandemen C-01); Authorization Matrix naik ke v5.3 (baris #1-#61 tidak diubah).
 
-> Catatan: persetujuan langsung yang tercatat berasal dari pemilik project (nisrina). Persetujuan klipaa (pemilik produk) atas panduan (D-06, D-13), edit sekolah (D-09), dan edit guru belum tercatat di berkas ini; tambahkan bila sudah diberikan.
+Persetujuan tambahan dari pemilik produk tidak diperlukan; hal ini diputuskan pemilik project pada 20 Okt 2026.
 
 ## 1. Keputusan
 

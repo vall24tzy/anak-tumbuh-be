@@ -9,6 +9,8 @@
 - Dokumen Keputusan v4.0: dua poin baru di §7 dan satu blok amandemen di akhir (tracked changes, sisipan saja); nomor versi tetap 4.0.
 - Authorization Matrix v5.3: baris #62-#69 ditambahkan; #1-#61 identik dengan v5.2 (dibandingkan sel per sel). Role Summary (kolom Explicitly Allowed) dan Business Rules (No 23-26) diperluas.
 
+- Persetujuan tambahan dari pemilik produk tidak diperlukan (keputusan pemilik project, 20 Okt 2026).
+
 ## File yang berubah atau dibuat
 
 - `docs/addendum/SoT-Amendment-INTEG-D01-D13.md` (baru)
@@ -18,7 +20,6 @@
 
 ## Belum dilakukan
 
-- Persetujuan klipaa (pemilik produk) atas panduan, edit sekolah, dan edit guru belum tercatat; ditambahkan bila sudah diberikan.
-- Status task di Task Board INTEG (NEEDS DECISION -> TODO) belum diubah; dilakukan pemilik.
+- Status task di Task Board INTEG sudah diperbarui (Task_Board_ANAKTUMBUH_BE_Tambahan_Integrasi_FE_v1_4.xlsx: INTEG-DECISION-001 DONE, task fitur TODO).
 - Addendum API Contract, errata DB Design, implementasi, dan test untuk task INTEG.
 - Teks "Authorization Matrix v5.0 FINAL" pada §18 Dokumen v4.0 tidak diubah (di luar cakupan).
