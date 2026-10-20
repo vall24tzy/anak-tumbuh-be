@@ -26,7 +26,8 @@ use Tests\TestCase;
 //     SAMA dengan show()
 //   - tanpa token -> 401; Student tanpa foto dan berkas yang hilang -> 404 (bukan 500)
 //   - tidak ada fallback ke disk publik (berkas lama di publik tidak pernah disajikan)
-//   - /auth/me dan GET /dashboard/student tidak memuat foto (tidak ada jalur bocor)
+//   - /auth/me dan GET /dashboard/student (INTEG-ME-001, D-08) memuat `photo` HANYA sebagai URL endpoint
+//     terproteksi; path berkas dan URL storage publik tetap dilarang (tidak ada jalur bocor)
 //   - logo School tetap URL publik di disk 'public'
 //
 // STATUS EKSEKUSI: dijalankan di PHP + PostgreSQL; hasil terkini lihat docs/testing/BASELINE-STAGE-0C.md
@@ -269,20 +270,31 @@ class StudentPhotoPrivacyTest extends TestCase
     // ---------- tidak ada jalur bocor lain ----------
 
     /** @test */
-    public function auth_me_dan_dashboard_student_tidak_memuat_foto(): void
+    public function auth_me_dan_dashboard_student_memuat_photo_hanya_sebagai_url_terproteksi(): void
     {
+        // INTEG-ME-001 (D-08, disesuaikan SENGAJA): sebelumnya test ini melarang kata "photo" sama sekali.
+        // Yang dilarang sekarang: path berkas dan URL storage publik, BUKAN keberadaan URL terproteksi.
         $w = $this->world();
         $token = $this->fxToken($w['studentUser']);
+        $expected = route('students.photo', ['id' => $w['student']->id]);
 
         $me = $this->apiGet('/api/v1/auth/me', $token);
         $dashboard = $this->apiGet('/api/v1/dashboard/student', $token);
 
         $me->assertStatus(200);
         $dashboard->assertStatus(200);
-        $this->assertStringNotContainsString('photo', $me->getContent());
-        $this->assertStringNotContainsString('/storage/', $me->getContent());
-        $this->assertStringNotContainsString('photo', $dashboard->getContent());
-        $this->assertStringNotContainsString('/storage/', $dashboard->getContent());
+
+        $this->assertSame($expected, $me->json('data.photo'));
+        $this->assertSame($expected, $dashboard->json('data.photo'));
+
+        foreach ([$me, $dashboard] as $response) {
+            // JSON_UNESCAPED_SLASHES: getContent() meng-escape garis miring, sehingga pencarian "/storage/" tidak akan cocok.
+            $body = (string) json_encode($response->json('data'), JSON_UNESCAPED_SLASHES);
+
+            $this->assertStringNotContainsString('/storage/', $body);
+            $this->assertStringNotContainsString($w['student']->photo_path, $body);
+            $this->assertStringNotContainsString('photo_path', $body);
+        }
     }
 
     /** @test */

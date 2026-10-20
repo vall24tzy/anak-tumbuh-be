@@ -22,6 +22,10 @@ use Tests\TestCase;
 // sama dengan GamificationLevelTest/RankingTest, idempoten), bukan menyalin angka threshold ke test
 // dan bukan seluruh DatabaseSeeder.
 //
+// INTEG-ME-001 (Matrix #67): urutan field kini wali_kelas, habit_summary_today, poin, gamification_level,
+// rombel, photo (dua terakhir baru, additive). Kasus rombel/photo selengkapnya (dua tahun ajaran,
+// URL terproteksi) ada di tests/Feature/Auth/MeStudentRombelPhotoTest.
+//
 // Di luar scope: isi dashboard/teacher (F-41), urutan wali_kelas bila ada >1 Teacher aktif (F-18),
 // dan test akses/401/403 (sudah dicakup DashboardAccessTest, tidak diubah).
 //
@@ -135,7 +139,8 @@ class DashboardStudentTest extends TestCase
         $response = $this->dashboard($student)->assertStatus(200);
         $data = $response->json('data');
 
-        $this->assertSame(['wali_kelas', 'habit_summary_today', 'poin', 'gamification_level'], array_keys($data));
+        // INTEG-ME-001 (Matrix #67): `rombel` dan `photo` ditambahkan DI AKHIR; empat field lama tetap urutannya.
+        $this->assertSame(['wali_kelas', 'habit_summary_today', 'poin', 'gamification_level', 'rombel', 'photo'], array_keys($data));
 
         $this->assertSame(['id' => $teacher->id, 'name' => $teacher->fullname], $data['wali_kelas']);
 
@@ -145,6 +150,10 @@ class DashboardStudentTest extends TestCase
 
         $this->assertSame(200, $data['poin']);
         $this->assertSame(3, $data['gamification_level']); // L3 = 200
+
+        // INTEG-ME-001: rombel dari assignment aktif; student tanpa foto -> photo null.
+        $this->assertSame(['id' => $rombel->id, 'name' => 'VII-A'], $data['rombel']);
+        $this->assertNull($data['photo']);
     }
 
     /** @test */
@@ -158,8 +167,10 @@ class DashboardStudentTest extends TestCase
         $response = $this->dashboard($student)->assertStatus(200);
         $data = $response->json('data');
 
-        $this->assertSame(['wali_kelas', 'habit_summary_today', 'poin', 'gamification_level'], array_keys($data));
+        // INTEG-ME-001 (Matrix #67): `rombel` dan `photo` ditambahkan DI AKHIR; empat field lama tetap urutannya.
+        $this->assertSame(['wali_kelas', 'habit_summary_today', 'poin', 'gamification_level', 'rombel', 'photo'], array_keys($data));
         $this->assertNull($data['wali_kelas']);
+        $this->assertNull($data['rombel']); // INTEG-ME-001: tanpa assignment aktif -> rombel null
         $this->assertSame(100, $data['poin']);
         $this->assertSame(2, $data['gamification_level']);
     }

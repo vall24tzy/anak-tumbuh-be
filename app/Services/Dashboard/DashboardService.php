@@ -90,6 +90,15 @@ class DashboardService
             ],
             'poin' => $student->poin,
             'gamification_level' => $this->levels->levelForPoin((int) $student->poin),
+            // INTEG-ME-001 (Matrix #67, D-08): field baru ditaruh DI AKHIR; urutan field lama tetap.
+            // rombel = assignment aktif pada Academic Year aktif ($assignment di atas, resolver
+            // yang sama dengan /auth/me); photo = URL endpoint terproteksi (F-06), bukan URL publik.
+            'rombel' => $assignment?->rombel
+                ? ['id' => $assignment->rombel->id, 'name' => $assignment->rombel->name]
+                : null,
+            'photo' => $student->photo_path
+                ? route('students.photo', ['id' => $student->id])
+                : null,
         ];
     }
 
