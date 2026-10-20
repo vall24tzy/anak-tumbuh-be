@@ -5,6 +5,7 @@ namespace App\Http\Controllers\V1\School;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Common\PaginationRequest;
 use App\Http\Requests\School\CreateSchoolRequest;
+use App\Http\Requests\School\UpdateSchoolRequest;
 use App\Http\Resources\School\SchoolResource;
 use App\Services\School\SchoolService;
 use App\Traits\ApiResponseTraits;
@@ -36,5 +37,12 @@ class SchoolController extends Controller
     {
         $school = $this->service->show($id);
         return $this->successResponse(new SchoolResource($school), 'Detail sekolah berhasil diambil');
+    }
+
+    // INTEG-SCHOOL-001 (D-09, Matrix #65): ubah nama sekolah, Super Admin saja.
+    public function update(UpdateSchoolRequest $request, int $id)
+    {
+        $school = $this->service->update($id, $request->validated());
+        return $this->successResponse(new SchoolResource($school), 'Nama sekolah berhasil diubah');
     }
 }

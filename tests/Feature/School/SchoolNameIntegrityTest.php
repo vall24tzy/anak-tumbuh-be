@@ -17,9 +17,8 @@ use Tests\TestCase;
 // F-12 (POST /schools -> 201) SUDAH FIXED sebelumnya (7396a1a, SchoolStoreStatusTest 596eb36); tidak
 //       dikerjakan ulang di sini.
 //
-// Catatan: tidak ada endpoint PATCH /schools di repo ini (hanya index/store/show), jadi sisi
-// "Update" dari F-11/F-09 tidak punya request untuk diubah; kalau endpoint itu ditambah kelak,
-// aturan name yang sama (max:150 + unique ignore id) harus dipasang di sana.
+// Catatan: sisi "Update" dari F-11/F-09 kini ada di PATCH /schools/{id} (INTEG-SCHOOL-001) dengan
+// aturan name yang sama (max:150 + unique ignore id); dites di tests/Feature/School/SchoolUpdateTest.
 //
 // STATUS EKSEKUSI: ditulis di sandbox tanpa PHP/PostgreSQL; belum dijalankan. Hasil lihat laporan patch.
 

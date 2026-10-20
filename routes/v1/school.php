@@ -9,4 +9,6 @@ Route::prefix('schools')
         Route::get('/', [SchoolController::class, 'index']);
         Route::post('/', [SchoolController::class, 'store']);
         Route::get('/{id}', [SchoolController::class, 'show']);
+        // INTEG-SCHOOL-001 (D-09, Matrix #65): ubah nama sekolah, Super Admin saja (grup ini role:super_admin).
+        Route::patch('/{id}', [SchoolController::class, 'update']);
     });
