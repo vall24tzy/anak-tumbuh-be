@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\V1\Habit\HabitController;
+use App\Http\Controllers\V1\Habit\HabitRecapController;
 use App\Http\Controllers\V1\Student\StudentHabitController;
 
 // API Contract v1.2 §21: GET /api/v1/habits adalah SATU-SATUNYA endpoint
@@ -22,6 +23,15 @@ Route::prefix('habits/entries')
     ->group(function () {
         Route::get('/', [StudentHabitController::class, 'index']);
         Route::get('/{id}', [StudentHabitController::class, 'show'])->whereNumber('id');
+    });
+
+// GET /habits/recap — rekap kebiasaan kelas, Teacher own active rombel (Matrix #62,
+// INTEG-REKAP-001). Headmaster/SA/Student -> 403. Path sengaja 'habits/recap' (bukan
+// 'habits/{id}'): tidak bentrok dengan route lain karena GET /habits/{id} tidak ada.
+Route::prefix('habits/recap')
+    ->middleware(['jwt', 'role:teacher'])
+    ->group(function () {
+        Route::get('/', [HabitRecapController::class, 'index']);
     });
 
 // POST /habits/{habit_id}/entries — Student only (Matrix #32). Berlaku 6

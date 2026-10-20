@@ -6120,7 +6120,7 @@
     },
     {
       "name": "INTEG-O1 (task INTEG Orang 1: Siswa & Kebiasaan)",
-      "description": "Request task INTEG Orang 1, ditambahkan SETELAH folder 0-8 (request lama tidak diubah). Jalankan SETELAH folder 0-5 dalam satu sesi Runner (student_a_new_id dibuat di folder 4; token dari folder 0). Tidak memerlukan login baru (tidak menambah hitungan rate limit login).\n\nINTEG-QR-001: 7 request di bawah (field qr_regenerated_at pada GET /students, khusus Teacher). Request INTEG-REKAP-001 dan INTEG-PANDUAN-001 ditambahkan oleh task masing-masing.",
+      "description": "Request task INTEG Orang 1, ditambahkan SETELAH folder 0-8 (request lama tidak diubah). Jalankan SETELAH folder 0-5 dalam satu sesi Runner (student_a_new_id dibuat di folder 4; token dari folder 0). Tidak memerlukan login baru (tidak menambah hitungan rate limit login).\n\nINTEG-QR-001: 7 request pertama (field qr_regenerated_at pada GET /students, khusus Teacher). INTEG-REKAP-001: 10 request berikutnya (GET /habits/recap). Request INTEG-PANDUAN-001 ditambahkan oleh task tersebut.",
       "item": [
         {
           "name": "POST /qr-tokens/{student_a_new_id}/regenerate - Teacher A -> 200 (menyiapkan qr_regenerated_at terisi)",
@@ -6394,6 +6394,455 @@
               ],
               "path": [
                 "students"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap?rombel_id={rombel_a_id} - Teacher A (default 7 hari) -> 200, bentuk rekap + konsisten (siswa baru folder 4 ikut roster)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('bentuk data rekap', function () { const d = pm.response.json().data; pm.expect(d).to.have.all.keys('rombel','from','to','student_count','per_day','per_student','per_habit'); pm.expect(d.rombel.id).to.eql(Number(pm.collectionVariables.get('rombel_a_id'))); pm.expect(d.per_day.length).to.eql(7); pm.expect(d.per_habit.length).to.eql(7); });",
+                  "pm.test('persentase 0-100 dan total_poin integer >= 0', function () { const d = pm.response.json().data; d.per_day.forEach(function (x) { pm.expect(x.percentage).to.be.within(0, 100); }); d.per_student.forEach(function (s) { pm.expect(Number.isInteger(s.total_poin)).to.eql(true); pm.expect(s.total_poin).to.be.at.least(0); }); });",
+                  "pm.test('jumlah terisi per hari = jumlah terisi per kebiasaan; siswa folder 4 ada di roster', function () { const d = pm.response.json().data; const sum = function (a, k) { return a.reduce(function (t, x) { return t + x[k]; }, 0); }; pm.expect(sum(d.per_day, 'filled')).to.eql(sum(d.per_habit, 'filled')); pm.expect(d.student_count).to.eql(d.per_student.length); const ids = d.per_student.map(function (s) { return s.student_id; }); pm.expect(ids).to.include(Number(pm.collectionVariables.get('student_a_new_id'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap - rentang 32 hari -> 422 validation_failed (maks 31 hari, D-07)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}&from=2026-01-01&to=2026-02-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-02-01"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422 validation_failed', function () { pm.response.to.have.status(422); pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap - from setelah to -> 422 validation_failed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}&from=2026-02-10&to=2026-02-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-02-10"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-02-01"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422 validation_failed', function () { pm.response.to.have.status(422); pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap - tanpa rombel_id -> 422 validation_failed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422 validation_failed', function () { pm.response.to.have.status(422); pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap?rombel_id={rombel_b_id} - Teacher A (rombel lain, sekolah sama) -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_b_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_b_id}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap?rombel_id={rombel_a_id} - Teacher B (rombel lain, sekolah sama) -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_b_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap?rombel_id=999999 - Teacher A (rombel tidak ada / sekolah lain) -> 404 not_found (D-11)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id=999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "999999"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404 not_found', function () { pm.response.to.have.status(404); pm.expect(pm.response.json().error.code).to.eql('not_found'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap - Headmaster -> 403 (Headmaster tidak monitor habit)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap - Super Admin -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /habits/recap - tanpa token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/habits/recap?rombel_id={{rombel_a_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "habits",
+                "recap"
+              ],
+              "query": [
+                {
+                  "key": "rombel_id",
+                  "value": "{{rombel_a_id}}"
+                }
               ]
             }
           },

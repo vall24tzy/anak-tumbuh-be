@@ -45,9 +45,10 @@ class StudentHabitService
     /**
      * Scoring SATU sumber untuk POST dan GET (poin_awarded derived, tidak
      * dipersist — API Contract §21/§22). 6 habit: indicators.point + bonus
-     * initiative.
+     * initiative. PUBLIC sejak INTEG-REKAP-001: HabitRecapService memakai ulang
+     * method ini (tidak ada formula poin kedua).
      */
-    protected function habitPoin(Indicator $indicator, string $initiative): int
+    public function habitPoin(Indicator $indicator, string $initiative): int
     {
         return (int) $indicator->point + ($initiative === 'mandiri' ? 10 : 0);
     }
@@ -57,7 +58,7 @@ class StudentHabitService
      * bermasyarakat"=10) + bonus initiative — BUKAN SUM(indicators.point)
      * (point 4 indikator Bermasyarakat selalu NULL, DB Design §5.11).
      */
-    protected function bermasyarakatPoin(Collection $indicators, string $initiative): int
+    public function bermasyarakatPoin(Collection $indicators, string $initiative): int
     {
         $basePoin = $indicators->where('is_exclusive', true)->isNotEmpty()
             ? 10
