@@ -1,6 +1,6 @@
 # API Contract v1.2 — Addendum: INTEG-DASHHM-001 (total sekolah di dashboard kepala sekolah)
 
-Status: implementasi INTEG-DASHHM-001 (Orang 2), 21 Okt 2026. Dasar: Authorization Matrix v5.3 baris #68,
+Status: implementasi INTEG-DASHHM-001 (Orang 2), 20 Okt 2026. Dasar: Authorization Matrix v5.3 baris #68,
 perluasan OD-11 / API Contract v1.2 §25, Task Board INTEG v1.5. Sifat perubahan: **additive**; field dan
 endpoint lama tidak diubah atau dihapus.
 
@@ -20,7 +20,7 @@ student_count, average_submitted_today) tidak berubah.
 Tidak ada field nama sekolah atau tahun ajaran aktif: nama sekolah tetap dari `GET /auth/me`, tahun ajaran
 aktif dari `GET /academic-years` (`is_active`).
 
-## 2. Kasus tepi (konfirmasi pemilik, 21 Okt 2026)
+## 2. Kasus tepi (konfirmasi pemilik, 20 Okt 2026)
 
 Acceptance criteria task berbunyi "sekolah tanpa tahun ajaran aktif -> total 0 tanpa error". Tafsiran yang
 dikonfirmasi pemilik:
@@ -29,7 +29,8 @@ dikonfirmasi pemilik:
   aktif), dan `total_guru` TETAP jumlah guru aktif di sekolah itu.
 - Tahun ajaran aktif tanpa rombel: sama seperti di atas.
 - Kedua kasus tetap HTTP 200 dan memuat ketiga field (bukan `undefined` di frontend).
-- Review silang Orang 1 (reviewer, definisi siswa aktif) mengiyakan saat review.
+- Review silang Orang 1 (reviewer, definisi siswa aktif): BELUM dilakukan saat dokumen ini ditulis. Pemilik meminta
+  Orang 1 mengiyakan tafsiran ini saat review silang; hasilnya dicatat di team-log, bukan di sini.
 
 ## 3. Otorisasi dan scope
 

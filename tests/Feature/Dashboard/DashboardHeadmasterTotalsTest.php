@@ -187,7 +187,7 @@ class DashboardHeadmasterTotalsTest extends TestCase
         $this->assertSame([], $data['rombels']);
         $this->assertSame(0, $data['total_siswa']);
         $this->assertSame(0, $data['total_rombel']);
-        // Guru aktif tetap dihitung walau tidak ada rombel (konfirmasi pemilik 21 Okt 2026).
+        // Guru aktif tetap dihitung walau tidak ada rombel (konfirmasi pemilik 20 Okt 2026).
         $this->assertSame(2, $data['total_guru']);
     }
 
