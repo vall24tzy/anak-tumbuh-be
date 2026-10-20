@@ -209,6 +209,26 @@
       "key": "integ_me_photo",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "integ_school_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "integ_school_name",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "integ_school_case",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "integ_school_long",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -6393,7 +6413,7 @@
       ]
     },
     {
-      "name": "INTEG-O2 (Orang 2): Profil, Dashboard, Sekolah, Guru (INTEG-ME-001, INTEG-DASHHM-001)",
+      "name": "INTEG-O2 (Orang 2): Profil, Dashboard, Sekolah, Guru (INTEG-ME-001, INTEG-DASHHM-001, INTEG-SCHOOL-001)",
       "item": [
         {
           "name": "INTEG-ME-001 GET /auth/me - Student A -> 200, memuat rombel + photo (Matrix #67)",
@@ -6803,6 +6823,735 @@
                 "dashboard",
                 "headmaster"
               ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code = unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 POST /schools - Super Admin -> 201 (menyiapkan sekolah uji; nama unik per run)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{integ_school_name}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('integ_school_name', 'INTEG Uji ' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('integ_school_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - Super Admin -> 200, nama berubah (Matrix #65)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{integ_school_name}} Baru\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('data.name = nama baru, data.id = sekolah uji, bentuk respons SchoolResource', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.name).to.eql(pm.collectionVariables.get('integ_school_name') + ' Baru');",
+                  "  pm.expect(d.id).to.eql(Number(pm.collectionVariables.get('integ_school_id')));",
+                  "  ['id','name','address','logo'].forEach(k => pm.expect(d).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 GET /schools/{id} - Super Admin -> 200, memuat nama baru (endpoint lama tidak berubah)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('nama baru tersimpan', function () { pm.expect(pm.response.json().data.name).to.eql(pm.collectionVariables.get('integ_school_name') + ' Baru'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - nama sama -> 200, nama tidak berubah (D-14: tanpa baris audit, dibuktikan PHPUnit)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{integ_school_name}} Baru\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('nama tetap', function () { pm.expect(pm.response.json().data.name).to.eql(pm.collectionVariables.get('integ_school_name') + ' Baru'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - beda huruf besar/kecil saja -> 200, berubah (D-14)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{integ_school_case}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('integ_school_case', (pm.collectionVariables.get('integ_school_name') + ' Baru').toLowerCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('nama berubah menjadi huruf kecil', function () { pm.expect(pm.response.json().data.name).to.eql(pm.collectionVariables.get('integ_school_case')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - name kosong -> 422 validation_failed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - name 151 karakter -> 422 validation_failed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{integ_school_long}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('integ_school_long', 'a'.repeat(151));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - name valid + address -> 422 protected_field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tidak Boleh Tersimpan\",\n  \"address\": \"Jl. Diubah\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });",
+                  "pm.test('details[0].field = address', function () { pm.expect(pm.response.json().error.details[0].field).to.eql('address'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - hanya address -> 422 protected_field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"Jl. Diubah\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 GET /schools/{id} - Super Admin -> 200, nama tidak berubah oleh request yang ditolak",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('nama masih huruf kecil dari langkah sebelumnya (request 422 tidak mengubah data)', function () { pm.expect(pm.response.json().data.name).to.eql(pm.collectionVariables.get('integ_school_case')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/999999 - Super Admin -> 404",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "999999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SD Tidak Ada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - Headmaster -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code = forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - Teacher A -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code = forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - Student A -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code = forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-SCHOOL-001 PATCH /schools/{id} - tanpa token -> 401",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/schools/{{integ_school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "schools",
+                "{{integ_school_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": [],
