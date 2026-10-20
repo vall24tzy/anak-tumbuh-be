@@ -199,6 +199,16 @@
       "key": "student_trim_nisn",
       "value": "1000000099",
       "type": "string"
+    },
+    {
+      "key": "integ_me_rombel",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "integ_me_photo",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -6081,6 +6091,273 @@
                 "exec": [
                   "pm.test('status 422', function () { pm.response.to.have.status(422); });",
                   "pm.test('error.code = validation_failed (per_page > 100 ditolak, bukan dipotong)', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "INTEG-O2 (Orang 2): Profil & Dashboard Siswa (INTEG-ME-001)",
+      "item": [
+        {
+          "name": "INTEG-ME-001 GET /auth/me - Student A -> 200, memuat rombel + photo (Matrix #67)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('field lama tetap + rombel & photo di AKHIR', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(Object.keys(d)).to.eql(['id','role','name','nisn','school','rombel','photo']);",
+                  "  pm.expect(d.role).to.eql('student');",
+                  "});",
+                  "pm.test('rombel = null atau {id integer, name string}', function () {",
+                  "  const r = pm.response.json().data.rombel;",
+                  "  if (r !== null) { pm.expect(Object.keys(r)).to.eql(['id','name']); pm.expect(Number.isInteger(r.id)).to.be.true; pm.expect(r.name).to.be.a('string'); }",
+                  "});",
+                  "pm.test('photo = null atau URL endpoint terproteksi (BUKAN path berkas / URL storage publik, D-08)', function () {",
+                  "  const f = pm.response.json().data.photo;",
+                  "  if (f !== null) { pm.expect(f).to.match(/\\/api\\/v1\\/students\\/\\d+\\/photo$/); pm.expect(f).to.not.include('/storage/'); pm.expect(f).to.not.match(/\\.(jpe?g|png|webp)$/i); }",
+                  "});",
+                  "pm.test('simpan untuk dibandingkan dengan dashboard/student', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.collectionVariables.set('integ_me_rombel', JSON.stringify(d.rombel));",
+                  "  pm.collectionVariables.set('integ_me_photo', JSON.stringify(d.photo));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-ME-001 GET /dashboard/student - Student A -> 200, rombel + photo SAMA dengan /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/student",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "student"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('empat field lama tetap di depan, rombel & photo di akhir', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(Object.keys(d)).to.eql(['wali_kelas','habit_summary_today','poin','gamification_level','rombel','photo']);",
+                  "});",
+                  "pm.test('rombel dan photo sama dengan GET /auth/me (jalankan request /auth/me di atasnya lebih dulu)', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(JSON.stringify(d.rombel)).to.eql(pm.collectionVariables.get('integ_me_rombel'));",
+                  "  pm.expect(JSON.stringify(d.photo)).to.eql(pm.collectionVariables.get('integ_me_photo'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-ME-001 GET /auth/me - Teacher A -> 200, TANPA rombel/photo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('role lain: tanpa rombel dan photo (bentuk tidak berubah)', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d).to.not.have.property('rombel'); pm.expect(d).to.not.have.property('photo');",
+                  "  pm.expect(Object.keys(d)).to.eql(['id','role','name','nip','school']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-ME-001 GET /auth/me - Headmaster -> 200, TANPA rombel/photo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('role lain: tanpa rombel dan photo (bentuk tidak berubah)', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d).to.not.have.property('rombel'); pm.expect(d).to.not.have.property('photo');",
+                  "  pm.expect(Object.keys(d)).to.eql(['id','role','name','nip','school']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-ME-001 GET /auth/me - tanpa token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code = unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-ME-001 GET /dashboard/student - Teacher A -> 403 (tidak berubah)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/student",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "student"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });"
                 ]
               }
             }
