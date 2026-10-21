@@ -41,6 +41,12 @@ Menunggu review silang Orang 1; status task di Task Board dinaikkan ke DONE oleh
 
 ## Belum dilakukan / di luar task
 
+- `MailExposureGuardTest` dan `FrameworkAdvisoryGuardTest` (`tests/Feature/Security/`) berada di dalam suite penuh
+  yang lulus tanpa kegagalan (564 passed), sehingga keduanya hijau; tidak dijalankan terpisah.
 - Postman tidak dapat memeriksa baris `audit_logs` (tidak ada endpoint baca); bukti audit hanya dari PHPUnit.
 - Baris #65 di `docs/authorization-matrix.md` dan penggabungan ke API Contract v1.3: INTEG-DOC-001.
 - Review silang Orang 1 dan pembaruan status Task Board: belum.
+- Catatan untuk revisi Task Board berikutnya (pemilik): teks task INTEG-SCHOOL-001 menulis nama sekolah tersedia
+  "(setelah INTEG-DASHHM-001) di dashboard". Itu keliru: `GET /dashboard/headmaster` hanya memuat `total_siswa`,
+  `total_guru`, `total_rombel` dan tidak memuat nama sekolah; nama sekolah tetap dari `GET /auth/me`. Addendum
+  sudah benar.
