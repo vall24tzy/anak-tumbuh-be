@@ -187,6 +187,22 @@ class StudentListQrRegeneratedAtTest extends TestCase
     }
 
     /** @test */
+    public function siswa_tanpa_baris_qr_token_tetap_muncul_dengan_qr_regenerated_at_null(): void
+    {
+        [$school, $year, $rombel, $teacherUser] = $this->setUpSchoolWithTeacher('SD A', '1001');
+        $student = $this->createStudentInRombel($school, $rombel, $year);
+        QrToken::where('student_id', $student->id)->delete();
+
+        $response = $this->asUser($teacherUser)->getJson('/api/v1/students');
+
+        $response->assertStatus(200);
+        $row = $this->rowFor($response->json('data'), $student->id);
+        $this->assertNotNull($row);
+        $this->assertArrayHasKey('qr_regenerated_at', $row);
+        $this->assertNull($row['qr_regenerated_at']);
+    }
+
+    /** @test */
     public function teacher_show_siswa_tidak_memuat_qr_regenerated_at(): void
     {
         [$school, $year, $rombel, $teacherUser] = $this->setUpSchoolWithTeacher('SD A', '1001');

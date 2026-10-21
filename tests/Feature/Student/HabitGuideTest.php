@@ -278,6 +278,41 @@ class HabitGuideTest extends TestCase
     }
 
     /** @test */
+    public function ketujuh_kebiasaan_termasuk_bermasyarakat_bisa_diberi_panduan_dan_diurut_sort_order(): void
+    {
+        $d      = $this->scenario();
+        $habits = Habit::orderBy('sort_order')->get();
+        $this->assertCount(7, $habits);
+
+        // Tulis dalam urutan terbalik; daftar harus tetap mengikuti sort_order habit.
+        foreach ($habits->reverse() as $habit) {
+            $this->asUser($d['teacherA'])
+                ->patchJson($this->guideUrl($d['rombelA'], $habit->id), ['content' => 'Panduan ' . $habit->code])
+                ->assertStatus(200);
+        }
+
+        $rows = $this->asUser($d['studentA']->user)->getJson($this->guideUrl($d['rombelA']))->assertStatus(200)->json('data');
+
+        $this->assertSame($habits->pluck('id')->all(), array_column($rows, 'habit_id'));
+        $this->assertSame($habits->map(fn ($h) => 'Panduan ' . $h->code)->all(), array_column($rows, 'content'));
+    }
+
+    /** @test */
+    public function karakter_4_byte_tersimpan_utuh_dan_dihitung_per_karakter(): void
+    {
+        $d     = $this->scenario();
+        $url   = $this->guideUrl($d['rombelA'], $this->habitId('bangun_cepat'));
+        $emoji = "Semangat belajar \u{1F600} \u{1F31F}";
+
+        $this->asUser($d['teacherA'])->patchJson($url, ['content' => $emoji])->assertStatus(200)->assertJsonPath('data.content', $emoji);
+        $this->asUser($d['studentA']->user)->getJson($this->guideUrl($d['rombelA']))->assertJsonPath('data.0.content', $emoji);
+
+        $this->asUser($d['teacherA'])->patchJson($url, ['content' => str_repeat("\u{1F600}", 2000)])->assertStatus(200);
+        $this->asUser($d['teacherA'])->patchJson($url, ['content' => str_repeat("\u{1F600}", 2001)])->assertStatus(422);
+        $this->assertSame(str_repeat("\u{1F600}", 2000), HabitGuide::first()->content);
+    }
+
+    /** @test */
     public function batas_2000_karakter_tepat_2000_diterima_2001_ditolak_422_termasuk_multibyte(): void
     {
         $d     = $this->scenario();

@@ -366,6 +366,40 @@ class HabitRecapTest extends TestCase
     }
 
     /** @test */
+    public function hanya_to_diberikan_from_otomatis_to_dikurangi_6_hari(): void
+    {
+        [$school, $year, $rombel] = $this->makeSchool('SMP A');
+        $teacher = $this->makeTeacher($school, $year, $rombel, '1001');
+
+        $data = $this->asUser($teacher)->getJson($this->recapUrl($rombel, null, '2026-10-20'))
+            ->assertStatus(200)->json('data');
+
+        $this->assertSame('2026-10-14', $data['from']);
+        $this->assertSame('2026-10-20', $data['to']);
+        $this->assertCount(7, $data['per_day']);
+    }
+
+    /** @test */
+    public function hanya_from_diberikan_to_default_hari_ini_dan_batas_31_hari_tetap_berlaku(): void
+    {
+        // 03:00 UTC tanggal 20 = 10:00 WIB tanggal 20.
+        Carbon::setTestNow(Carbon::parse('2026-10-20 03:00:00', 'UTC'));
+
+        [$school, $year, $rombel] = $this->makeSchool('SMP A');
+        $teacher = $this->makeTeacher($school, $year, $rombel, '1001');
+
+        $recent = $this->asUser($teacher)->getJson($this->recapUrl($rombel, '2026-10-14'))
+            ->assertStatus(200)->json('data');
+        $this->assertSame('2026-10-20', $recent['to']);
+        $this->assertCount(7, $recent['per_day']);
+
+        // 20 Sep s/d 20 Okt = 31 hari (diterima); 19 Sep = 32 hari (ditolak).
+        $this->asUser($teacher)->getJson($this->recapUrl($rombel, '2026-09-20'))->assertStatus(200);
+        $this->asUser($teacher)->getJson($this->recapUrl($rombel, '2026-09-19'))
+            ->assertStatus(422)->assertJsonPath('error.code', 'validation_failed');
+    }
+
+    /** @test */
     public function rentang_31_hari_diterima_dan_32_hari_ditolak_422(): void
     {
         [$school, $year, $rombel] = $this->makeSchool('SMP A');
