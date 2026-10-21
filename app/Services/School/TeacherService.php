@@ -2,6 +2,7 @@
 
 namespace App\Services\School;
 
+use App\Exceptions\ApiException;
 use App\Services\User\AuditLogService;
 use App\Services\User\InitialPasswordHasher;
 use App\Traits\PaginatesResults;
@@ -121,6 +122,56 @@ class TeacherService
 
             return $teacher->fresh('school');
         });
+    }
+
+    /**
+     * INTEG-TEACHER-001 (keputusan FINAL, Matrix #66): ubah name (kolom fullname) dan gender, Headmaster
+     * own school. Hanya dua field itu yang sampai ke sini (UpdateTeacherRequest menolak sisanya 422).
+     *
+     * - Scope: reuse show() -> Teacher di sekolah lain = 404, sama dengan "tidak ada" (D-02 FINAL, pola F-49).
+     * - Teacher inactive tidak boleh diedit: 409 `teacher_inactive_readonly` (pola
+     *   `assignment_inactive_readonly`; inactive tidak punya reaktivasi, Matrix #61). Dicek SETELAH scope,
+     *   jadi lintas sekolah tetap 404.
+     * - D-03/D-14/D-15 FINAL: dicatat ke audit_logs (action `teacher_update`, target_user_id = user guru)
+     *   HANYA bila ada nilai yang benar-benar berubah. Beda huruf besar/kecil dihitung berubah; body tanpa
+     *   perubahan (nilai sama atau kosong) = 200 tanpa baris audit. Bila kelak semua PATCH harus tercatat,
+     *   cukup ubah blok `isDirty` di bawah. Baris audit tidak membawa nilai lama/baru (gap D-16).
+     * - nip, username, password, status, school_id tidak tersentuh; token Teacher tidak dicabut.
+     */
+    public function update(int $id, array $data): Teacher
+    {
+        $actor = $this->currentUser();
+        $teacher = $this->show($id);
+
+        if ($teacher->status !== 'active') {
+            throw new ApiException(
+                'teacher_inactive_readonly',
+                409,
+                'Guru yang sudah nonaktif tidak dapat diubah'
+            );
+        }
+
+        $attributes = [];
+
+        if (array_key_exists('name', $data)) {
+            $attributes['fullname'] = $data['name'];
+        }
+
+        if (array_key_exists('gender', $data)) {
+            $attributes['gender'] = $data['gender'];
+        }
+
+        $teacher->fill($attributes);
+
+        if (!$teacher->isDirty()) {
+            return $teacher;
+        }
+
+        $teacher->save();
+
+        $this->auditLog->record($actor, 'teacher_update', $teacher->user);
+
+        return $teacher->fresh('school');
     }
 
     public function resetPassword(int $id, array $data): Teacher

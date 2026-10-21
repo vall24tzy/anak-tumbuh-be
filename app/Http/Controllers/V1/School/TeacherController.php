@@ -6,6 +6,7 @@ use App\Http\Requests\User\ResetPasswordRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Common\PaginationRequest;
 use App\Http\Requests\School\CreateTeacherRequest;
+use App\Http\Requests\School\UpdateTeacherRequest;
 use App\Http\Resources\School\TeacherResource;
 use App\Services\School\TeacherService;
 use App\Traits\ApiResponseTraits;
@@ -33,6 +34,13 @@ class TeacherController extends Controller
     public function show(int $id)
     {
         $teacher = $this->service->show($id);
+        return $this->successResponse(new TeacherResource($teacher));
+    }
+
+    // INTEG-TEACHER-001 (Matrix #66): ubah name + gender, Headmaster own school.
+    public function update(UpdateTeacherRequest $request, int $id)
+    {
+        $teacher = $this->service->update($id, $request->validated());
         return $this->successResponse(new TeacherResource($teacher));
     }
 
