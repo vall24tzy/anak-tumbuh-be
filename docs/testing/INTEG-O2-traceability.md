@@ -7,7 +7,8 @@ Dokumen ini memetakan acceptance criteria INTEG-TEST-002 (Task Board INTEG v1.5)
 **Status bukti (baca dulu).** Tabel di bawah adalah hasil pembacaan nama test dan status HTTP yang diuji, bukan hasil
 eksekusi. Hasil eksekusi yang dilaporkan Orang 2: `php artisan test` **622 passed (3485 assertions)** (suite penuh,
 termasuk dua test yang ditambah INTEG-TEST-002 di bagian 3, setelah pull perubahan Orang 1); Postman folder
-`INTEG-O2` **85 passed, 0 failed** (Runner, environment none).
+`INTEG-O2` **85 passed, 0 failed** (Runner Postman, environment none; juga run newman 6.2.3, hasilnya tersimpan di
+`docs/testing/INTEG-O2-runner-result.md`).
 
 Legenda: **[PHPUnit]** nama method test; **[Postman]** potongan judul request di folder `INTEG-O2`; **N/A** tidak
 berlaku untuk endpoint itu (alasan dicatat); **[Dibuktikan PHPUnit saja]** tidak praktis di Postman (alasan dicatat).
@@ -97,8 +98,9 @@ ini; item bertanda N/A dan "dibuktikan PHPUnit saja" di atas adalah keterbatasan
 
 ## 4. Keterbatasan
 
-- Matriks ini tidak membuktikan bahwa test benar-benar lulus; itu dibuktikan oleh run `php artisan test` dan Runner.
+- Matriks ini tidak membuktikan bahwa test benar-benar lulus; itu dibuktikan oleh run `php artisan test` dan Runner/newman.
 - Baris `audit_logs` tidak dapat dibaca lewat API, sehingga bukti audit hanya dari PHPUnit.
-- File hasil Runner folder `INTEG-O2` tidak disimpan di repo (D-12 mewajibkan INTEG-TEST-002 menyimpannya): Export
-  Results Postman berbayar di akun Orang 2. Hasil dicatat sebagai angka (85 passed, 0 failed) di team-log; pengecualian
-  ini disetujui pemilik 21 Okt 2026 (disampaikan Orang 2), lihat `docs/team-log/INTEG-TEST-002.md`.
+- File hasil run folder `INTEG-O2` (D-12) tersimpan di `docs/testing/INTEG-O2-runner-result.md` (newman, karena
+  Export Results Postman berbayar); tidak ada pengecualian D-12. Run newman yang sama memuat satu assertion gagal di
+  Folder 0 (bukan `INTEG-O2`; pemeriksaan variabel `sa_password` yang tidak berlaku saat password diberikan lewat
+  `--env-var`), lihat `docs/team-log/INTEG-TEST-002.md`.
