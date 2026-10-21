@@ -229,6 +229,16 @@
       "key": "integ_school_long",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "integ_teacher_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "integ_teacher_nip",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -6862,7 +6872,7 @@
       ]
     },
     {
-      "name": "INTEG-O2 (Orang 2): Profil, Dashboard, Sekolah, Guru (INTEG-ME-001, INTEG-DASHHM-001, INTEG-SCHOOL-001)",
+      "name": "INTEG-O2 (Orang 2): Profil, Dashboard, Sekolah, Guru (INTEG-ME-001, INTEG-DASHHM-001, INTEG-SCHOOL-001, INTEG-TEACHER-001)",
       "item": [
         {
           "name": "INTEG-ME-001 GET /auth/me - Student A -> 200, memuat rombel + photo (Matrix #67)",
@@ -8012,6 +8022,810 @@
                 "exec": [
                   "pm.test('status 401', function () { pm.response.to.have.status(401); });",
                   "pm.test('error.code = unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 POST /teachers - Headmaster -> 201 (menyiapkan guru uji; NIP unik per run)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"school_id\": \"{{school_id}}\",\n  \"name\": \"Guru Uji INTEG\",\n  \"nip\": \"{{integ_teacher_nip}}\",\n  \"gender\": \"perempuan\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('integ_teacher_nip', '88' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('integ_teacher_id', pm.response.json().data.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - Headmaster -> 200, name + gender berubah, nip tidak (Matrix #66)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Guru Uji Baru\",\n  \"gender\": \"laki-laki\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('bentuk TeacherResource; name dan gender baru; nip dan status tetap', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(Object.keys(d)).to.eql(['id','school_id','name','nip','gender','status']);",
+                  "  pm.expect(d.id).to.eql(Number(pm.collectionVariables.get('integ_teacher_id')));",
+                  "  pm.expect(d.name).to.eql('Guru Uji Baru'); pm.expect(d.gender).to.eql('laki-laki'); pm.expect(d.status).to.eql('active');",
+                  "  pm.expect(d.nip).to.eql(pm.collectionVariables.get('integ_teacher_nip'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 GET /teachers/{id} - Headmaster -> 200, memuat nilai baru (endpoint lama tidak berubah)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('nama baru tersimpan', function () { pm.expect(pm.response.json().data.name).to.eql('Guru Uji Baru'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - nilai sama -> 200, tidak berubah (D-14: tanpa baris audit, dibuktikan PHPUnit)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Guru Uji Baru\",\n  \"gender\": \"laki-laki\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('nilai tetap', function () { const d = pm.response.json().data; pm.expect(d.name).to.eql('Guru Uji Baru'); pm.expect(d.gender).to.eql('laki-laki'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - name valid + nip -> 422 protected_field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tidak Boleh Tersimpan\",\n  \"nip\": \"999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });",
+                  "pm.test('details[0].field = nip', function () { pm.expect(pm.response.json().error.details[0].field).to.eql('nip'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - status -> 422 protected_field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - password -> 422 protected_field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"passwordbaru123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = protected_field', function () { pm.expect(pm.response.json().error.code).to.eql('protected_field'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - gender di luar laki-laki/perempuan -> 422 validation_failed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gender\": \"pria\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - name kosong -> 422 validation_failed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('error.code = validation_failed', function () { pm.expect(pm.response.json().error.code).to.eql('validation_failed'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 GET /teachers/{id} - Headmaster -> 200, data tidak berubah oleh request yang ditolak",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('name, gender, nip, status masih nilai sebelum request ditolak', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d.name).to.eql('Guru Uji Baru'); pm.expect(d.gender).to.eql('laki-laki'); pm.expect(d.status).to.eql('active');",
+                  "  pm.expect(d.nip).to.eql(pm.collectionVariables.get('integ_teacher_nip'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/999999 - Headmaster -> 404",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "999999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tidak Ada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - Teacher A -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code = forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - Student A -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_a_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code = forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - Super Admin -> 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sa_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('error.code = forbidden', function () { pm.expect(pm.response.json().error.code).to.eql('forbidden'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - tanpa token -> 401",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diretas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('error.code = unauthorized', function () { pm.expect(pm.response.json().error.code).to.eql('unauthorized'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 POST /teachers/{id}/inactive - Headmaster -> 200 (menyiapkan kasus guru inactive)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}/inactive",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}",
+                "inactive"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('status inactive', function () { pm.expect(pm.response.json().data.status).to.eql('inactive'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "INTEG-TEACHER-001 PATCH /teachers/{id} - guru inactive -> 409 teacher_inactive_readonly",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hm_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{integ_teacher_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{integ_teacher_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Diubah\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', function () { pm.response.to.have.status(409); });",
+                  "pm.test('error.code = teacher_inactive_readonly', function () { pm.expect(pm.response.json().error.code).to.eql('teacher_inactive_readonly'); });"
                 ]
               }
             }
