@@ -1,7 +1,7 @@
 # API Contract v1.2 — Addendum: INTEG-TEACHER-001 (PATCH /teachers/{id}: ubah name dan gender guru)
 
-Status: implementasi INTEG-TEACHER-001 (Orang 2), 20 Okt 2026. Dasar: keputusan D-02, D-03, D-04, D-14, D-15, D-16
-(FINAL; D-14 sampai D-16 tercatat di `API-Contract-v1.2-Addendum-INTEG-SCHOOL-001.md` bagian 6, SoT-Amendment tidak
+Status: implementasi INTEG-TEACHER-001 (Orang 2), 21 Okt 2026. Dasar: keputusan D-02, D-03, D-04, D-14, D-15, D-16, D-17, D-18
+(FINAL; D-14 sampai D-16 tercatat di `API-Contract-v1.2-Addendum-INTEG-SCHOOL-001.md` bagian 6, D-17 dan D-18 di bagian 5 di bawah, SoT-Amendment tidak
 diubah), Authorization Matrix v5.3 baris #66 (baru; merujuk #61), Task Board INTEG v1.5. Sifat perubahan:
 **additive**; tidak ada field atau endpoint lama yang diubah atau dihapus.
 
@@ -59,13 +59,18 @@ dipetakan ke kolom `teachers.fullname`. Endpoint `GET/POST /teachers`, `GET /tea
 - Sifat yang sudah ada: `AuditLogService` tidak pernah melempar exception, jadi "wajib dicatat" berarti pemanggil
   wajib memanggil `record()`; baris tidak dijamin tertulis bila penulisan gagal (sama dengan `password_reset`).
 
-## 5. Hal yang bersifat usulan (menunggu konfirmasi pemilik)
+## 5. Keputusan tambahan (pemilik, 21 Okt 2026)
 
-Kedua hal ini tidak ditetapkan eksplisit di SoT; implementasi mengambil pilihan berikut dan perlu ditegaskan saat review:
+| ID | Keputusan | Status |
+|---|---|---|
+| D-17 | Guru berstatus inactive tidak dapat diubah: **409 `teacher_inactive_readonly`**, mengikuti `assignment_inactive_readonly` (409). Pengecekan dilakukan setelah scope sekolah, sehingga guru inactive di sekolah lain tetap 404 | disetujui pemilik |
+| D-18 | Body PATCH tanpa field (`{}`) = **200 no-op tanpa baris audit** (pola PATCH Student dan D-14), bukan 422 | disetujui pemilik |
 
-1. Status HTTP untuk guru inactive = **409**. Board hanya mengusulkan kode `teacher_inactive_readonly`; 409 mengikuti
-   `assignment_inactive_readonly`.
-2. Body PATCH tanpa field (`{}`) = 200 no-op tanpa baris audit (pola PATCH Student dan D-14), bukan 422.
+Kedua keputusan sudah dikunci oleh `TeacherUpdateTest` (`guru_inactive_ditolak_409_...`,
+`guru_inactive_di_sekolah_lain_tetap_404_bukan_409`, `nilai_sama_sama_setelah_trim_atau_body_kosong_...`) dan oleh
+request Postman `INTEG-TEACHER-001 ... guru inactive -> 409`.
+
+`docs/addendum/SoT-Amendment-INTEG-D01-D13.md` tidak diubah (sudah ditandatangani); D-17 dan D-18 dicatat di sini.
 
 ## 6. Dampak ke frontend dan dokumen lain
 

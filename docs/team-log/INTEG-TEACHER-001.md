@@ -1,9 +1,8 @@
 # INTEG-TEACHER-001 — Log
 
-**Status:** kode, PHPUnit, dan Postman folder `INTEG-O2` selesai dan lulus (dilaporkan Orang 2). Dua usulan di addendum
-bagian 5 (409 untuk guru inactive; body kosong = 200 no-op) dan review silang Orang 1 masih menunggu; status task di
-Task Board dinaikkan ke DONE oleh pemilik setelah itu.
-**PIC:** Orang 2 · **Reviewer:** Orang 1 · **Dasar:** D-02, D-03, D-04, D-14, D-15, D-16; Matrix v5.3 #66 (merujuk #61)
+**Status:** kode, PHPUnit, dan Postman folder `INTEG-O2` selesai dan lulus (dilaporkan Orang 2). Review silang Orang 1
+masih menunggu; status task di Task Board dinaikkan ke DONE oleh pemilik setelah itu.
+**PIC:** Orang 2 · **Reviewer:** Orang 1 · **Dasar:** D-02, D-03, D-04, D-14, D-15, D-16, D-17, D-18; Matrix v5.3 #66 (merujuk #61)
 
 ## Ringkasan
 
@@ -15,8 +14,8 @@ Task Board dinaikkan ke DONE oleh pemilik setelah itu.
 - Audit lewat `AuditLogService`: action `teacher_update`, `target_user_id` = user guru, hanya bila ada nilai
   berubah (D-14); nilai sama / body kosong = 200 tanpa baris audit.
 - Tidak ada rate limit baru (D-04), migration, atau perubahan field/endpoint lama.
-- Addendum: `docs/addendum/API-Contract-v1.2-Addendum-INTEG-TEACHER-001.md` (revisi Contract §15, dua usulan yang
-  menunggu konfirmasi pemilik: 409 untuk guru inactive, body kosong = no-op 200).
+- Addendum: `docs/addendum/API-Contract-v1.2-Addendum-INTEG-TEACHER-001.md` (revisi Contract §15; bagian 5 mencatat D-17
+  dan D-18, disetujui pemilik 21 Okt 2026: 409 untuk guru inactive, body kosong = 200 no-op).
 - Koreksi: dokumen tugas FE (19 Okt 2026) menyebut `nip` pada update guru; keputusan board melarang NIP diubah.
 
 ## File
