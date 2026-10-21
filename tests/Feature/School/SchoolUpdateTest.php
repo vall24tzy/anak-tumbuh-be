@@ -285,6 +285,21 @@ class SchoolUpdateTest extends TestCase
         ]);
     }
 
+    /** @test */
+    public function name_hanya_spasi_422_dan_nama_tidak_berubah(): void
+    {
+        // INTEG-TEST-002: spasi di tepi dipangkas (TrimStrings), "   " menjadi kosong -> gagal `required`.
+        $school = $this->fxSchool('SD Lama');
+        $token = $this->fxToken($this->fxSuperAdmin('sa_school_upd'));
+
+        $this->apiPatch($this->uri($school), $token, ['name' => '     '])
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'validation_failed');
+
+        $this->assertSame('SD Lama', $school->fresh()->name);
+        $this->assertSame(0, AuditLog::count());
+    }
+
     // ---------- D-04: tanpa rate limit baru ----------
 
     /** @test */

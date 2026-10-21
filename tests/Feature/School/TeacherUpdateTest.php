@@ -314,6 +314,20 @@ class TeacherUpdateTest extends TestCase
             ->assertJsonPath('data.name', $name);
     }
 
+    /** @test */
+    public function name_hanya_spasi_422_dan_nilai_tidak_berubah(): void
+    {
+        // INTEG-TEST-002: spasi di tepi dipangkas (TrimStrings), "   " menjadi kosong -> gagal `required`.
+        [, $hm, $teacher] = $this->world();
+
+        $this->apiPatch($this->uri($teacher), $this->fxToken($hm), ['name' => '     '])
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'validation_failed');
+
+        $this->assertSame('Guru 2001', $teacher->teacher->fresh()->fullname);
+        $this->assertSame(0, AuditLog::count());
+    }
+
     // ---------- audit_logs (D-03, D-14, D-15) ----------
 
     /** @test */
