@@ -10,7 +10,7 @@
 
 - **Kelengkapan Postman:** folder `INTEG-O1` memuat 37 request: QR 7 (#1-#7), REKAP 10 (#8-#17), PANDUAN 20 (#18-#37). Tidak ada request yang kurang; koleksi tidak diubah di task ini (request lama tidak diubah).
 - **Celah PHPUnit ditutup:** 5 test baru (lihat bagian bawah). Tidak ada perubahan kode aplikasi.
-- **Run koleksi:** hasil disimpan di `docs/testing/INTEG-O1-runner-result.md` (INTEG-O1: 37 request, 53 assertion, 0 gagal; run sandbox).
+- **Run koleksi:** hasil disimpan di `docs/testing/INTEG-O1-runner-result.md` (INTEG-O1: 37 request, 53 assertion, 0 gagal; run laptop tim 22 Okt 2026 menggantikan hasil run sandbox 21 Okt).
 - **Suite:** 601 passed (3317 assertions) = 596/3286 (kode dengan PANDUAN) + 5 test baru (31 assertion).
 
 ## Matriks DoD per endpoint
@@ -68,14 +68,15 @@ Uji mutasi (kode dipulihkan setelahnya): default `from` = `to` - 7 -> 2 test gag
 Lingkungan penyusun: PHP 8.3.6, PostgreSQL 16.15 (bukan lingkungan tim: baseline tim memakai PostgreSQL 17.11).
 
 - `php artisan test`: **601 passed (3317 assertions)**.
-- Postman (newman 6.2.3, cache array): folder 0-8 lalu INTEG-O1 dalam satu sesi; INTEG-O1 **37 request, 53 assertion, 0 gagal**. Rincian: `docs/testing/INTEG-O1-runner-result.md`.
+- Run laptop tim (22 Okt 2026, selesai 09:23 WIB; newman 6.2.3, PHP 8.2.12, PostgreSQL 17.11, `CACHE_STORE=database`, `--delay-request 13000`): folder 0-4 lalu INTEG-O1 dalam satu sesi, **108 request, 167 assertion, 0 gagal**; INTEG-O1 **37 request, 53 assertion, 0 gagal**. Ini yang tersimpan di `docs/testing/INTEG-O1-runner-result.md`.
+- Run sandbox penyusun sebelumnya (21 Okt, hanya riwayat; sudah digantikan): newman 6.2.3, cache array, folder 0-8 lalu INTEG-O1 dalam satu sesi; INTEG-O1 **37 request, 53 assertion, 0 gagal**. Rincian: `docs/testing/INTEG-O1-runner-result.md`.
 
 ## Batas yang perlu diketahui
 
 - "Per folder" dijalankan sebagai satu sesi berurutan karena newman tidak membawa variabel koleksi antar-run terpisah; INTEG-O1 hanya bergantung pada folder 0-4.
-- Run adalah run sandbox. Kegagalan di folder 5, 6, dan 8 pada sesi itu adalah keterbatasan sandbox (rate limit butuh cache persisten; upload memakai file placeholder), bukan dari task INTEG; rinciannya di file hasil Runner.
+- File hasil Runner kini berasal dari run laptop tim: hanya folder 0-4 dan INTEG-O1 (folder 5-8 sengaja tidak dijalankan karena INTEG-O1 hanya bergantung pada folder 0-4), tanpa kegagalan. Kegagalan folder 5, 6, dan 8 pada run sandbox 21 Okt adalah keterbatasan sandbox, bukan dari task INTEG.
 - Skenario lintas sekolah (404 dengan sekolah kedua sungguhan) hanya di PHPUnit; di Postman diuji dengan `rombel_id=999999` (respons identik, D-11) karena koleksi INTEG-O1 tidak punya sekolah kedua.
-- D-12: hasil Runner disimpan di `docs/testing/`; pemilik tetap bisa mengganti dengan hasil run environment tim.
+- D-12: hasil Runner disimpan di `docs/testing/` dan sudah diganti dengan hasil run environment tim (22 Okt 2026).
 
 ## Tinjau silang (Orang 2)
 

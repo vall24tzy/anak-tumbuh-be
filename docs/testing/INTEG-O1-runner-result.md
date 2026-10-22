@@ -1,13 +1,11 @@
 # INTEG-O1 — Hasil run koleksi Postman (INTEG-TEST-001)
 
-**Tanggal:** 21 Okt 2026 · **Penyusun:** Orang 1 · **Koleksi:** `docs/testing/TEST-001-ANAKTUMBUH-Postman-Collection.json` (folder `INTEG-O1`, 37 request)
+**Tanggal run:** 22 Okt 2026, selesai pukul 09:23 WIB (durasi sesi 25m 38s) · **Penyusun:** Orang 1 · **Koleksi:** `docs/testing/TEST-001-ANAKTUMBUH-Postman-Collection.json` (folder `INTEG-O1`, 37 request)
 
 ## Ringkasan
 
 - Folder **INTEG-O1: 37 request, 53 assertion, 0 gagal** (QR 7, REKAP 10, PANDUAN 20).
-- Dijalankan setelah folder 0-8 dalam satu sesi Runner (variabel koleksi seperti `student_a_new_id` dan token dibawa dari folder sebelumnya; INTEG-O1 tidak bergantung pada folder 5-8).
-- Hasil di bawah adalah run di **sandbox penyusun**, bukan run di environment tim: newman 6.2.3, server `php artisan serve`, PHP 8.3.6, PostgreSQL 16.15 (tim: 17.11), database baru (`migrate:fresh --seed`), `CACHE_STORE=array`. Isi file ini hanya nama request, kode HTTP, dan hasil assertion (tanpa token, password, atau isi respons).
-- Jalankan ulang di environment tim sebagai konfirmasi akhir dan ganti file ini bila hasil berbeda.
+- Lingkungan: newman 6.2.3; PHP 8.2.12; PostgreSQL 17.11; database baru (migrate:fresh --seed); CACHE_STORE=database; --delay-request 13000. Isi file ini hanya nama request, kode HTTP, dan hasil assertion (tanpa token, password, atau isi respons).
 
 ## Rincian folder INTEG-O1
 
@@ -51,6 +49,17 @@
 | 36 | PANDUAN | GET /rombels/{rombel_a_id}/habit-guides - Super Admin -> 403 | 403 | 1/1 |
 | 37 | PANDUAN | GET /rombels/{rombel_a_id}/habit-guides - tanpa token -> 401 | 401 | 1/1 |
 
-## Catatan folder lain
+## Folder pada sesi yang sama
 
-Folder 0-8 bukan bagian dari bukti task ini (D-12 hanya mewajibkan hasil folder INTEG). Pada run sandbox di atas, sebagian request folder 5, 6, dan 8 gagal karena keterbatasan sandbox: rate limit F-23 butuh cache persisten, dan upload memakai file placeholder `/PATH/KE/...`. Pada run di laptop tim tanggal 20 Okt 2026, folder 0 sampai 8 seluruhnya 0 gagal (screenshot disimpan pemilik di luar repo).
+| Folder | Request | Assertion | Gagal |
+|---|---|---|---|
+| 0. Setup Prasyarat | 15 | 19 | 0 |
+| 1. Student | 19 | 33 | 0 |
+| 2. Student Class Assignment | 10 | 16 | 0 |
+| 3. Student Lifecycle | 12 | 19 | 0 |
+| 4. Habit & Bermasyarakat | 15 | 27 | 0 |
+| INTEG-O1 | 37 | 53 | 0 |
+
+## Kegagalan
+
+Tidak ada assertion yang gagal pada sesi ini.
