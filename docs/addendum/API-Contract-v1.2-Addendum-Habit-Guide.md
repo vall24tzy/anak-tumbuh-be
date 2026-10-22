@@ -1,6 +1,6 @@
 # API Contract v1.2 — Addendum: Panduan kebiasaan per rombel (INTEG-PANDUAN-001)
 
-**Tanggal:** 21 Okt 2026 · **Dasar keputusan:** Dokumen Keputusan v4.0 (amandemen 20 Okt 2026, butir a; D-06, D-13) · Authorization Matrix v5.3 baris **#63** (tulis) dan **#64** (lihat).
+**Tanggal:** 21 Okt 2026 (pembaruan 22 Okt 2026: D-19, lihat §8) · **Dasar keputusan:** Dokumen Keputusan v4.0 (amandemen 20 Okt 2026, butir a; D-06, D-13) · Authorization Matrix v5.3 baris **#63** (tulis) dan **#64** (lihat).
 **Status:** kode, test PHPUnit, dan request Postman sudah dijalankan (lihat `docs/team-log/INTEG-PANDUAN-001.md`). DB: lihat `docs/addendum/DB-Design-v1.5-Errata-Habit-Guides.md` (tabel baru `habit_guides`, perlu `php artisan migrate`).
 
 ## 1. Endpoint
@@ -65,15 +65,24 @@ Scope Teacher hanya dari `TeacherScopeService::activeAssignment()`; rombel Stude
 ## 6. Keterbatasan yang perlu diketahui
 
 - Panduan melekat pada **rombel** (yang terikat satu tahun ajaran), bukan pada guru: Teacher pengganti di rombel yang sama dapat mengubahnya. Rombel tahun ajaran baru mulai tanpa panduan (tidak ada penyalinan otomatis).
-- Rombel yang masih punya panduan **tidak bisa dihapus** (FK `ON DELETE RESTRICT`). `DELETE /rombels/{id}` mengembalikan 409 dengan kode/pesan yang sudah ada (`rombel_has_active_assignment`) karena `RombelService` memetakan semua pelanggaran FK ke kode itu. Pesan tersebut kurang tepat untuk kasus ini; tidak diubah di task ini (di luar scope).
+- Menghapus rombel ikut menghapus panduan rombel itu (FK `ON DELETE CASCADE`, D-19, lihat §8). Rombel yang masih punya assignment guru atau siswa (aktif maupun riwayat) tetap ditolak: `DELETE /rombels/{id}` mengembalikan 409 `rombel_has_active_assignment` oleh FK tabel assignment, dan panduannya tidak ikut terhapus. Catatan dampak: panduan hanya bisa ditulis lewat API oleh Teacher dengan assignment aktif di rombel itu, dan assignment tidak bisa dihapus lewat API, sehingga rombel yang pernah diberi panduan lewat API selalu punya riwayat assignment guru dan tetap ditolak 409. Efek CASCADE praktis terjadi pada panduan di rombel yang tidak punya assignment sama sekali.
 - Tidak ada riwayat versi dan tidak ada kolom penulis/waktu di respons.
 
 ## 7. Kode dan test
 
-Baru: `HabitGuideController`, `UpdateHabitGuideRequest`, `HabitGuideService`, model `HabitGuide`, migration `2026_10_20_100000_create_habit_guides_table`, `routes/v1/habit-guide.php` (di-require dari `routes/api.php`). Tidak ada perubahan pada kode lama selain satu baris `require`.
-`tests/Feature/Student/HabitGuideTest.php`: tulis/baca Teacher+Student, ketujuh kebiasaan (termasuk Bermasyarakat) berurut `sort_order`, timpa, hapus (kosong/null/spasi, idempoten, tidak menyentuh habit lain), key hilang, batas 2.000 (termasuk multibyte dan karakter 4-byte), HTML vs teks polos, 404 habit/path non-numerik, 401/403 role, lintas rombel, tidak bocor antar-rombel, 404 identik lintas sekolah, Teacher inactive/tanpa assignment/Student tanpa rombel, RESTRICT pada rombel, constraint DB (CHECK dan UNIQUE).
+Baru: `HabitGuideController`, `UpdateHabitGuideRequest`, `HabitGuideService`, model `HabitGuide`, migration `2026_10_20_100000_create_habit_guides_table` dan `2026_10_22_100000_habit_guides_rombel_fk_cascade` (D-19), `routes/v1/habit-guide.php` (di-require dari `routes/api.php`). Tidak ada perubahan pada kode lama selain satu baris `require`.
+`tests/Feature/Student/HabitGuideTest.php`: tulis/baca Teacher+Student, ketujuh kebiasaan (termasuk Bermasyarakat) berurut `sort_order`, timpa, hapus (kosong/null/spasi, idempoten, tidak menyentuh habit lain), key hilang, batas 2.000 (termasuk multibyte dan karakter 4-byte), HTML vs teks polos, 404 habit/path non-numerik, 401/403 role, lintas rombel, tidak bocor antar-rombel, 404 identik lintas sekolah, Teacher inactive/tanpa assignment/Student tanpa rombel, penghapusan rombel (D-19: rombel kosong beserta panduannya terhapus dan panduan rombel lain tetap; rombel dengan assignment guru/siswa aktif maupun riwayat tetap 409 dan panduannya tetap ada), constraint DB (CHECK dan UNIQUE).
 Postman: folder `INTEG-O1` (20 request PANDUAN setelah QR dan REKAP).
 
-## 8. Untuk penggabungan ke API Contract v1.3 (INTEG-DOC-001)
+## 8. Keputusan tambahan (pemilik, 22 Okt 2026)
+
+**D-19 — Penghapusan rombel dan panduan kebiasaan** (disetujui pemilik, 22 Okt 2026)
+
+- Menghapus rombel ikut menghapus panduan kebiasaan rombel itu (`habit_guides.rombel_id` ON DELETE CASCADE). Alasan: panduan hanya teks pendamping rombel, dan dengan RESTRICT rombel bisa tidak terhapus oleh siapa pun bila guru yang mengisinya sudah dinonaktifkan atau dipindah (Headmaster tidak bisa mengosongkan panduan).
+- Tidak berubah: rombel yang masih punya assignment guru atau siswa (aktif maupun riwayat) tetap ditolak 409 `rombel_has_active_assignment` oleh FK RESTRICT tabel assignment; karena ditolak dalam satu statement, panduan tidak ikut terhapus.
+- `habit_guides.habit_id` tetap RESTRICT.
+- Diimplementasikan oleh migration baru `2026_10_22_100000_habit_guides_rombel_fk_cascade` (migration awal tidak diedit). Database yang sudah menjalankan migration awal wajib `php artisan migrate`. Tidak ada perubahan kode aplikasi.
+
+## 9. Untuk penggabungan ke API Contract v1.3 (INTEG-DOC-001)
 
 Tambahkan kedua endpoint beserta tabel §3, §5 pada kelompok Habit/Rombel, dan tabel `habit_guides` pada DB Design (errata terpisah).

@@ -482,27 +482,74 @@ class HabitGuideTest extends TestCase
     // ---------------------------------------------------------------- integritas data
 
     /** @test */
-    public function rombel_yang_punya_panduan_tidak_bisa_dihapus_restrict(): void
+    public function rombel_kosong_dengan_panduan_bisa_dihapus_dan_hanya_panduannya_yang_ikut_terhapus(): void
     {
-        [$school, $year, $rombel] = $this->makeSchool('SMP A');
+        // D-19 (pemilik, 22 Okt 2026): menghapus rombel ikut menghapus panduan rombel itu.
+        [$school, $year, $rombelA] = $this->makeSchool('SMP A');
         $headmaster = $this->makeHeadmaster($school, '2001');
-        $spare      = $this->makeRombel($school, $year, 'VII-C');
+        $target     = $this->makeRombel($school, $year, 'VII-C'); // tanpa assignment
+        $other      = $this->makeRombel($school, $year, 'VII-D'); // rombel lain, tidak boleh ikut terhapus
+        $bangun     = $this->habitId('bangun_cepat');
+        $ibadah     = $this->habitId('beribadah');
+
+        HabitGuide::create(['rombel_id' => $target->id, 'habit_id' => $bangun, 'content' => 'Panduan C1']);
+        HabitGuide::create(['rombel_id' => $target->id, 'habit_id' => $ibadah, 'content' => 'Panduan C2']);
+        HabitGuide::create(['rombel_id' => $other->id, 'habit_id' => $bangun, 'content' => 'Panduan D1']);
+        HabitGuide::create(['rombel_id' => $rombelA->id, 'habit_id' => $ibadah, 'content' => 'Panduan A2']);
+
+        $this->asUser($headmaster)->deleteJson("/api/v1/rombels/{$target->id}")->assertSuccessful();
+
+        // (a) rombel dan seluruh panduannya hilang.
+        $this->assertDatabaseMissing('rombels', ['id' => $target->id]);
+        $this->assertSame(0, HabitGuide::where('rombel_id', $target->id)->count());
+
+        // (b) panduan rombel lain (di sekolah yang sama) tidak ikut terhapus.
+        $this->assertSame(2, HabitGuide::count());
+        $this->assertSame(
+            ['Panduan A2', 'Panduan D1'],
+            HabitGuide::whereIn('rombel_id', [$other->id, $rombelA->id])->orderBy('content')->pluck('content')->all()
+        );
+    }
+
+    /** @test */
+    public function rombel_dengan_panduan_dan_assignment_tetap_ditolak_409_dan_panduannya_tidak_terhapus(): void
+    {
+        // D-19: yang tidak berubah. Assignment guru/siswa (aktif maupun riwayat) tetap menolak
+        // penghapusan rombel lewat FK tabel assignment; penolakan terjadi dalam satu statement,
+        // sehingga panduan tidak ikut terhapus.
+        [$school, $year] = $this->makeSchool('SMP A');
+        $headmaster = $this->makeHeadmaster($school, '2001');
         $habit      = $this->habitId('bangun_cepat');
 
-        // Kontrol: rombel kosong tanpa panduan dan tanpa assignment bisa dihapus.
-        $this->asUser($headmaster)->deleteJson("/api/v1/rombels/{$spare->id}")->assertSuccessful();
+        $cases = [
+            'assignment guru aktif'    => fn (Rombel $r) => $this->makeTeacher($school, $year, $r, '3001'),
+            'assignment guru riwayat'  => function (Rombel $r) use ($school, $year) {
+                $this->makeTeacher($school, $year, $r, '3002');
+                TeacherClassAssignment::where('rombel_id', $r->id)->update(['is_active' => false]);
+            },
+            'assignment siswa aktif'   => fn (Rombel $r) => $this->makeStudent($school, $year, $r),
+            'assignment siswa riwayat' => function (Rombel $r) use ($school, $year) {
+                $this->makeStudent($school, $year, $r);
+                StudentClassAssignment::where('rombel_id', $r->id)->update(['status' => 'ended']);
+            },
+        ];
 
-        // Rombel tanpa assignment tetapi punya panduan: FK RESTRICT menolak penghapusan.
-        $guarded = $this->makeRombel($school, $year, 'VII-D');
-        HabitGuide::create(['rombel_id' => $guarded->id, 'habit_id' => $habit, 'content' => 'Panduan']);
+        $i = 0;
+        foreach ($cases as $label => $makeAssignment) {
+            $rombel = $this->makeRombel($school, $year, 'R-' . (++$i));
+            $makeAssignment($rombel);
+            HabitGuide::create(['rombel_id' => $rombel->id, 'habit_id' => $habit, 'content' => 'Panduan ' . $label]);
 
-        // Savepoint: error FK membatalkan transaksi test PostgreSQL; rollback ke savepoint memulihkannya.
-        DB::beginTransaction();
-        $this->asUser($headmaster)->deleteJson("/api/v1/rombels/{$guarded->id}")->assertStatus(409);
-        DB::rollBack();
+            // Savepoint: error FK membatalkan transaksi test PostgreSQL; rollback ke savepoint memulihkannya.
+            DB::beginTransaction();
+            $this->asUser($headmaster)->deleteJson("/api/v1/rombels/{$rombel->id}")
+                ->assertStatus(409)
+                ->assertJsonPath('error.code', 'rombel_has_active_assignment');
+            DB::rollBack();
 
-        $this->assertDatabaseHas('rombels', ['id' => $guarded->id]);
-        $this->assertSame(1, HabitGuide::where('rombel_id', $guarded->id)->count());
+            $this->assertDatabaseHas('rombels', ['id' => $rombel->id]);
+            $this->assertSame(1, HabitGuide::where('rombel_id', $rombel->id)->count(), $label . ': panduan harus tetap ada');
+        }
     }
 
     /** @test */
