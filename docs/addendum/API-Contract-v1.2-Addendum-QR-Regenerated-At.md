@@ -26,7 +26,7 @@ Tidak ada endpoint baru, tidak ada kolom/tabel baru. "Status akun" sudah ada lew
 
 ## 4. Test
 
-`tests/Feature/Student/StudentListQrRegeneratedAtTest.php` (8 test): null sebelum regenerate; terisi (format ISO 8601 UTC, sama dengan nilai DB) setelah regenerate dan hanya siswa itu; `show` tanpa field; field lama utuh; Headmaster/Super Admin/Student tanpa field; lintas rombel dan lintas sekolah (Teacher hanya melihat siswa rombelnya, regenerate siswa rombel lain 403 dan tidak mengubah apa pun); tanpa N+1; tanpa token 401.
+`tests/Feature/Student/StudentListQrRegeneratedAtTest.php`: null sebelum regenerate; siswa tanpa baris `qr_tokens` tetap muncul dengan null; terisi (format ISO 8601 UTC, sama dengan nilai DB) setelah regenerate dan hanya siswa itu; `show` tanpa field; field lama utuh; Headmaster/Super Admin/Student tanpa field; lintas rombel dan lintas sekolah (Teacher hanya melihat siswa rombelnya, regenerate siswa rombel lain 403 dan tidak mengubah apa pun); tanpa N+1; tanpa token 401.
 Postman: folder `INTEG-O1` di `docs/testing/TEST-001-ANAKTUMBUH-Postman-Collection.json` (7 request).
 
 ## 5. Untuk penggabungan ke API Contract v1.3 (INTEG-DOC-001)

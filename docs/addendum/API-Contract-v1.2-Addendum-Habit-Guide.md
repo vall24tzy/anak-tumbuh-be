@@ -1,6 +1,6 @@
 # API Contract v1.2 — Addendum: Panduan kebiasaan per rombel (INTEG-PANDUAN-001)
 
-**Tanggal:** 20 Okt 2026 · **Dasar keputusan:** Dokumen Keputusan v4.0 (amandemen 20 Okt 2026, butir a; D-06, D-13) · Authorization Matrix v5.3 baris **#63** (tulis) dan **#64** (lihat).
+**Tanggal:** 21 Okt 2026 · **Dasar keputusan:** Dokumen Keputusan v4.0 (amandemen 20 Okt 2026, butir a; D-06, D-13) · Authorization Matrix v5.3 baris **#63** (tulis) dan **#64** (lihat).
 **Status:** kode, test PHPUnit, dan request Postman sudah dijalankan (lihat `docs/team-log/INTEG-PANDUAN-001.md`). DB: lihat `docs/addendum/DB-Design-v1.5-Errata-Habit-Guides.md` (tabel baru `habit_guides`, perlu `php artisan migrate`).
 
 ## 1. Endpoint
@@ -42,7 +42,9 @@ Setelah dihapus, `GET` identik dengan "belum pernah ada panduan" (elemen hilang 
 
 ## 4. Teks polos
 
-Panduan disimpan dan dikeluarkan sebagai teks polos. Nilai yang memuat **tag HTML** (pola `<tag ...>`, `</tag>`, atau `<!...>`) **ditolak** dengan 422, tidak dibersihkan diam-diam. Karakter `<` dan `>` biasa (misalnya `Saya <3 belajar`, `a < b`), markdown, tanda kutip, `&`, dan baris baru disimpan apa adanya; markdown **tidak** diproses. FE harus menampilkannya sebagai teks (bukan HTML).
+Panduan disimpan dan dikeluarkan sebagai teks polos. Nilai yang memuat **tag HTML** (pola `<tag ...>`, `</tag>`, atau `<!...>`) **ditolak** dengan 422, tidak dibersihkan diam-diam. Karakter `<` dan `>` biasa (misalnya `Saya <3 belajar`, `a < b`), markdown, tanda kutip, `&`, dan baris baru disimpan apa adanya; markdown **tidak** diproses.
+
+Penolakan hanya berlaku untuk tag HTML **lengkap** (ada tanda `>` penutup). Teks seperti `<img src=x onerror=...` tanpa `>` tersimpan apa adanya. Karena itu FE **wajib** menampilkan panduan sebagai teks biasa (tanpa `innerHTML` atau render HTML apa pun).
 
 ## 5. Akses dan scope
 
@@ -69,7 +71,7 @@ Scope Teacher hanya dari `TeacherScopeService::activeAssignment()`; rombel Stude
 ## 7. Kode dan test
 
 Baru: `HabitGuideController`, `UpdateHabitGuideRequest`, `HabitGuideService`, model `HabitGuide`, migration `2026_10_20_100000_create_habit_guides_table`, `routes/v1/habit-guide.php` (di-require dari `routes/api.php`). Tidak ada perubahan pada kode lama selain satu baris `require`.
-`tests/Feature/Student/HabitGuideTest.php` (17 test): tulis/baca Teacher+Student, timpa, hapus (kosong/null/spasi, idempoten, tidak menyentuh habit lain), key hilang, batas 2.000 (termasuk multibyte), HTML vs teks polos, 404 habit/path non-numerik, 401/403 role, lintas rombel, tidak bocor antar-rombel, 404 identik lintas sekolah, Teacher inactive/tanpa assignment/Student tanpa rombel, RESTRICT pada rombel, constraint DB (CHECK dan UNIQUE).
+`tests/Feature/Student/HabitGuideTest.php`: tulis/baca Teacher+Student, ketujuh kebiasaan (termasuk Bermasyarakat) berurut `sort_order`, timpa, hapus (kosong/null/spasi, idempoten, tidak menyentuh habit lain), key hilang, batas 2.000 (termasuk multibyte dan karakter 4-byte), HTML vs teks polos, 404 habit/path non-numerik, 401/403 role, lintas rombel, tidak bocor antar-rombel, 404 identik lintas sekolah, Teacher inactive/tanpa assignment/Student tanpa rombel, RESTRICT pada rombel, constraint DB (CHECK dan UNIQUE).
 Postman: folder `INTEG-O1` (20 request PANDUAN setelah QR dan REKAP).
 
 ## 8. Untuk penggabungan ke API Contract v1.3 (INTEG-DOC-001)

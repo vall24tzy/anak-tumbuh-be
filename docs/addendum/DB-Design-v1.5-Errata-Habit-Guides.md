@@ -1,6 +1,6 @@
 # DB Design v1.5 — Errata: tabel `habit_guides` (INTEG-PANDUAN-001)
 
-**Tanggal:** 20 Okt 2026 · **Dasar:** Dokumen Keputusan v4.0 (amandemen 20 Okt 2026, butir a; D-06, D-13) · Task Board Tambahan Integrasi FE v1.5.
+**Tanggal:** 21 Okt 2026 · **Dasar:** Dokumen Keputusan v4.0 (amandemen 20 Okt 2026, butir a; D-06, D-13) · Task Board Tambahan Integrasi FE v1.5.
 **Jenis:** tabel BARU. DB Design v1.5 belum mencakup panduan kebiasaan; tidak ada tabel atau kolom lama yang berubah, tidak ada migration lama yang diedit.
 
 ## Migration

@@ -76,7 +76,7 @@ Acuan terburuk: 200 siswa x 31 hari x 7 kebiasaan = maks 43.400 entri. Agregasi 
 ## 6. Kode dan test
 
 `HabitRecapController`, `HabitRecapRequest`, `HabitRecapService` (baru); `routes/v1/habit.php` (route `habits/recap`, middleware `jwt` + `role:teacher`); `StudentHabitService` (hanya visibilitas `habitPoin` dan `bermasyarakatPoin` menjadi `public`).
-`tests/Feature/Student/HabitRecapTest.php` (15 test): persentase/poin/per kebiasaan, kesamaan total poin dengan `poin_awarded` dari GET entries, roster (inactive, graduated, pindah, rombel lain, sekolah lain), default Asia/Jakarta, rentang 31/32 hari, validasi, 401/403, 404 identik, 403 lintas rombel, Teacher inactive/tanpa assignment, read-only, jumlah query tetap.
+`tests/Feature/Student/HabitRecapTest.php`: persentase/poin/per kebiasaan, kesamaan total poin dengan `poin_awarded` dari GET entries, roster (inactive, graduated, pindah, rombel lain, sekolah lain), default Asia/Jakarta, parameter `from`/`to` parsial, rentang 31/32 hari, validasi, 401/403, 404 identik, 403 lintas rombel, Teacher inactive/tanpa assignment, read-only, jumlah query tetap.
 Postman: folder `INTEG-O1` (10 request REKAP setelah 7 request QR).
 
 ## 7. Untuk penggabungan ke API Contract v1.3 (INTEG-DOC-001)
