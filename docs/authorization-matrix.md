@@ -1,4 +1,9 @@
-# Authorization Matrix v5.2 — Audit Implementasi (AUTHORIZATION-MATRIX)
+# Authorization Matrix v5.3 — Audit Implementasi (AUTHORIZATION-MATRIX)
+
+**Pembaruan 22 Okt 2026 (INTEG-DOC-001):** dokumen naik dari v5.2 ke v5.3 dengan menambah baris baru
+#62–#69 (Bagian 17; nomor final D-05). Baris #1–#61 tidak diubah oleh Matrix v5.3
+(`docs/addendum/SoT-Amendment-INTEG-D01-D13.md` §3b), karena itu Bagian 1–16 di bawah adalah audit
+v5.2 asli (29 Sep 2026) dan tidak ditulis ulang.
 
 Dikerjakan: 29 Sep 2026. Memetakan 61 baris `Authorization_Matrix_ANAKTUMBUH_v5_2_FINAL.xlsx` ke
 endpoint API Contract v1.2 + Controller/Service yang menegakkannya, lalu diaudit langsung ke kode
@@ -13,8 +18,10 @@ STUDENT-LIFECYCLE-001, AUTH-003) — semua dikonfirmasi ada di git log sebelum a
 
 ## Ringkasan
 
-- **61/61 baris** dipetakan ke endpoint + kode yang menegakkannya.
-- **58 baris**: perilaku kode sudah konsisten dengan Matrix, tidak ada temuan.
+- **69/69 baris** dipetakan ke endpoint + kode yang menegakkannya: 61 baris awal (Bagian 1–16, v5.2) dan
+  8 baris baru #62–#69 (Bagian 17, v5.3).
+- **Bagian 1–16 (#1–#61):** 61/61 dipetakan; **58 baris**: perilaku kode sudah konsisten dengan Matrix,
+  tidak ada temuan.
 - **3 temuan** dilaporkan di Bagian "Temuan" di bawah (2 deviasi yang sudah terdokumentasi via
   Keputusan Tim sebelumnya, 1 potensi bug baru) — **tidak saya perbaiki sendiri** di task ini, sesuai
   instruksi untuk melaporkan dulu.
@@ -152,6 +159,27 @@ STUDENT-LIFECYCLE-001, AUTH-003) — semua dikonfirmasi ada di git log sebelum a
 
 ---
 
+## 17. Baris baru v5.3 (#62–#69, task INTEG)
+
+Metode Bagian 17 lebih kuat daripada Bagian 1–16: selain pembacaan kode, middleware role tiap route
+dicocokkan dengan kolom peran Matrix memakai `php artisan route:list`, dan tiap baris punya test PHPUnit
+dan/atau request Postman yang merujuknya (hasil dijalankan tercatat di team-log task masing-masing).
+Semua baris konsisten dengan Matrix; tidak ada temuan baru. Jumlah test sengaja tidak ditulis di sini
+(cepat basi); lihat berkas test dan team-log.
+
+| # | Action | Endpoint | Ditegakkan oleh | Verifikasi (kode + test) |
+|---|---|---|---|---|
+| 62 | View Class Recap (Teacher, own active rombel) | `GET /habits/recap` | Route `role:teacher`; `HabitRecapService::resolveRombel()` (profil Teacher aktif, rombel di sekolah sendiri, own active rombel dari `TeacherScopeService::activeAssignment()`) | Rombel sekolah lain/tidak ada → 404 identik (D-11), rombel lain di sekolah yang sama → 403, Headmaster/Super Admin/Student → 403. `HabitRecapTest`; Postman INTEG-O1 (REKAP) |
+| 63 | Write Guide rombel x habit (Teacher, own active rombel) | `PATCH /rombels/{rombel_id}/habit-guides/{habit_id}` | Route `role:teacher`; `HabitGuideService::write()` + `resolveRombel()`; `UpdateHabitGuideRequest` | Teks polos maks 2.000 karakter, tag HTML ditolak 422, kosong/null/spasi menghapus panduan (D-13); scope 404/403 sama seperti #62; Student/Headmaster/Super Admin → 403. `HabitGuideTest`; Postman INTEG-O1 (PANDUAN) |
+| 64 | View Guide (Teacher own active rombel; Student rombel sendiri) | `GET /rombels/{rombel_id}/habit-guides` | Route `role:teacher,student`; `HabitGuideService::list()`; rombel Student dari `StudentClassAssignmentService::activeAssignmentInCurrentAcademicYear()` | Headmaster/Super Admin → 403; Student rombel lain → 403, sekolah lain/tidak ada → 404 identik. `HabitGuideTest`; Postman INTEG-O1 (PANDUAN) |
+| 65 | Update School Name (Super Admin) | `PATCH /schools/{id}` | Route `role:super_admin`; `SchoolService::update()`; `UpdateSchoolRequest` | Hanya `name` (field lain → 422 `protected_field`); nama unik (422); audit `school_name_update` hanya bila nama berubah; Headmaster/Teacher/Student → 403. `SchoolUpdateTest`, `SchoolNameIntegrityTest`; Postman INTEG-O2 |
+| 66 | Update Teacher name, gender (Headmaster, own school) | `PATCH /teachers/{id}` | Route `role:headmaster`; `TeacherService::update()` (scope lewat `show()`); `UpdateTeacherRequest` | Guru sekolah lain/tidak ada → 404 identik; guru inactive → 409 `teacher_inactive_readonly` (konsisten #61); hanya `name`/`gender` (NIP/username/status/school_id/password → 422 `protected_field`); audit `teacher_update` bila berubah. `TeacherUpdateTest`; Postman INTEG-O2 |
+| 67 | View Active Rombel + Photo (Student own) | `GET /auth/me`, `GET /dashboard/student` | `MeResource`, `DashboardService::forStudent()`; rombel dari assignment aktif pada Academic Year aktif (`activeAssignmentInCurrentAcademicYear()`) | `rombel {id,name}` dan `photo` hanya untuk Student; foto lewat URL endpoint terproteksi (`students.photo`), bukan path/URL publik. `MeStudentRombelPhotoTest`, `StudentPhotoPrivacyTest`; Postman INTEG-O2 |
+| 68 | Headmaster School Totals | `GET /dashboard/headmaster` | Route `role:headmaster`; `DashboardService::forHeadmaster()` | `total_siswa` (jumlah `student_count`, assignment aktif di rombel TA aktif), `total_guru` (Teacher status active), `total_rombel` (TA aktif), semuanya own school. `DashboardHeadmasterTotalsTest`; Postman INTEG-O2 |
+| 69 | View QR Regenerated At (Teacher, own active rombel) | `GET /students` (list) | `StudentListResource` (key hanya bila pemanggil Teacher); eager load `qrToken` di `StudentService::indexQueryForTeacher()` | Headmaster/Super Admin/Student tanpa key; `GET /students/{id}` dan `POST /students` tanpa key; scope Teacher tidak berubah. `StudentListQrRegeneratedAtTest`; Postman INTEG-O1 (QR) |
+
+---
+
 ## Temuan (dilaporkan, belum diperbaiki di task ini)
 
 ### Temuan #1 — Row #27 "Resolve Rombel from Name" tidak diimplementasikan sesuai teks
@@ -259,7 +287,9 @@ STATUS: Diperbaiki — lihat app/Services/School/TeacherService.php::inactive(),
 
 ## Catatan cakupan
 
-- Verifikasi bersifat **static (pembacaan kode)**, bukan runtime. Belum ada request sungguhan yang
-  dijalankan di task ini.
+- Bagian 1–16: verifikasi bersifat **static (pembacaan kode)**, bukan runtime. Belum ada request
+  sungguhan yang dijalankan di task audit awal. Bagian 17 (#62–#69) memakai `route:list` dan test
+  PHPUnit/Postman yang merujuk tiap baris (lihat metode di Bagian 17).
 - DASHBOARD-001/002 tidak punya baris tersendiri di Matrix v5.2 (61 baris murni operasi CRUD/lifecycle
   inti), jadi tidak dicakup tabel di atas — sudah diaudit terpisah saat DASHBOARD-001/002 selesai.
+  Sejak v5.3, dashboard Headmaster (#68) dan profil/dashboard Student (#67) punya baris sendiri (Bagian 17).
