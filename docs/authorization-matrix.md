@@ -103,7 +103,7 @@ STUDENT-LIFECYCLE-001, AUTH-003) — semua dikonfirmasi ada di git log sebelum a
 | 32 | Fill own habit (Student only) | `routes/v1/habit.php` `role:student` + `StudentHabitService` | POST scope OWN by JWT user, tidak ada parameter student_id yang bisa dimanipulasi |
 | 33 | Monitor/View (Teacher active rombel; Student own) | `StudentHabitService::listHabitEntries()` | Teacher via `whereHas` assignment aktif; Headmaster → 403 (tidak di daftar role route) |
 | 34 | Create/Edit on behalf DENY semua | — | Tidak ada route PATCH/DELETE habit entry untuk role manapun |
-| 35 | **Daily lock / past-date view-only** | — | **⚠️ Temuan #2** — sudah SENGAJA dihapus oleh Keputusan Tim lanjutan (lihat Bagian Temuan), bukan celah baru |
+| 35 | **Daily lock / past-date view-only** | — | **⚠️ Temuan #2** — sudah SENGAJA dihapus oleh Keputusan Tim lanjutan (lihat Bagian Temuan), bukan celah baru; **diselesaikan oleh D-20 (23 Okt 2026)**, Matrix #35 tidak berubah |
 | 36 | Submit Bermasyarakat (Student own) | `BermasyarakatController`/`StudentHabitService::storeBermasyarakatEntry()` | Native array, exclusive validation |
 | 37 | Validate/Score — SYSTEM | `StudentHabitService` formula | Tidak ada endpoint manual, dihitung server saat submit |
 
@@ -202,7 +202,7 @@ REKOMENDASI: Tidak ada aksi diperlukan kecuali tim ingin secara resmi meng-updat
         baris #27 supaya tidak lagi menyiratkan "per baris".
 ```
 
-### Temuan #2 — Row #35 "Daily lock / past-date view-only" sudah dihapus oleh Keputusan Tim lanjutan
+### Temuan #2 — Row #35 "Daily lock / past-date view-only" sudah dihapus oleh Keputusan Tim lanjutan — DISELESAIKAN oleh D-20 (23 Okt 2026)
 
 ```
 SOURCE A: Matrix baris #35 & API Contract v1.2 §21 menulis "Unique student+habit+date; Asia/Jakarta;
@@ -221,6 +221,12 @@ REKOMENDASI: Matrix baris #35 & API Contract §21 perlu diamandemen resmi mengga
         view-only (daily lock)" menjadi "entry immutable sejak submit (tidak ada edit-window)" —
         redaksinya sudah tidak match kode sejak Keputusan Tim itu, cuma belum ditulis ulang di
         dokumen aslinya.
+KEPUTUSAN (D-20, pemilik, 23 Okt 2026): DISELESAIKAN lewat amandemen Dokumen Keputusan v4.0.
+        Kode dan API Contract sudah benar (tanggal ditentukan server Asia/Jakarta, tanpa lock
+        harian, tanpa PATCH). Yang usang hanya redaksi "daily lock / past-date rejection" di Dokumen
+        v4.0 (§2, §13, §14). Matrix #35 TIDAK diubah: kalimat "past dates view-only" tetap benar,
+        sehingga bagian REKOMENDASI di atas yang menyebut Matrix #35 tidak diterapkan. Tanpa
+        perubahan kode. Teks amandemen: docs/addendum/SoT-Amendment-INTEG-DOC-001.md bagian 2c.
 ```
 
 ### Temuan #3 — `TeacherService::inactive()` pakai 404, bukan 403, untuk cross-school — DIKONFIRMASI TIM & DIPERBAIKI
