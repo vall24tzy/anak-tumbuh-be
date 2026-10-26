@@ -25,9 +25,11 @@ Berkas ini tidak menyentuh `SoT-Amendment-INTEG-D01-D13.md` (sudah ditandatangan
 | Dokumen Keputusan v4.0 | §14 (Testing Minimum) | `Asia/Jakarta daily lock dan past-date rejection.` |
 | Authorization Matrix v5.3 | #35 (Habit, Daily lock / Historical view), kolom catatan | `Unique student+habit+date; Asia/Jakarta; past dates view-only.` (**tidak diubah**) |
 | API Contract v1.2 | §21 (baris v1.2 793 dan 799) | `Tanggal sebelum hari ini: **view-only**, tidak ada backfill/edit (PATCH ditolak untuk entry ber-habit_date < hari ini server, atau setelah daily lock).` dan `422 — habit_already_locked (edit setelah daily lock atau tanggal lampau).` |
+| API Contract v1.2 | §9 (Error Contract), baris status 422 (baris v1.2 233) | `... contoh: Bermasyarakat “Kurang bermasyarakat” dikirim bersama indikator lain, habit note > 1000 karakter, submit habit setelah daily lock.` |
+| API Contract v1.2 | §33 (Acceptance Criteria), Final Audit Checklist, butir HABIT (baris v1.2 1153) | `... - [x] Asia/Jakarta - [x] Daily lock - [x] Note optional max 1000 ...` (butir `[x] Daily lock`) |
 | Addendum Habit-GET | bagian 4 | `Referensi habit_already_locked / "daily lock" pada teks API Contract v1.2 §21 versi lama adalah requirement yang sudah direkonsiliasi (dicabut), bukan celah yang perlu ditutup dengan endpoint PATCH baru.` |
 
-Catatan: teks lama §21 (dua baris di atas) tetap ada di Contract v1.3 karena aturan "bagian yang tidak dikoreksi harus identik dengan v1.2"; teks itu dikoreksi oleh blok Habit-GET bagian 4 di §21 yang disalin apa adanya.
+Catatan: keempat referensi "daily lock" di Contract v1.2 (§9, §21 dua baris, §33) tetap ada di Contract v1.3 karena aturan "bagian yang tidak dikoreksi harus identik dengan v1.2". Dua baris §21 dikoreksi oleh blok Habit-GET bagian 4 di §21 yang disalin apa adanya. Referensi di §9 (contoh 422) dan §33 (butir checklist HABIT) tidak punya blok koreksi; keduanya bersifat historis dan digantikan oleh D-20, dan hal itu dinyatakan di paragraf "Catatan pembaca v1.3" butir (e) pada Contract v1.3. Teks v1.2 pada keempat tempat itu tidak diedit.
 
 ### 2b. Bukti kode
 

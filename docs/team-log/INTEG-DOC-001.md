@@ -2,7 +2,7 @@
 
 **Status:** langkah 1 sampai 4 selesai dan keputusan pemilik atas temuan langkah 4 (D-20 sampai D-24, 23 Okt 2026) sudah diterapkan; menunggu tinjau silang Orang 2 atas perubahan terakhir. Dua tindakan di luar repo tersisa pada pemilik: menerapkan teks amandemen D-20 ke Dokumen Keputusan v4.0 dan memperbaiki teks board (D-23). Belum DONE di board.
 **PIC:** Bersama (dikerjakan Orang 1)
-**Tanggal:** 22 Okt 2026 (pembaruan 23 Okt 2026: D-20 sampai D-24)
+**Tanggal:** 22 Okt 2026 (pembaruan 23 Okt 2026: D-20 sampai D-24; 25 Okt 2026: dua referensi "daily lock" tambahan)
 **Dasar:** Task Board Tambahan Integrasi FE v1.5 (INTEG-DOC-001); Matrix v5.3 #62-#69; D-05; SoT-Amendment-INTEG-D01-D13 §3b; D-20 sampai D-24 (pemilik, 23 Okt 2026; `docs/addendum/SoT-Amendment-INTEG-DOC-001.md`).
 **Dependency:** semua task INTEG fitur selesai dan lulus review silang (QR, REKAP, PANDUAN, TEST-001, ME, DASHHM, SCHOOL, TEACHER, TEST-002, D-19).
 
@@ -92,13 +92,14 @@ Catatan penempatan: errata "§18 dan §28" dan "§23 dan §25" masing-masing sat
 | 11-13 | §33 (tiga kalimat, v1.2 baris 1119, 1125, 1169) | Matrix v5.2 menjadi v5.3 | D-24 |
 
 - **Baris tambahan di luar blok:** §1.1: 17 baris Addendum Log (v1.3.1 sampai v1.3.17) dan dua paragraf ("Catatan v1.3", "Catatan pembaca v1.3"); §32: 8 baris (#62 sampai #69); §24: satu baris "Catatan v1.3 (D-22)" di dalam blok Level-Ranking; 26 judul pembungkus "Revisi v1.3 — …". Lampiran A dan B baru (baris 2263 sampai 2383). Tidak ada baris lain yang bukan dari v1.2 maupun sumber.
+- **Referensi "daily lock" v1.2 yang sengaja tidak diedit (identik dengan v1.2, digantikan D-20):** §9 contoh status 422 (v1.2 baris 233), §21 dua baris (793 dan 799; dikoreksi blok Habit-GET bagian 4), dan §33 Final Audit Checklist butir HABIT "Daily lock" (1153). Untuk §9 dan §33 yang tidak punya blok koreksi, paragraf "Catatan pembaca v1.3" butir (e) menyatakan keduanya historis dan digantikan D-20; keempat tempat dikutip di tabel 2a `SoT-Amendment-INTEG-DOC-001.md`. Jumlah baris v1.2 yang diganti tidak berubah (13).
 - **Penyebutan "v5.2" yang tersisa** di luar blok sumber bersifat historis (baris "Dokumen", bullet "Naik dari v5.1 → v5.2", Addendum Log v1.1 sampai v1.2.1, teks Teacher Lifecycle/Matrix #61) dan sengaja tidak diubah.
 
 ### Status temuan langkah 4 (1 sampai 10) dan temuan baru
 
 | # | Temuan | Status |
 |---|---|---|
-| 1 | Habit-GET bagian 4 vs "daily lock" di Dokumen v4.0 | **Selesai di repo: D-20.** Tanpa perubahan kode/Contract/Matrix. Menunggu pemilik menerapkan teks amandemen Dokumen v4.0 (`SoT-Amendment-INTEG-DOC-001.md` bagian 2c; di luar repo) |
+| 1 | Habit-GET bagian 4 vs "daily lock" di Dokumen v4.0 | **Selesai di repo: D-20.** Tanpa perubahan kode/Contract/Matrix. Menunggu pemilik menerapkan teks amandemen Dokumen v4.0 (`SoT-Amendment-INTEG-DOC-001.md` bagian 2c; di luar repo). Pembaruan 25 Okt 2026: dua referensi tambahan (§9 contoh 422; §33 butir HABIT) dicakup di tabel 2a dan Catatan pembaca butir (e) |
 | 2 | Level-Ranking bagian 6 vs Dokumen v4.0 §9/Matrix #9 (nama pada ranking) | **Selesai: D-21**, frasa diterapkan di §4 dan §17 v1.3 |
 | 3 | Level-Ranking bagian 8 vs Errata F-40 | **Selesai: D-22**, catatan satu baris di blok Level-Ranking; teks sumber tetap disalin apa adanya |
 | 4 | Rujukan "§22/§25" di board | **Tidak perlu aksi di repo: D-23** (salah ketik); pemilik memperbaiki board |
@@ -114,7 +115,7 @@ Catatan penempatan: errata "§18 dan §28" dan "§23 dan §25" masing-masing sat
 
 ### Cara pemeriksaan dan batasnya
 
-Pemeriksaan pada md final: (a) perbandingan baris v1.2 lawan v1.3: tepat 13 baris diganti, semuanya terdaftar di atas; (b) pencocokan 12 sumber terhadap isi blok per jumlah kemunculan tiap baris (850/850, kurang 0, lebih 0) dan urutan di dalam blok (0 pelanggaran); (c) duplikat baris: 0; (d) baris yang bukan dari v1.2 maupun sumber: hanya pembungkus judul, baris log, catatan, 8 baris §32, dan satu catatan D-22; (e) klasifikasi tiap bagian v1.2 terhadap v1.3 (14 identik, 10 hanya blok, 9 diganti/ditambah).
+Pemeriksaan pada md final (diulang 25 Okt 2026 setelah penambahan butir (e) pada Catatan pembaca dan dua baris tabel 2a; hasil sama): (a) perbandingan baris v1.2 lawan v1.3: tepat 13 baris diganti, semuanya terdaftar di atas; (b) pencocokan 12 sumber terhadap isi blok per jumlah kemunculan tiap baris (850/850, kurang 0, lebih 0) dan urutan di dalam blok (0 pelanggaran); (c) duplikat baris: 0; (d) baris yang bukan dari v1.2 maupun sumber: hanya pembungkus judul, baris log, catatan, 8 baris §32, dan satu catatan D-22; (e) klasifikasi tiap bagian v1.2 terhadap v1.3 (14 identik, 10 hanya blok, 9 diganti/ditambah); (f) keempat baris v1.2 yang memuat "daily lock" (233, 793, 799, 1153) ada persis sama di v1.3.
 
 Pemeriksaan pada `.docx` (dibuat dengan pandoc dari md final, ditata dengan python-docx, daftar isi disisipkan dan diperbarui lewat LibreOffice): 224 judul (Heading 1-4) dan 56 tabel sama dengan md; 6 blok kode; deret kata sama dengan md (selisih hanya 4 nomor daftar bernomor yang dibuat otomatis oleh Word); validator skill docx lolos; render PDF 52 halaman diperiksa untuk halaman judul/daftar isi, halaman judul bertingkat, dan halaman tabel §32. Daftar isi memakai baris "Table of Contents" dari v1.2 sebagai judulnya.
 
@@ -126,4 +127,4 @@ Tidak ada kode aplikasi, test, Dokumen Keputusan, atau Matrix yang berubah, jadi
 
 ## Tinjau silang (Orang 2)
 
-Periksa bagian yang berubah sejak tinjauan sebelumnya: (1) §4 dan §17 v1.3 (D-21) dan baris catatan D-22 di blok Level-Ranking; (2) rujukan Matrix v5.3 di §1, §2, §6, §33 dan baris #62-#69 di §32; (3) tabel penelusuran dan daftar 13 baris v1.2 yang diganti; (4) `docs/addendum/SoT-Amendment-INTEG-DOC-001.md` (kutipan sumber dan bukti kode D-20, teks siap tempel Dokumen v4.0); (5) Temuan #2 di `docs/authorization-matrix.md`; (6) `.docx` (butir "Tidak diperiksa"); (7) temuan 11, 12, dan 13.
+Periksa bagian yang berubah sejak tinjauan sebelumnya: (1) §4 dan §17 v1.3 (D-21) dan baris catatan D-22 di blok Level-Ranking; (2) rujukan Matrix v5.3 di §1, §2, §6, §33 dan baris #62-#69 di §32; (3) tabel penelusuran dan daftar 13 baris v1.2 yang diganti; (4) `docs/addendum/SoT-Amendment-INTEG-DOC-001.md` (kutipan sumber dan bukti kode D-20, teks siap tempel Dokumen v4.0); (5) Temuan #2 di `docs/authorization-matrix.md`; (6) `.docx` yang diekspor ulang dari md final (butir "Tidak diperiksa"); (7) temuan 11, 12, dan 13; (8) dua baris baru di tabel 2a `SoT-Amendment-INTEG-DOC-001.md` dan butir (e) pada Catatan pembaca v1.3.
