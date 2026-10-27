@@ -1,9 +1,9 @@
 # INTEG-DOC-001 — Log
 
-**Status:** langkah 1 sampai 4 selesai dan keputusan pemilik atas temuan langkah 4 (D-20 sampai D-24, 23 Okt 2026) sudah diterapkan; menunggu tinjau silang Orang 2 atas perubahan terakhir. Dua tindakan di luar repo tersisa pada pemilik: menerapkan teks amandemen D-20 ke Dokumen Keputusan v4.0 dan memperbaiki teks board (D-23). Belum DONE di board.
+**Status:** langkah 1 sampai 4 selesai. Keputusan pemilik D-20 sampai D-24 (23 Okt 2026) sudah diterapkan (amandemen D-20 pada Dokumen Keputusan v4.0 dan koreksi D-23 pada board tercatat selesai di Task Board Tambahan v1.6, 26 Okt 2026), dan D-25 (27 Okt 2026) dicatat. Tersisa pada pemilik: mengarsipkan API Contract v1.2, memastikan tim FE menerima v1.3 dan file Koreksi FE, membaca sekilas lima tempat di v1.3, dan menaikkan status ke DONE di board setelah pemeriksaan akhir. Belum DONE di board.
 **PIC:** Bersama (dikerjakan Orang 1)
-**Tanggal:** 22 Okt 2026 (pembaruan 23 Okt 2026: D-20 sampai D-24; 25 Okt 2026: dua referensi "daily lock" tambahan)
-**Dasar:** Task Board Tambahan Integrasi FE v1.5 (INTEG-DOC-001); Matrix v5.3 #62-#69; D-05; SoT-Amendment-INTEG-D01-D13 §3b; D-20 sampai D-24 (pemilik, 23 Okt 2026; `docs/addendum/SoT-Amendment-INTEG-DOC-001.md`).
+**Tanggal:** 22 Okt 2026 (pembaruan 23 Okt 2026: D-20 sampai D-24; 25 Okt 2026: dua referensi "daily lock" tambahan; 27 Okt 2026: D-25 dan Buku Panduan v1.5)
+**Dasar:** Task Board Tambahan Integrasi FE v1.5 (INTEG-DOC-001); Matrix v5.3 #62-#69; D-05; SoT-Amendment-INTEG-D01-D13 §3b; D-20 sampai D-24 (pemilik, 23 Okt 2026) dan D-25 (pemilik, 27 Okt 2026), keduanya di `docs/addendum/SoT-Amendment-INTEG-DOC-001.md`.
 **Dependency:** semua task INTEG fitur selesai dan lulus review silang (QR, REKAP, PANDUAN, TEST-001, ME, DASHHM, SCHOOL, TEACHER, TEST-002, D-19).
 
 ## Yang sudah dikerjakan
@@ -43,6 +43,7 @@
    - **D-22:** Errata F-40 berlaku; pernyataan "belum diintegrasikan" di Level-Ranking bagian 8 digantikan.
    - **D-23:** rujukan "§22/§25" di board adalah salah ketik.
    - **D-24:** rujukan Authorization Matrix v5.2 di v1.3 diperbarui ke v5.3, dan §32 memuat baris #62 sampai #69.
+7. **D-25 (disetujui pemilik, 27 Okt 2026; rincian di `docs/addendum/SoT-Amendment-INTEG-DOC-001.md` bagian 8):** API Contract v1.3 FINAL menjadi satu-satunya sumber kontrak API; API Contract v1.2 diarsipkan (tidak dihapus) dengan label "DIGANTIKAN oleh v1.3" sebagai baseline sebelum 11 task INTEG. Komentar kode "API Contract v1.2 §xx" tetap valid; nama berkas addendum dan Errata Stage 5 tetap; dokumen v1.3 tidak diedit. Pelaksanaan (arsip v1.2, serah terima FE, baca lima tempat di v1.3) oleh pemilik.
 
 ## Langkah 4 — API Contract v1.3
 
@@ -124,6 +125,23 @@ Pemeriksaan pada `.docx` (dibuat dengan pandoc dari md final, ditata dengan pyth
 ## Verifikasi
 
 Tidak ada kode aplikasi, test, Dokumen Keputusan, atau Matrix yang berubah, jadi tidak ada test baru dan suite penuh tidak dijalankan ulang di task ini. Tabel Bagian 17 mengandalkan test yang sudah ada; angka terakhir 623 passed (3502 assertions), PHP 8.3.6, PostgreSQL 16.15 (sandbox penyusun; bukan lingkungan tim, PostgreSQL 17.11). Suite penuh dan `php artisan migrate` di environment tim dijalankan oleh pemilik.
+
+## Buku Panduan Alur Kerja Backend v1.5 (D-25)
+
+**Berkas (di luar repo):** `Panduan_Alur_Kerja_Backend_ANAKTUMBUH_v1.5.docx` dan `.pdf`. Dasar kode: commit `1d6c300`; tanggal 27 Okt 2026.
+
+**Yang diubah dari v1.4 (instruksi B1 sampai B3):**
+1. Lampiran D, baris urutan 3: "API Contract ANAKTUMBUH.ID v1.3 FINAL (hasil penggabungan v1.2 dengan seluruh addendum dan Errata Stage 5; sumber kontrak API sejak D-25; tersedia sebagai .docx dan .md; disimpan di luar repositori)". Ditambah satu baris: v1.2 FINAL diarsipkan sejak D-25 dan hanya menjadi riwayat; rujukan "API Contract v1.2 §xx" di komentar kode tetap valid.
+2. Lampiran D, baris Task Board: "Task Board Backend v23 dan Task Board Tambahan Integrasi FE (versi terbaru; saat dokumen ini disusun v1.6, REVISI 6, 26 Okt 2026)". Rujukan Task Board di bagian lain: hanya baris riwayat versi 1.4 (tidak diedit, sesuai instruksi).
+3. Bagian 1.3 dan 15.4 diperiksa: tidak ada yang menyebut v1.2 sebagai sumber kontrak yang berlaku (Bagian 1.3 menyebut v1.3; 15.4 hanya menyebut v1.2 sebagai dokumen lama yang masih memuat rujukan Matrix v5.2), jadi tidak diubah.
+4. Satu baris baru di riwayat versi (1.5, 27 Okt 2026, `1d6c300`); baris 1.3 dan 1.4 tidak diedit. Versi di sampul dan header menjadi 1.5.
+
+**Verifikasi (C):**
+- Perbandingan teks v1.4 lawan v1.5 (isi dokumen berurutan termasuk tabel, ditambah header dan footer): 1.376 baris lawan 1.378 baris, tepat 5 blok selisih: (1) sampul: versi dan tanggal; (2) baris riwayat 1.5 yang baru; (3) Lampiran D baris API Contract diganti dan satu baris arsip v1.2 ditambah; (4) Lampiran D baris Task Board; (5) header versi. Baris riwayat 1.3 dan 1.4 identik.
+- Ekspor ulang docx dan PDF: **72 halaman** (v1.4: 72 halaman), A4. Nomor halaman Daftar Isi dihitung ulang dan stabil (selisih 0 pada iterasi kedua).
+- PDF lawan docx: perbandingan jumlah token kata, yaitu urutan tiga huruf atau lebih (16.211 token di docx). Selisih sekitar 1 persen (203 lebih di docx, 133 lebih di PDF). Kata dengan selisih terbesar adalah potongan kata panjang di akhir baris (mis. `assignmen`, `yea`) dan baris judul tabel yang diulang di tiap halaman (mis. "File", "Tahap", "Peran", "Method"). Bukan perbedaan isi; pemeriksaan ini tidak membandingkan kalimat per kalimat.
+- Angka pada D-25: lihat catatan verifikasi di `SoT-Amendment-INTEG-DOC-001.md` bagian 8f (hitungan ulang: 13 baris v1.2 diganti, bukan 12).
+- **Tidak diperiksa:** berkas Word belum dibuka di Microsoft Word; kode tidak dijalankan (PHP tidak tersedia); isi Bab 7 sampai 10 tidak dibaca ulang kalimat per kalimat.
 
 ## Tinjau silang (Orang 2)
 

@@ -83,3 +83,43 @@ Perubahan di Contract v1.3 (selain baris tambahan §32, tidak ada perubahan lain
 ## 7. Dampak
 
 Tidak ada perubahan kode, test, Authorization Matrix, atau skema DB. Dokumen Keputusan v4.0 hanya disiapkan teks amandemennya (bagian 2c). Perubahan pada Contract v1.3 tercatat di `docs/team-log/INTEG-DOC-001.md`.
+
+## 8. Keputusan tambahan D-25 (27 Oktober 2026)
+
+**Tanggal:** 27 Okt 2026 · **Diputuskan oleh:** pemilik ANAKTUMBUH.ID · **Status:** diputuskan dan dicatat; **disetujui pemilik, 27 Okt 2026**.
+Bagian ini hanya menambah. Keputusan D-20 sampai D-24 (bagian 1 sampai 7) dan `SoT-Amendment-INTEG-D01-D13.md` tidak diubah.
+
+### 8a. Keputusan
+
+API Contract v1.3 FINAL menjadi **satu-satunya sumber kontrak API**. API Contract v1.2 **diarsipkan (tidak dihapus)** dengan label "DIGANTIKAN oleh v1.3" sebagai baseline sebelum 11 task INTEG.
+
+### 8b. Alasan (menurut keputusan pemilik)
+
+- Isi v1.2 utuh di v1.3: hanya 12 baris yang sengaja berubah, semua judul dan nomor bagian sama, dan 804 dari 804 baris sumber addendum dan errata ada.
+- D-20 sampai D-24 sudah diterapkan.
+- Suite penuh hijau di environment tim (623 passed).
+- Buku Panduan Alur Kerja Backend sudah memakai v1.3 sebagai sumber kontrak.
+
+### 8c. Yang tidak berubah
+
+- Komentar kode yang menyebut "API Contract v1.2 §xx" tetap valid, karena nomor bagian sama di v1.3.
+- Nama berkas `docs/addendum/API-Contract-v1.2-Addendum-*.md` dan `API-Contract-v1.2-Errata-Stage5.md` tetap. Keduanya adalah sumber yang sudah tergabung, dan namanya bagian dari riwayat.
+- Dokumen API Contract v1.3 sendiri tidak diedit.
+
+### 8d. Langkah pelaksanaan oleh pemilik (bukan Orang 1)
+
+1. Mengarsipkan docx API Contract v1.2.
+2. Memastikan tim FE sudah menerima v1.3 dan file Koreksi FE.
+3. Membaca sekilas lima tempat di v1.3: §1, Catatan pembaca, kalimat ranking di §4 dan §17, dan baris traceability #62 sampai #69 di §32.
+
+### 8e. Keterbatasan yang diterima
+
+v1.3 menaruh blok "Revisi v1.3" setelah teks lama; hal ini sudah dijelaskan di Catatan pembaca. Menggabungkan blok ke badan teks (v1.4) adalah pekerjaan terpisah dan tidak dilakukan sekarang.
+
+### 8f. Catatan verifikasi angka (Orang 1)
+
+Angka pada bagian 8b dikutip dari keputusan pemilik. Pemeriksaan INTEG-DOC-001 (`docs/team-log/INTEG-DOC-001.md`) menghitung dengan cara lain: **13** baris v1.2 diganti (12 baris isi dan satu baris judul dokumen, terdaftar di tabel perbedaan) dan **850/850** baris sumber ada per kemunculan. Hitungan ulang perbandingan baris v1.2 lawan v1.3 pada 27 Okt 2026 juga menghasilkan 13 baris. Angka "804" tidak dapat direproduksi dari berkas; tidak ada hasil yang menunjukkan baris sumber hilang.
+
+### 8g. Dampak
+
+Tidak ada perubahan kode, test, Authorization Matrix, skema DB, maupun isi API Contract v1.3. Perubahan yang menyertai: team-log INTEG-DOC-001 dan Buku Panduan Alur Kerja Backend v1.5 (Lampiran D).
