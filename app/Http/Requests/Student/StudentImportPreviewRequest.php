@@ -15,7 +15,7 @@ class StudentImportPreviewRequest extends FormRequest
     {
         return [
             // F-33: format FINAL .xlsx saja (API Contract §18, OD-12); .xls ditolak 422.
-            'file' => ['required', 'file', 'mimes:xlsx', 'max:5120'], // 5120 KB = 5 MB
+            'file' => ['required', 'file', 'mimes:xlsx', 'max:4096'], // DEPLOY-LIMIT-001 (D-29): 4096 KB = 4 MB, di bawah batas body Vercel 4,5 MB
         ];
     }
 }
