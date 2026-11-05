@@ -1,5 +1,22 @@
 <?php
 
+// DEPLOY-STORAGE-001 (D-28, usulan): di cloud (Vercel) disk lokal tidak awet, jadi disk logis
+// 'private' (foto Student, F-06) dan 'public' (logo School) dapat dialihkan ke S3 (Supabase Storage)
+// lewat env. Nama disk TIDAK berubah, sehingga seluruh kode dan test yang memakai
+// Storage::disk('private'|'public') tetap berlaku. Default tetap lokal (dev dan test).
+// Kunci 'throw' => false WAJIB tetap ada pada disk S3: UploadService memeriksa put() === false.
+// 'visibility' sengaja tidak diset pada disk S3 (akses diatur lewat bucket privat/publik, bukan ACL).
+$storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_merge([
+    'driver'                  => 's3',
+    'key'                     => env('AWS_ACCESS_KEY_ID'),
+    'secret'                  => env('AWS_SECRET_ACCESS_KEY'),
+    'region'                  => env('AWS_DEFAULT_REGION'),
+    'bucket'                  => env($bucketEnv),
+    'endpoint'                => env('AWS_ENDPOINT'),
+    'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
+    'throw'                   => false,
+], $extra);
+
 return [
 
     /*
@@ -36,24 +53,31 @@ return [
             'throw' => false,
         ],
 
-        'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
-            'visibility' => 'public',
-            'throw' => false,
-        ],
+        // Logo School. STORAGE_PUBLIC_DRIVER=s3: bucket publik (AWS_PUBLIC_BUCKET); URL logo dibentuk dari
+        // AWS_PUBLIC_URL (wajib diisi), bukan dari endpoint S3.
+        'public' => env('STORAGE_PUBLIC_DRIVER', 'local') === 's3'
+            ? $storageS3('AWS_PUBLIC_BUCKET', ['url' => env('AWS_PUBLIC_URL')])
+            : [
+                'driver' => 'local',
+                'root' => storage_path('app/public'),
+                'url' => env('APP_URL').'/storage',
+                'visibility' => 'public',
+                'throw' => false,
+            ],
 
         // F-06: berkas privat (foto Student). Root di LUAR storage/app/public dan
         // tanpa 'url', sehingga tidak pernah dilayani web server; hanya dapat dibaca
         // lewat endpoint terotorisasi (GET /students/{id}/photo). Logo School tetap
         // di disk 'public'.
-        'private' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private'),
-            'visibility' => 'private',
-            'throw' => false,
-        ],
+        // STORAGE_PRIVATE_DRIVER=s3: bucket PRIVAT (AWS_PRIVATE_BUCKET), tetap tanpa 'url'.
+        'private' => env('STORAGE_PRIVATE_DRIVER', 'local') === 's3'
+            ? $storageS3('AWS_PRIVATE_BUCKET')
+            : [
+                'driver' => 'local',
+                'root' => storage_path('app/private'),
+                'visibility' => 'private',
+                'throw' => false,
+            ],
 
         's3' => [
             'driver' => 's3',
