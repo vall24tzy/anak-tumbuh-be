@@ -91,7 +91,50 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            // DEPLOY-RUNTIME-001 (D-27): SSL dan opsi PDO bisa diatur lewat env tanpa mengubah kode.
+            // Default tidak mengubah perilaku sebelumnya (sslmode 'prefer', prepared statements bawaan).
+            // Supabase: DB_SSLMODE=require (atau verify-full + DB_SSLROOTCERT).
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'sslrootcert' => env('DB_SSLROOTCERT'),
+            // Pooler Supabase mode transaksi TIDAK mendukung prepared statements bernama, sedangkan PDO pgsql
+            // memakainya secara default. Dua opsi, KEDUANYA default mati (filter_var supaya 'false', '0', 'off',
+            // 'no' benar-benar dianggap mati):
+            //  - DB_DISABLE_PREPARES=true -> PDO::PGSQL_ATTR_DISABLE_PREPARES: query dan parameter dikirim sekaligus
+            //    ke server (tanpa prepared statement bernama). Parameter tetap bertipe "unknown" sehingga PostgreSQL
+            //    menyimpulkan tipe dari kolom. Opsi yang disarankan untuk pooler mode transaksi.
+            //  - DB_EMULATE_PREPARES=true -> PDO::ATTR_EMULATE_PREPARES: PDO menyusun query di sisi klien dan
+            //    menyisipkan nilai sebagai literal. TIDAK DISARANKAN: Laravel mengubah boolean menjadi 1/0, sehingga
+            //    `where is_active = 1` ditolak PostgreSQL ("operator does not exist: boolean = integer"); terbukti
+            //    pada run suite dengan flag ini (lihat docs/addendum/DEPLOY-RUNTIME-001.md bagian 3).
+            'options' => [
+                PDO::ATTR_EMULATE_PREPARES => filter_var(env('DB_EMULATE_PREPARES', false), FILTER_VALIDATE_BOOLEAN),
+            ] + (filter_var(env('DB_DISABLE_PREPARES', false), FILTER_VALIDATE_BOOLEAN)
+                ? [PDO::PGSQL_ATTR_DISABLE_PREPARES => true]
+                : []),
+        ],
+
+        // DEPLOY-RUNTIME-001 (D-27): koneksi khusus langkah rilis (usulan D-27: pooler mode SESSION port 5432,
+        // karena koneksi langsung Supabase hanya IPv6; koneksi langsung tetap bisa dipakai bila jaringan mendukung):
+        //   php artisan migrate --database=pgsql_direct --force
+        //   php artisan db:seed --database=pgsql_direct --force
+        // Tanpa opsi emulate prepares (prepared statements bawaan PDO). Tiap nilai DB_DIRECT_* yang kosong
+        // jatuh ke DB_* yang sama (praktis untuk lokal/CI). Di lingkungan yang aplikasinya lewat pooler
+        // (DB_URL / DB_HOST pooler), DB_DIRECT_URL atau DB_DIRECT_HOST WAJIB diisi: pooler dan koneksi
+        // langsung Supabase memakai host dan username yang berbeda.
+        'pgsql_direct' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_DIRECT_URL'),
+            'host' => env('DB_DIRECT_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_DIRECT_PORT', env('DB_PORT', '5432')),
+            'database' => env('DB_DIRECT_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('DB_DIRECT_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_DIRECT_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_DIRECT_SSLMODE', env('DB_SSLMODE', 'prefer')),
+            'sslrootcert' => env('DB_DIRECT_SSLROOTCERT', env('DB_SSLROOTCERT')),
         ],
 
         'sqlsrv' => [
