@@ -32,7 +32,7 @@ Review silang Orang 1 masih menunggu; status di Task Board dinaikkan oleh pemili
   **622 passed (3485 assertions)**, 100,11 s. Sebelumnya 598 / 3323 (setelah INTEG-TEACHER-001). Selisih +24 = 2 test
   baru task ini + 22 test dari perubahan Orang 1 yang di-pull (dugaan; belum diverifikasi per test). Perkiraan awal
   600 tidak memperhitungkan pull itu.
-- Run newman 6.2.3 (21 Okt 2026, dijalankan Orang 2 di laptop sendiri: PHP 8.2.12, PostgreSQL 17.11, database baru
+- Run newman 6.2.3 (21 Okt 2026, dijalankan Orang 2 di laptop sendiri: PHP 8.3.30 (Laragon, Cmder; semula tertulis 8.2.12 dari PowerShell/XAMPP, dikoreksi 6 Nov 2026, lihat `docs/addendum/DEPLOY-IMAGE-001.md` bagian 5), PostgreSQL 17.11, database baru
   `migrate:fresh --seed`, `CACHE_STORE=database`, `--delay-request 13000`; satu sesi folder 0 -> folder 1 -> folder
   `INTEG-O2`). Ringkasan newman (`run.stats`): **76 request, 0 request gagal; 137 assertion, 1 gagal**.
   Folder `INTEG-O2` sendiri: **42 request, 85 assertion, 0 gagal** (rincian di `docs/testing/INTEG-O2-runner-result.md`),

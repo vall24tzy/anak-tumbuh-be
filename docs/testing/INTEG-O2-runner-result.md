@@ -6,7 +6,7 @@
 
 - Folder **INTEG-O2: 42 request, 85 assertion, 0 gagal** (ME 6, DASHHM 4, SCHOOL 15, TEACHER 17).
 - Dijalankan dengan newman dalam satu sesi: folder 0 dan folder 1 lebih dulu (membuat sekolah uji, token, dan data prasyarat), lalu folder INTEG-O2.
-- Lingkungan: newman 6.2.3; PHP 8.2.12, PostgreSQL 17.11, database baru (migrate:fresh --seed), CACHE_STORE=database, --delay-request 13000. Isi file ini hanya nama request, kode HTTP, dan hasil assertion (tanpa token, password, atau isi respons).
+- Lingkungan: newman 6.2.3; PHP 8.3.30 (Laragon, terminal Cmder yang menjalankan `php artisan serve`; semula tertulis 8.2.12 dari `php -r` di PowerShell/XAMPP, dikoreksi 6 Nov 2026), PostgreSQL 17.11, database baru (migrate:fresh --seed), CACHE_STORE=database, --delay-request 13000. Isi file ini hanya nama request, kode HTTP, dan hasil assertion (tanpa token, password, atau isi respons).
 
 ## Rincian folder INTEG-O2
 
