@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1
+# DEPLOY-IMAGE-001 (D-26 usulan: PHP 8.3 saja). Image Laravel untuk Vercel Container Runtime (Beta) dengan FrankenPHP.
+#
+# BELUM DIJALANKAN: berkas ini ditulis di sandbox tanpa Docker dan tanpa jaringan. Tag base image di bawah
+# belum diverifikasi ke registry; periksa di Docker Hub sebelum build pertama, dan pertimbangkan mengunci digest.
+#
+# Build:  docker build -f Dockerfile.vercel -t anaktumbuh-be:vercel .
+# Prinsip: tanpa .env atau rahasia di layer image (semua rahasia lewat environment platform), tanpa migrate saat
+# start (migrate = langkah rilis terpisah lewat koneksi pgsql_direct), tanpa config:cache, log ke stderr.
+FROM dunglas/frankenphp:1-php8.3
+
+WORKDIR /app
+
+# Ekstensi di luar bawaan image PHP. Ekstensi yang dibutuhkan paket (composer.lock) dan sudah bawaan image PHP:
+# ctype, dom, fileinfo, filter, hash, iconv, json, libxml, mbstring, openssl, pcre, session, simplexml, tokenizer,
+# xml, xmlreader, xmlwriter, zlib. Dipasang: pdo_pgsql (database), gd (intervention/image dan PhpSpreadsheet),
+# zip (maatwebsite/excel), intl (Carbon/format; tidak diwajibkan lock), opcache.
+RUN install-php-extensions pdo_pgsql gd zip intl opcache
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_NO_INTERACTION=1
+
+# Lapisan dependensi (di-cache selama composer.json dan composer.lock tidak berubah).
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist \
+ && composer check-platform-reqs --no-dev
+
+# Kode aplikasi (isi .dockerignore menjaga .env, .git, tests, dan docs tetap di luar).
+COPY . .
+
+# Autoload dioptimalkan dan package discovery dijalankan SAAT BUILD (bootstrap/cache tidak perlu ditulis saat runtime).
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative \
+ && php artisan package:discover --ansi
+
+# Konfigurasi PHP dan Caddy.
+COPY docker/php/zz-vercel.ini $PHP_INI_DIR/conf.d/zz-vercel.ini
+COPY Caddyfile /etc/caddy/Caddyfile
+
+# Direktori tulis (lihat tabel di docs/ops/vercel-deploy.md). Hanya /tmp yang diandalkan saat runtime:
+# view terkompilasi, file sementara Excel, dan data Caddy diarahkan ke /tmp; log ke stderr.
+RUN mkdir -p storage/framework/views storage/framework/cache storage/logs bootstrap/cache /tmp/views /tmp/laravel-excel \
+ && chmod -R ug+rwX storage bootstrap/cache
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    VIEW_COMPILED_PATH=/tmp/views \
+    EXCEL_TEMP_PATH=/tmp/laravel-excel \
+    XDG_CONFIG_HOME=/tmp \
+    XDG_DATA_HOME=/tmp
+
+EXPOSE 8080
+
+# Tidak ada migrate, seed, atau config:cache di sini. Berkas konfigurasi disebut EKSPLISIT (lokasi Caddyfile bawaan
+# image berbeda antar versi FrankenPHP, jadi tidak mengandalkan CMD bawaan).
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

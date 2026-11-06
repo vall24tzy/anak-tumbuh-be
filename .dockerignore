@@ -1,0 +1,35 @@
+# DEPLOY-IMAGE-001: berkas yang tidak boleh masuk konteks build (rahasia, riwayat, dan sampah lokal).
+# Rahasia tidak boleh masuk layer image: .env dan semua variannya dikecualikan, hanya .env.example yang boleh.
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.gitattributes
+.editorconfig
+.vscode
+.idea
+
+# Dependensi dipasang di dalam image (versi PHP image), bukan disalin dari mesin lokal.
+vendor
+node_modules
+
+# Bukan bagian runtime.
+tests
+docs
+phpunit.xml
+.phpunit.result.cache
+*.patch
+*.log
+
+# Isi storage lokal tidak ikut; direktori dibuat saat build.
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/private/*
+storage/app/public/*
+bootstrap/cache/*.php
+public/storage
+public/hot

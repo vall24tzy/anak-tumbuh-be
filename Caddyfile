@@ -1,0 +1,22 @@
+# DEPLOY-IMAGE-001: FrankenPHP/Caddy untuk Laravel. Document root = public/.
+# TLS dihentikan oleh Vercel, jadi Caddy hanya melayani HTTP di port dalam container.
+# Port: {$PORT} bila platform menyetelnya, selain itu 8080. BELUM DIVERIFIKASI terhadap kebutuhan Vercel
+# Container Runtime (lihat docs/ops/vercel-deploy.md, bagian Gap).
+{
+	auto_https off
+	admin off
+	frankenphp
+	order php_server before file_server
+}
+
+:{$PORT:8080} {
+	root * /app/public
+	encode zstd gzip
+
+	# Log akses ke stderr (tidak ada berkas log di disk).
+	log {
+		output stderr
+	}
+
+	php_server
+}
