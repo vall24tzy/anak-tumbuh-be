@@ -22,15 +22,15 @@
 ## Hasil yang dilaporkan Orang 2
 - `composer update --lock` dijalankan; `composer.lock` berubah 4 baris: `content-hash`, `platform.php` `^8.2` menjadi `^8.3`, dan URL repositori `vlucas/phpdotenv` menjadi `phpdotenv/phpdotenv` (referensi commit sama `301c079...`; pembaruan metadata dari Composer, **bukan** perubahan versi paket). `ImageFilesTest` (termasuk konsistensi `composer.lock`) lulus.
 - `composer diagnose` di Cmder: PHP 8.3.30, path Laragon. Suite penuh 670 passed (3842 assertions).
-- `composer audit` **gagal** (curl timeout 10 detik ke packagist.org); belum ada hasil audit.
+- `composer check-platform-reqs --no-dev` (lingkungan lokal Laragon, bukan image): semua `success` pada PHP 8.3.30 (`php`, `php-64bit`, `ext-dom`, `ext-fileinfo`, `ext-filter`, `ext-gd`, `ext-hash`, `ext-iconv`, `ext-json`, `ext-libxml`, `ext-openssl`, `ext-pcre`, `ext-session`, `ext-simplexml`, `ext-tokenizer`, `ext-xml`, `ext-xmlreader`, `ext-xmlwriter`, `ext-zip`, `ext-zlib`; `ext-ctype` dan `ext-mbstring` lewat polyfill). `composer validate`: valid. Pemeriksaan yang sama di dalam image terjadi saat build (belum dijalankan).
+- `composer audit`: **20 advisory pada 8 paket** (`laravel/framework` 5, `league/commonmark` 2, `phpoffice/phpspreadsheet` 3, `symfony/http-foundation` 5, `symfony/http-kernel` 1, `symfony/mime` 1, `symfony/routing` 1, `symfony/yaml` 2). Penilaian keterjangkauan dan keputusan ada pada Orang 1 dan pemilik (task keamanan terpisah, di luar scope IMAGE); sengaja tidak diuraikan di repo publik ini.
 - Versi PHP pada hasil run lama: koreksi berkas Orang 2 dilakukan; berkas Orang 1 menunggu konfirmasi (addendum bagian 5).
 
 ## Belum selesai (syarat DONE)
-1. `composer check-platform-reqs --no-dev`, `composer validate`: keluaran belum dikirim.
-2. Build image, periksa isinya (tanpa `.env`), smoke lokal, uji upload foto dan import 200 baris di image (butuh Docker).
-3. `vercel.json` setelah membaca dokumentasi Container Runtime Vercel.
-4. Konfirmasi versi PHP laptop Orang 1 untuk `INTEG-O1-runner-result.md` dan `INTEG-TEST-001.md`.
-5. Review silang Orang 1.
+1. Build image, periksa isinya (tanpa `.env`), smoke lokal, uji upload foto dan import 200 baris di image (butuh Docker).
+2. `vercel.json` setelah membaca dokumentasi Container Runtime Vercel.
+3. Konfirmasi versi PHP laptop Orang 1 untuk `INTEG-O1-runner-result.md` dan `INTEG-TEST-001.md`.
+4. Review silang Orang 1.
 
 ## Temuan
 1. `composer.lock` `platform.php` masih `^8.2` (usang setelah `composer.json` dinaikkan).

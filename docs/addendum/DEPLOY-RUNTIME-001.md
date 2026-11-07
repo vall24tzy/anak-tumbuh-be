@@ -51,7 +51,7 @@ php artisan db:seed --database=pgsql_direct --force
 
 670 = 637 (branch Orang 1) + 33 test baru task ini (23 RUNTIME + 10 IMAGE). Dua run memberi jumlah test dan assertion yang sama persis.
 
-**Yang disimpulkan dan yang tidak.** Emulate prepares terbukti **tidak layak** (bagian di bawah). Dengan `DB_DISABLE_PREPARES=true` seluruh suite lulus pada PostgreSQL biasa, termasuk migrate dan semua query aplikasi; jadi tidak ada pola boolean yang rusak oleh opsi ini. **Belum terbukti:** (1) bahwa flag benar-benar aktif pada koneksi saat run itu (suite tidak memeriksa atribut PDO; periksa dengan `check-prepares.php`, lihat team-log), dan (2) perilaku terhadap pooler mode transaksi yang nyata, yang hanya dapat dibuktikan di DEPLOY-VERIFY-001. Run ini menguji PostgreSQL biasa, bukan pooler.
+**Yang disimpulkan dan yang tidak.** Emulate prepares terbukti **tidak layak** (bagian di bawah). Dengan `DB_DISABLE_PREPARES=true` seluruh suite lulus pada PostgreSQL biasa, termasuk migrate dan semua query aplikasi; jadi tidak ada pola boolean yang rusak oleh opsi ini. **Flag terbukti aktif** lewat skrip pemeriksa sekali pakai: tanpa flag server menahan 2 prepared statement bernama, dengan `DB_DISABLE_PREPARES=true` 0 dan opsi `PGSQL_ATTR_DISABLE_PREPARES` = `true` di config (lihat team-log). **Belum terbukti:** perilaku terhadap pooler mode transaksi yang nyata, yang hanya dapat dibuktikan di DEPLOY-VERIFY-001. Run ini menguji PostgreSQL biasa, bukan pooler.
 
 ### Penyebab kegagalan flag emulate (terbukti dari pesan error)
 

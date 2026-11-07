@@ -27,9 +27,9 @@
 | (2) Image berjalan lokal dan lolos smoke (endpoint infrastruktur, login Super Admin) | **belum dijalankan** |
 | (3) `docs/ops/vercel-deploy.md` (env, versi PHP, ekstensi, langkah build, batasan, direktori tulis) | ada; semua isi berstatus belum diverifikasi terhadap image dan Vercel |
 | (4) `LOG_CHANNEL=stderr`; migrate sebagai langkah rilis terpisah | diset di Dockerfile; tidak ada migrate di image; langkah rilis ditulis di panduan bagian 6 |
-| (5) hasil `composer check-platform-reqs` dilampirkan | **belum ada**; build image menjalankannya otomatis. Daftar ekstensi di panduan adalah turunan statis dari `composer.lock` |
+| (5) hasil `composer check-platform-reqs` dilampirkan | dijalankan di lingkungan lokal (Laragon, PHP 8.3.30): semua `success` (rincian di team-log); di dalam image dijalankan otomatis saat build, **belum dibangun** |
 | (6) ketidakcocokan versi PHP: suite dijalankan di versi image | suite dijalankan di PHP 8.3.30 (versi image 8.3.x), 670 passed; di dalam image **belum dijalankan** |
-| (7) PHP 8.3: `composer.json` `^8.3`, `composer.lock` konsisten, `check-platform-reqs` hijau, environment tim PHP 8.3 | `composer.json` `^8.3` dan `composer.lock` konsisten (`composer update --lock` dijalankan; `ImageFilesTest` lulus); `composer diagnose` di Cmder = PHP 8.3.30 Laragon; suite penuh lulus di 8.3.30 (670 passed). **`composer check-platform-reqs` belum dilaporkan** (belum dijalankan atau keluarannya belum dikirim) |
+| (7) PHP 8.3: `composer.json` `^8.3`, `composer.lock` konsisten, `check-platform-reqs` hijau, environment tim PHP 8.3 | `composer.json` `^8.3` dan `composer.lock` konsisten (`composer update --lock` dijalankan; `ImageFilesTest` lulus); `composer diagnose` di Cmder = PHP 8.3.30 Laragon; suite penuh lulus di 8.3.30 (670 passed). `composer check-platform-reqs --no-dev` hijau dan `composer validate` valid di lingkungan lokal; hijau di dalam image belum diuji |
 | (7) koreksi berkas hasil run yang menulis PHP 8.2.12 | berkas Orang 2 (`INTEG-O2-runner-result.md`, `INTEG-TEST-002.md`) dikoreksi (bagian 5); berkas Orang 1 (`INTEG-O1-runner-result.md`, `INTEG-TEST-001.md`) **belum**, menunggu konfirmasi Orang 1 |
 | (8) direktori tulis eksplisit (a sampai e) dan uji upload foto + import 200 baris di image | tabel ada di panduan bagian 5; pengaturannya ditulis; **uji di image belum dijalankan** |
 

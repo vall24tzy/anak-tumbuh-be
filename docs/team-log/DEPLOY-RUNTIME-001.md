@@ -1,6 +1,6 @@
 # DEPLOY-RUNTIME-001 — Log
 
-**Status:** kode (config), test, dan addendum selesai; suite penuh **lulus (670 passed) baik baseline maupun dengan `DB_DISABLE_PREPARES=true`** pada PostgreSQL biasa (dilaporkan Orang 2). **Belum bisa DONE:** perilaku terhadap pooler nyata belum terbukti, aktifnya flag belum diperiksa langsung, dan D-27 perlu direvisi serta ditandatangani pemilik (lihat "Belum selesai").
+**Status:** kode (config), test, dan addendum selesai; suite penuh **lulus (670 passed) baik baseline maupun dengan `DB_DISABLE_PREPARES=true`** pada PostgreSQL biasa (dilaporkan Orang 2). **Belum bisa DONE:** perilaku terhadap pooler nyata belum terbukti, aktifnya flag **terbukti** lewat skrip pemeriksa, dan D-27 perlu direvisi serta ditandatangani pemilik (lihat "Belum selesai").
 **PIC:** Orang 2 · **Tanggal:** 4 Nov 2026
 **Dasar:** Task Board Deployment Vercel dan Supabase v1.2; D-27 (usulan); `docs/addendum/DEPLOY-RUNTIME-001.md`.
 **Dependency:** DEPLOY-DECISION-001. **Catatan jujur:** persetujuan pemilik atas D-26 sampai D-33 belum tercatat; task dikerjakan atas arahan Orang 1. Bila D-27 berubah (mis. mode session), config dan addendum perlu disesuaikan.
@@ -17,6 +17,7 @@
 - Suite penuh dengan `DB_EMULATE_PREPARES=true`: **611 gagal, 58 lulus (410 assertions)**, 695,76 s. Semua kegagalan yang terlihat memuat `SQLSTATE[42883] operator does not exist: boolean = integer` dari migration `..._add_active_rombel_unique_to_teacher_class_assignments` (`where is_active = 1`). Penjelasan dan dampaknya ada di addendum bagian 3: emulate prepares merusak perbandingan boolean (kode aplikasi memakai pola yang sama di sekurangnya 10 tempat), jadi **flag itu tidak layak**. Usulan: mekanisme D-27 diganti menjadi `DB_DISABLE_PREPARES` (`PDO::PGSQL_ATTR_DISABLE_PREPARES`); **belum dijalankan**.
 - Suite penuh baseline (kedua flag mati, fix1 dan fix2 terpasang): **670 passed (3842 assertions)**.
 - Suite penuh dengan `DB_DISABLE_PREPARES=true`: **670 passed (3842 assertions)**, identik dengan baseline. 670 = 637 (branch Orang 1) + 33 test baru (23 RUNTIME + 10 IMAGE).
+- Pemeriksaan flag (`check-prepares.php`, skrip sekali pakai di luar repo, dijalankan Orang 2 di Cmder, PHP 8.3.30): **tanpa flag** opsi `PGSQL_ATTR_DISABLE_PREPARES` tidak ada di config dan server menahan **2** prepared statement bernama; **dengan `DB_DISABLE_PREPARES=true`** opsi itu bernilai `true` di config dan server menahan **0**. Jadi flag aktif dan benar-benar menghilangkan prepared statement bernama pada koneksi. (Perkiraan awal "1 tanpa flag" salah: hitungan ikut menghitung query pemeriksa itu sendiri.)
 - Lingkungan: PHP 8.3.30 (Laragon; `composer diagnose` di Cmder menunjukkan PHP yang sama), Cmder, PostgreSQL biasa (bukan pooler). Tidak ada baris dilewati pada ringkasan `Tests:`, sehingga `MailExposureGuardTest`, `FrameworkAdvisoryGuardTest`, dan `StorageDiskConfigTest` ikut lulus tanpa dilewati (diturunkan dari ringkasan, bukan dari daftar per test).
 
 ## Yang diperiksa dan yang tidak
@@ -25,10 +26,9 @@
 - **Tidak dikerjakan:** pembuktian terhadap pooler mode transaksi nyata (emulate prepares terbukti gagal; `DB_DISABLE_PREPARES` lulus suite pada PostgreSQL biasa, tetapi pooler belum diuji); tidak ada koneksi ke Supabase atau pooler.
 
 ## Belum selesai (syarat DONE)
-1. Buktikan flag aktif pada koneksi: jalankan `check-prepares.php` (di luar repo) dengan dan tanpa `set DB_DISABLE_PREPARES=true`; hasil yang diharapkan: tanpa flag tidak ada kunci opsi 1000 dan `pg_prepared_statements` berisi 1, dengan flag kunci 1000 = true dan `pg_prepared_statements` berisi 0. Belum dijalankan.
-2. Pembuktian terhadap pooler mode transaksi dan Vercel nyata di DEPLOY-VERIFY-001 dan DEPLOY-PILOT-001 (termasuk `X-Forwarded-For` palsu lewat Vercel).
-3. Revisi D-27 oleh pemilik: dari "emulate prepares" menjadi opsi tanpa prepared statement bernama (`DB_DISABLE_PREPARES`); bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` diisi pemilik.
-4. Review silang Orang 1.
+1. Pembuktian terhadap pooler mode transaksi dan Vercel nyata di DEPLOY-VERIFY-001 dan DEPLOY-PILOT-001 (termasuk `X-Forwarded-For` palsu lewat Vercel).
+2. Revisi D-27 oleh pemilik: dari "emulate prepares" menjadi opsi tanpa prepared statement bernama (`DB_DISABLE_PREPARES`); bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` diisi pemilik.
+3. Review silang Orang 1.
 
 ## Temuan
 1. `.env.testing` lokal memakai `APP_TIMEZONE=Asia/Jakarta` (tidak di-git), berbeda dari produksi (UTC).
