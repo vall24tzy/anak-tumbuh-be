@@ -2,8 +2,8 @@
 
 **Status:** berkas image, konfigurasi, panduan, test, dan addendum selesai; `ImageFilesTest` (10) dan suite penuh lulus di PHP 8.3.30 (670 passed, dilaporkan Orang 2). **Image belum dibangun atau dijalankan** (kebutuhan Docker), `vercel.json` belum dibuat, dan task **belum bisa DONE** (lihat "Belum selesai").
 **PIC:** Orang 2 · **Tanggal:** 4 Nov 2026
-**Dasar:** Task Board Deployment Vercel dan Supabase v1.2; D-26 dan D-30 (usulan); `docs/addendum/DEPLOY-IMAGE-001.md`; `docs/ops/vercel-deploy.md`.
-**Catatan jujur:** persetujuan pemilik atas D-26 dan D-30 belum tercatat; task dikerjakan atas arahan Orang 1.
+**Dasar:** Task Board Deployment Vercel dan Supabase v1.2; D-26 dan D-30 (diputuskan pemilik, tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026); `docs/addendum/DEPLOY-IMAGE-001.md`; `docs/ops/vercel-deploy.md`.
+**Catatan jujur:** tabel keputusan pemilik belum ada di repo; bagian 10 dokumen keputusan diisi pemilik.
 
 ## Yang dikerjakan
 1. `composer.json`: PHP `^8.3`.
@@ -29,11 +29,10 @@
 ## Belum selesai (syarat DONE)
 1. Build image, periksa isinya (tanpa `.env`), smoke lokal, uji upload foto dan import 200 baris di image (butuh Docker).
 2. `vercel.json` setelah membaca dokumentasi Container Runtime Vercel.
-3. Konfirmasi versi PHP laptop Orang 1 untuk `INTEG-O1-runner-result.md` dan `INTEG-TEST-001.md`.
-4. Review silang Orang 1.
+3. Review silang Orang 1.
 
 ## Temuan
 1. `composer.lock` `platform.php` masih `^8.2` (usang setelah `composer.json` dinaikkan).
 2. Base image tag dan lokasi Caddyfile bawaan FrankenPHP belum diverifikasi; karena itu `CMD` menyebut berkas konfigurasi secara eksplisit.
 3. `intl` tidak diwajibkan oleh `composer.lock`; dipasang karena Task Board menyebutnya (opsional).
-4. **Repo GitHub berstatus publik** (dijawab Orang 2). Pemindaian berkas yang dilacak dan berkas baru tidak menemukan rahasia (hanya placeholder `<project-ref>` di `.env.example` dan nilai palsu di test), dan `.env`, `.env.testing`, `.env.production` tidak pernah masuk riwayat. Namun commit pertama (`38df220`) memuat `DB_PASSWORD=` berisi nilai password PostgreSQL lokal di `.env.example`, dihapus di `5918c61`; nilainya tetap terbaca di riwayat publik. Jangan dipakai di Supabase atau tempat lain, dan ganti password lokal bila pernah dipakai di luar mesin sendiri. Pemindaian hanya mencakup berkas dan pola yang disebut; bukan audit riwayat penuh.
+4. **Repo GitHub berstatus publik; D-35 memutuskan dijadikan privat** (disampaikan Orang 2). Pemindaian seluruh riwayat (164 commit) dengan pola kunci AWS, JWT, kunci privat, URL database berpassword, dan nilai `JWT_SECRET`/`APP_KEY`/`AWS_SECRET_ACCESS_KEY`/`SEED_SUPER_ADMIN_PASSWORD`/`DB_PASSWORD` tidak menemukan rahasia, kecuali satu: commit pertama (`38df220`) memuat `DB_PASSWORD=` berisi password PostgreSQL lokal di `.env.example` (dihapus di `5918c61`). `.env`, `.env.testing`, `.env.production` tidak pernah masuk riwayat. Cocokan `SEED_SUPER_ADMIN_PASSWORD=` di `tests/Feature/Auth/SuperAdminSeedTest.php` adalah pola pemeriksaan regex, bukan nilai. Pemindaian terbatas pada pola itu; bukan jaminan riwayat bersih. Tindak lanjut D-35 (pemilik/Orang 2): ganti password lokal, jadikan repo privat, tambahkan collaborator, izinkan Vercel membaca repo privat; setelah privat, riwayat tetap terbawa ke siapa pun yang pernah meng-clone atau mem-fork saat publik.

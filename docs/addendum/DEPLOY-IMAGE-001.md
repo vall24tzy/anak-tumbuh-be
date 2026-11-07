@@ -2,7 +2,7 @@
 
 **Tanggal:** 4 Nov 2026 · **PIC:** Orang 2 · **Sifat perubahan:** berkas image dan konfigurasi baru, kenaikan syarat PHP, dan satu config paket; **tidak ada** perubahan endpoint, field respons, aturan bisnis, skema DB, maupun kode di `app/`.
 **Dasar:** Task Board Deployment Vercel dan Supabase v1.2 (DEPLOY-IMAGE-001), D-26 (PHP 8.3, usulan di `SoT-Amendment-DEPLOY-D26-D33.md`), D-30, D-29 (batas import 4 MB).
-**Catatan dependency:** D-26 dan D-30 masih **usulan** (persetujuan pemilik belum tercatat); task dikerjakan atas arahan Orang 1. Panduan lengkap (env, ekstensi, direktori tulis, gap) ada di `docs/ops/vercel-deploy.md`.
+**Catatan dependency:** D-26 (PHP 8.3 saja; `composer.json` `^8.3`, image di minor 8.3, suite lulus di 8.3.30) dan D-30 diputuskan pemilik (tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026); syarat D-26 terpenuhi: `composer.json` `^8.3`, image `php8.3`, suite 670 passed di PHP 8.3.30. Persetujuan tertulis di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` diisi pemilik. Panduan lengkap (env, ekstensi, direktori tulis, gap) ada di `docs/ops/vercel-deploy.md`.
 
 ## 1. Perubahan
 
@@ -30,7 +30,7 @@
 | (5) hasil `composer check-platform-reqs` dilampirkan | dijalankan di lingkungan lokal (Laragon, PHP 8.3.30): semua `success` (rincian di team-log); di dalam image dijalankan otomatis saat build, **belum dibangun** |
 | (6) ketidakcocokan versi PHP: suite dijalankan di versi image | suite dijalankan di PHP 8.3.30 (versi image 8.3.x), 670 passed; di dalam image **belum dijalankan** |
 | (7) PHP 8.3: `composer.json` `^8.3`, `composer.lock` konsisten, `check-platform-reqs` hijau, environment tim PHP 8.3 | `composer.json` `^8.3` dan `composer.lock` konsisten (`composer update --lock` dijalankan; `ImageFilesTest` lulus); `composer diagnose` di Cmder = PHP 8.3.30 Laragon; suite penuh lulus di 8.3.30 (670 passed). `composer check-platform-reqs --no-dev` hijau dan `composer validate` valid di lingkungan lokal; hijau di dalam image belum diuji |
-| (7) koreksi berkas hasil run yang menulis PHP 8.2.12 | berkas Orang 2 (`INTEG-O2-runner-result.md`, `INTEG-TEST-002.md`) dikoreksi (bagian 5); berkas Orang 1 (`INTEG-O1-runner-result.md`, `INTEG-TEST-001.md`) **belum**, menunggu konfirmasi Orang 1 |
+| (7) koreksi berkas hasil run yang menulis PHP 8.2.12 | berkas Orang 2 (`INTEG-O2-runner-result.md`, `INTEG-TEST-002.md`) dikoreksi (bagian 5); berkas Orang 1 dikoreksi menjadi "PHP 8.3" atas konfirmasi yang disampaikan Orang 2 (versi minor belum dicatat) |
 | (8) direktori tulis eksplisit (a sampai e) dan uji upload foto + import 200 baris di image | tabel ada di panduan bagian 5; pengaturannya ditulis; **uji di image belum dijalankan** |
 
 ## 3. Yang harus dilakukan setelah patch ini diterapkan
@@ -58,7 +58,7 @@ Task Board meminta berkas hasil run dan team-log yang menulis PHP 8.2.12 dikorek
 
 **Koreksi yang dilakukan (berkas Orang 2):** `docs/testing/INTEG-O2-runner-result.md` dan `docs/team-log/INTEG-TEST-002.md` menulis "PHP 8.3.30 (Laragon, Cmder)". Versi Laragon saat run tidak dicatat waktu itu; 8.3.30 adalah versi yang terpasang sekarang.
 
-**Tidak dikoreksi:** `docs/testing/INTEG-O1-runner-result.md` dan `docs/team-log/INTEG-TEST-001.md` (laptop Orang 1). Hanya Orang 1 yang tahu terminal dan PHP yang dipakai; minta konfirmasi dengan `php -v`, `where php`, dan `composer diagnose` di terminal yang menjalankan `php artisan serve`. Bila memang 8.2, itu menyalahi D-26 dan harus dilaporkan.
+**Berkas Orang 1 (`INTEG-O1-runner-result.md`, `INTEG-TEST-001.md`):** dikoreksi menjadi "PHP 8.3" atas konfirmasi yang disampaikan Orang 2 (7 Nov 2026) bahwa PHP laptop Orang 1 juga 8.3; versi minor dan terminalnya belum dicatat. Minta Orang 1 mengonfirmasi dengan `php -v` dan `composer diagnose` di terminal yang menjalankan `php artisan serve`.
 
 ## 6. Temuan
 

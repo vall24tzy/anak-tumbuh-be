@@ -68,7 +68,7 @@ Uji mutasi (kode dipulihkan setelahnya): default `from` = `to` - 7 -> 2 test gag
 Lingkungan penyusun: PHP 8.3.6, PostgreSQL 16.15 (bukan lingkungan tim: baseline tim memakai PostgreSQL 17.11).
 
 - `php artisan test`: **601 passed (3317 assertions)**.
-- Run laptop tim (22 Okt 2026, selesai 09:23 WIB; newman 6.2.3, PHP 8.2.12, PostgreSQL 17.11, `CACHE_STORE=database`, `--delay-request 13000`): folder 0-4 lalu INTEG-O1 dalam satu sesi, **108 request, 167 assertion, 0 gagal**; INTEG-O1 **37 request, 53 assertion, 0 gagal**. Ini yang tersimpan di `docs/testing/INTEG-O1-runner-result.md`.
+- Run laptop tim (22 Okt 2026, selesai 09:23 WIB; newman 6.2.3, PHP 8.3 (semula tertulis 8.2.12; koreksi 7 Nov 2026 atas konfirmasi yang disampaikan Orang 2 bahwa PHP laptop Orang 1 juga 8.3; versi minor belum dicatat), PostgreSQL 17.11, `CACHE_STORE=database`, `--delay-request 13000`): folder 0-4 lalu INTEG-O1 dalam satu sesi, **108 request, 167 assertion, 0 gagal**; INTEG-O1 **37 request, 53 assertion, 0 gagal**. Ini yang tersimpan di `docs/testing/INTEG-O1-runner-result.md`.
 - Run sandbox penyusun sebelumnya (21 Okt, hanya riwayat; sudah digantikan): newman 6.2.3, cache array, folder 0-8 lalu INTEG-O1 dalam satu sesi; INTEG-O1 **37 request, 53 assertion, 0 gagal**.
 
 ## Batas yang perlu diketahui

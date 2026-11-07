@@ -113,7 +113,7 @@ return [
                 : []),
         ],
 
-        // DEPLOY-RUNTIME-001 (D-27): koneksi khusus langkah rilis (usulan D-27: pooler mode SESSION port 5432,
+        // DEPLOY-RUNTIME-001 (D-27): koneksi khusus langkah rilis (D-27: pooler mode SESSION port 5432,
         // karena koneksi langsung Supabase hanya IPv6; koneksi langsung tetap bisa dipakai bila jaringan mendukung):
         //   php artisan migrate --database=pgsql_direct --force
         //   php artisan db:seed --database=pgsql_direct --force

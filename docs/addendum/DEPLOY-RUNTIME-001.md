@@ -1,8 +1,8 @@
 # DEPLOY-RUNTIME-001 — Koneksi PostgreSQL untuk pooler Supabase dan konfigurasi proxy/runtime
 
 **Tanggal:** 4 Nov 2026 · **PIC:** Orang 2 · **Sifat perubahan:** konfigurasi dan test; **tidak ada** perubahan endpoint, field respons, aturan bisnis, skema DB, maupun kode di `app/`.
-**Dasar:** Task Board Deployment Vercel dan Supabase v1.2 (DEPLOY-RUNTIME-001), D-27 (usulan di `SoT-Amendment-DEPLOY-D26-D33.md`), SECURITY-001 butir 4 (HTTPS), F-23 (rate limit login), Contract v1.3 bagian 7 (UTC).
-**Catatan dependency:** D-27 masih **usulan** (tabel persetujuan pemilik belum diisi); task dikerjakan atas arahan Orang 1. Bila pemilik mengubah D-27 (mis. mode session), bagian 2 dan 3 perlu disesuaikan.
+**Dasar:** Task Board Deployment Vercel dan Supabase v1.2 (DEPLOY-RUNTIME-001), D-27 (final sebagai rencana menurut tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026; teks awal usulan di `SoT-Amendment-DEPLOY-D26-D33.md`), SECURITY-001 butir 4 (HTTPS), F-23 (rate limit login), Contract v1.3 bagian 7 (UTC).
+**Catatan dependency:** D-27 diputuskan pemilik sebagai rencana (tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026): pooler mode transaksi untuk aplikasi dengan `DB_DISABLE_PREPARES` (bukan emulate prepares), migrate dan seed lewat pooler session (5432). Bukti pooler nyata adalah syarat lulus DEPLOY-VERIFY-001; jalan mundur: pooler session dengan batas koneksi. Persetujuan tertulis di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` diisi pemilik; tabel keputusan itu belum ada di repo.
 
 ## 1. Perubahan
 
@@ -61,9 +61,9 @@ Mekanismenya: Laravel mengubah boolean menjadi `1`/`0` sebelum mengikat (`Connec
 
 **Dampaknya bukan hanya migration.** Kode aplikasi memakai pola yang sama di sekurangnya 10 tempat (`where('is_active', true)` di `RankingService`, `StudentClassAssignmentService`, `DashboardService`, `TeacherService`, `AcademicYearService`, `TeacherAssignmentService`, `TeacherScopeService`, serta `update(['is_active' => false])` dan `where('allows_multi_select', ...)` pada `StudentHabitService`). Karena migration gagal lebih dulu, run itu **belum menunjukkan** apakah query aplikasi juga gagal; polanya sama sehingga hampir pasti gagal. Kesimpulan: `DB_EMULATE_PREPARES=true` **tidak layak** untuk aplikasi ini tanpa mengubah banyak kode.
 
-### Usulan perubahan mekanisme D-27 (menunggu keputusan Orang 1 dan pemilik)
+### Mekanisme D-27 (diputuskan pemilik: `DB_DISABLE_PREPARES`, bukan emulate prepares)
 
-D-27 (usulan) menyebut "emulate prepares". Tujuan sebenarnya adalah tidak memakai prepared statement bernama di pooler transaksi. Opsi PDO pgsql `PDO::PGSQL_ATTR_DISABLE_PREPARES` memenuhi tujuan itu tanpa menyisipkan literal: query dan parameter dikirim dalam satu panggilan, parameter tetap bertipe tak ditentukan. Karena itu ditambahkan flag `DB_DISABLE_PREPARES` (default mati, hanya koneksi `pgsql`). **Belum terbukti**: tidak ada run yang memakainya, dan perilaku terhadap pooler nyata hanya dapat dibuktikan di DEPLOY-VERIFY-001. D-27 perlu direvisi bila usulan ini dipakai; syaratnya tetap suite penuh hijau dengan opsi itu aktif.
+Teks awal D-27 (usulan) menyebut "emulate prepares"; pemilik memutuskan `DB_DISABLE_PREPARES`. Tujuan sebenarnya adalah tidak memakai prepared statement bernama di pooler transaksi. Opsi PDO pgsql `PDO::PGSQL_ATTR_DISABLE_PREPARES` memenuhi tujuan itu tanpa menyisipkan literal: query dan parameter dikirim dalam satu panggilan, parameter tetap bertipe tak ditentukan. Karena itu ditambahkan flag `DB_DISABLE_PREPARES` (default mati, hanya koneksi `pgsql`). **Belum terbukti**: tidak ada run yang memakainya, dan perilaku terhadap pooler nyata hanya dapat dibuktikan di DEPLOY-VERIFY-001. Syarat suite penuh hijau dengan opsi itu aktif sudah terpenuhi pada PostgreSQL biasa (lihat tabel); bukti pooler nyata tetap di VERIFY.
 
 Cara menjalankan (Cmder; catat `php -v` dari terminal yang sama; sudah dijalankan, lihat tabel di atas):
 

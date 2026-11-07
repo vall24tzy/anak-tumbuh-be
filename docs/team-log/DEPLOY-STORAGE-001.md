@@ -27,3 +27,9 @@
 ## Temuan
 1. Task Board menulis dua panggilan S3 per unduhan foto; kode sebenarnya sampai empat (`exists`, `mimeType`, `size`, `readStream`). Dicatat untuk PILOT.
 2. `.env.example` sebelumnya `AWS_USE_PATH_STYLE_ENDPOINT=false`; diubah `true` karena Supabase wajib path-style.
+
+## Review silang Orang 2 (7 Nov 2026, statis dari kode di vendor dan hasil run)
+
+1. **D-28 menetapkan "tanpa ACL" (x-amz-acl tidak didukung Supabase), tetapi implementasi saat ini tetap mengirim header itu.** Di `vendor/league/flysystem-aws-s3-v3/AwsS3V3Adapter.php`, `upload()` memakai `$acl = $options['params']['ACL'] ?? $this->determineAcl($config)` (baris 155) dan `copy()` memakai `visibilityToAcl($visibility ?: 'private')` (baris 444); nilai bawaannya `private`, jadi setiap unggah ke disk S3 membawa `x-amz-acl: private` walau `visibility` tidak diset di `config/filesystems.php`. Komentar config ("akses diatur lewat bucket, bukan ACL") benar untuk konfigurasinya, bukan untuk header yang dikirim adapter. Perilaku Supabase terhadap header itu **tidak diverifikasi di sini**; bila Supabase menolaknya, unggah foto dan logo gagal. Opsi: buktikan lebih dulu dengan unggah nyata di DEPLOY-VERIFY-001; bila gagal, buang header di sisi klien (middleware/handler AWS SDK atau adapter turunan) sebagai perubahan di task ini atau task lanjutan.
+2. Test: suite penuh 670 passed (3842 assertions) tanpa baris dilewati pada ringkasan, sehingga `StorageDiskConfigTest` berjalan penuh (adapter terpasang); dugaan dari ringkasan, bukan dari daftar per test.
+3. Tidak ditemukan masalah lain pada `config/filesystems.php`, tiga Request import (`max:4096`), dan test baru dalam pembacaan statis.

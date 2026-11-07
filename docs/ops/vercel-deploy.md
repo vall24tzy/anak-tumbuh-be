@@ -1,10 +1,10 @@
 # Panduan image dan konfigurasi Vercel (DEPLOY-IMAGE-001)
 
-**Status dokumen:** disusun 4 Nov 2026 oleh Orang 2 di sandbox tanpa Docker, PHP, composer, dan jaringan. **Tidak ada perintah di sini yang sudah dijalankan.** Semua keputusan dasar (D-26 sampai D-33) masih berstatus usulan. Fakta tentang Vercel dan Supabase diambil dari README Task Board Deployment v1.2 (dibaca saat board disusun) dan **harus diverifikasi ulang** terhadap dokumentasi vendor sebelum pilot.
+**Status dokumen:** disusun 4 Nov 2026 oleh Orang 2 di sandbox tanpa Docker, PHP, composer, dan jaringan. **Tidak ada perintah di sini yang sudah dijalankan.** Keputusan dasar D-26 sampai D-35 diputuskan pemilik menurut tabel yang diterima Orang 2 (7 Nov 2026); tabel itu belum ada di repo. Fakta tentang Vercel dan Supabase diambil dari README Task Board Deployment v1.2 (dibaca saat board disusun) dan **harus diverifikasi ulang** terhadap dokumentasi vendor sebelum pilot.
 
 ## 1. Versi PHP dan ekstensi
 
-- **PHP 8.3** (D-26 usulan). `composer.json` memuat `"php": "^8.3"`; `composer.lock` mengunci `intervention/image` 4.3.2, `intervention/gif` 5.0.1, dan `laravel/pint` yang mensyaratkan `^8.3`. `phpoffice/phpspreadsheet` 1.30.6 membatasi PHP `<8.5`.
+- **PHP 8.3** (D-26). `composer.json` memuat `"php": "^8.3"`; `composer.lock` mengunci `intervention/image` 4.3.2, `intervention/gif` 5.0.1, dan `laravel/pint` yang mensyaratkan `^8.3`. `phpoffice/phpspreadsheet` 1.30.6 membatasi PHP `<8.5`.
 - Setelah `composer.json` dinaikkan, `composer.lock` **harus** diperbarui lewat `composer update --lock` (hanya memperbarui `content-hash` dan `platform.php`). Hal ini tidak dikerjakan di sandbox (tidak boleh menulis `composer.lock` tanpa composer). `ImageFilesTest` gagal bila langkah ini terlewat.
 - Base image: `dunglas/frankenphp:1-php8.3` (**tag belum diverifikasi** ke registry).
 
@@ -133,4 +133,4 @@ Container Runtime Vercel berstatus Beta; body request/response 4,5 MB; durasi de
 | G5 | `composer.lock` perlu `composer update --lock` setelah `composer.json` dinaikkan, dan `composer require league/flysystem-aws-s3-v3` (STORAGE-001) belum dijalankan |
 | G6 | Tidak ada `HEALTHCHECK` di Dockerfile (route `/up` tersedia dan dikecualikan dari `EnforceHttps`) |
 | G7 | Image belum pernah dibangun atau dijalankan; seluruh butir acceptance criteria yang butuh image masih terbuka |
-| G8 | Catatan "PHP 8.2.12" pada hasil run lama berasal dari PowerShell (XAMPP); server di Cmder memakai Laragon 8.3.30 (dikonfirmasi Orang 2; `docs/addendum/DEPLOY-IMAGE-001.md` bagian 5). Berkas Orang 1 belum dikonfirmasi. |
+| G8 | Catatan "PHP 8.2.12" pada hasil run lama berasal dari PowerShell (XAMPP); server di Cmder memakai Laragon 8.3.30 (dikonfirmasi Orang 2); berkas Orang 1 dikoreksi menjadi "PHP 8.3" atas konfirmasi yang disampaikan Orang 2 (`docs/addendum/DEPLOY-IMAGE-001.md` bagian 5). |

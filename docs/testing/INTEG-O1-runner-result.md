@@ -5,7 +5,7 @@
 ## Ringkasan
 
 - Folder **INTEG-O1: 37 request, 53 assertion, 0 gagal** (QR 7, REKAP 10, PANDUAN 20).
-- Lingkungan: newman 6.2.3; PHP 8.2.12; PostgreSQL 17.11; database baru (migrate:fresh --seed); CACHE_STORE=database; --delay-request 13000. Isi file ini hanya nama request, kode HTTP, dan hasil assertion (tanpa token, password, atau isi respons).
+- Lingkungan: newman 6.2.3; PHP 8.3 (semula tertulis 8.2.12; koreksi 7 Nov 2026 atas konfirmasi yang disampaikan Orang 2 bahwa PHP laptop Orang 1 juga 8.3; versi minor belum dicatat); PostgreSQL 17.11; database baru (migrate:fresh --seed); CACHE_STORE=database; --delay-request 13000. Isi file ini hanya nama request, kode HTTP, dan hasil assertion (tanpa token, password, atau isi respons).
 
 ## Rincian folder INTEG-O1
 
