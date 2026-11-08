@@ -47,9 +47,12 @@ ENV APP_ENV=production \
     VIEW_COMPILED_PATH=/tmp/views \
     EXCEL_TEMP_PATH=/tmp/laravel-excel \
     XDG_CONFIG_HOME=/tmp \
-    XDG_DATA_HOME=/tmp
+    XDG_DATA_HOME=/tmp \
+    PORT=80
 
-EXPOSE 8080
+# Port 80 = bawaan Vercel untuk container (dokumentasi resmi); yang menentukan port rute adalah PORT di atas, bukan EXPOSE.
+# Port 80 adalah port istimewa: aman selama container berjalan sebagai root (lihat risiko root di docs/ops/vercel-deploy.md).
+EXPOSE 80
 
 # Tidak ada migrate, seed, atau config:cache di sini. Berkas konfigurasi disebut EKSPLISIT (lokasi Caddyfile bawaan
 # image berbeda antar versi FrankenPHP, jadi tidak mengandalkan CMD bawaan).

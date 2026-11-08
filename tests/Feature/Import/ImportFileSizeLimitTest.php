@@ -17,7 +17,8 @@ use Tests\TestCase;
 // Diuji di level rule: hanya aturan `max` yang dievaluasi, pada file palsu berukuran tepat 4096 KB (diterima)
 // dan 4097 KB (ditolak). Aturan `mimes:xlsx` sengaja tidak ikut karena file palsu bukan xlsx sungguhan.
 //
-// STATUS EKSEKUSI: ditulis di sandbox tanpa PHP; jalankan `php artisan test --filter=ImportFileSizeLimitTest`.
+// STATUS EKSEKUSI: lulus dalam suite penuh 670 (PHP 8.3.30); jumlah dilewati tidak tercatat. Ulangi dengan
+// `php artisan test --filter=ImportFileSizeLimitTest`.
 
 class ImportFileSizeLimitTest extends TestCase
 {

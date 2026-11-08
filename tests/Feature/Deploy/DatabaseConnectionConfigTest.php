@@ -20,8 +20,8 @@ use Tests\TestCase;
 //   - `pgsql_direct` benar-benar bisa dipakai (query dan `migrate:status --database=pgsql_direct`)
 //   - .env.example: nilai default aman, CACHE_STORE=database, APP_TIMEZONE=UTC; config/app.php default UTC
 //
-// STATUS EKSEKUSI: ditulis di sandbox tanpa PHP; BELUM dijalankan. Jalankan
-// `php artisan test --filter=DatabaseConnectionConfigTest`.
+// STATUS EKSEKUSI: dijalankan di PHP 8.3.30 (Laragon, Cmder): suite penuh 670 passed (3842 assertions), baik baseline maupun dengan DB_DISABLE_PREPARES=true.
+// Ulangi dengan `php artisan test --filter=DatabaseConnectionConfigTest`.
 
 class DatabaseConnectionConfigTest extends TestCase
 {

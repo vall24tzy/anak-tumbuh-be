@@ -1,7 +1,8 @@
 # DEPLOY-IMAGE-001: FrankenPHP/Caddy untuk Laravel. Document root = public/.
 # TLS dihentikan oleh Vercel, jadi Caddy hanya melayani HTTP di port dalam container.
-# Port: {$PORT} bila platform menyetelnya, selain itu 8080. BELUM DIVERIFIKASI terhadap kebutuhan Vercel
-# Container Runtime (lihat docs/ops/vercel-deploy.md, bagian Gap).
+# Port mengikuti variabel PORT, bawaan 80 (dokumentasi resmi Vercel: https://vercel.com/kb/guide/laravel-php-with-docker
+# dan https://vercel.com/kb/guide/deploy-php-on-vercel-with-docker). EXPOSE di Dockerfile tidak mengatur port yang
+# dirutekan Vercel; yang menentukan adalah PORT (diset ENV PORT=80). Isi belum diuji di Vercel.
 {
 	auto_https off
 	admin off
@@ -9,7 +10,7 @@
 	order php_server before file_server
 }
 
-:{$PORT:8080} {
+:{$PORT:80} {
 	root * /app/public
 	encode zstd gzip
 

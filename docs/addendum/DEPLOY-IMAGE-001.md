@@ -10,7 +10,8 @@
 |---|---|
 | `composer.json` | `php` dari `^8.2` menjadi `^8.3` (D-26). **`composer.lock` tidak diubah** (butuh `composer update --lock`, lihat bagian 3) |
 | `Dockerfile.vercel` | image FrankenPHP PHP 8.3; ekstensi `pdo_pgsql gd zip intl opcache`; `composer check-platform-reqs --no-dev` saat build; `package:discover` saat build; log ke stderr; tanpa `.env`, tanpa migrate/seed/config:cache |
-| `Caddyfile` | root `public/`, `php_server`, TLS dihentikan di platform, log akses ke stderr |
+| `Caddyfile` | root `public/`, `php_server`, TLS dihentikan di platform, port `:{$PORT:80}`, log akses ke stderr |
+| `vercel.json` | satu service container dan rewrite ke service itu (dokumentasi resmi Vercel; belum diuji di Vercel) |
 | `docker/php/zz-vercel.ini` | `upload_max_filesize=5M`, `post_max_size=6M`, `upload_tmp_dir=/tmp`, `sys_temp_dir=/tmp`, `display_errors=Off` |
 | `.dockerignore` | mengecualikan `.env`, `.env.*` (kecuali `.env.example`), `.git`, `vendor`, `tests`, `docs` |
 | `config/excel.php` | file sementara Excel lewat `EXCEL_TEMP_PATH` (hanya bagian `temporary_files`; default tanpa env = perilaku lama) |

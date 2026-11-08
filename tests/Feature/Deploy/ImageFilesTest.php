@@ -18,8 +18,11 @@ use Tests\TestCase;
 //   - php.ini image: upload_max_filesize >= 5M (batas import 4 MB) dan post_max_size >= upload_max_filesize
 //   - config/excel.php: file sementara Excel dapat diarahkan lewat EXCEL_TEMP_PATH, bagian config lain tetap
 //   - docs/ops/vercel-deploy.md memuat setiap variabel di .env.example (nama saja)
+//   - port mengikuti dokumentasi resmi Vercel: Caddyfile `:{$PORT:80}`, Dockerfile `ENV PORT=80` dan `EXPOSE 80`, tanpa 8080
+//   - vercel.json: JSON valid, satu service container (entrypoint Dockerfile.vercel), rewrite ke service itu, tanpa rahasia
 //
-// STATUS EKSEKUSI: ditulis di sandbox tanpa PHP; BELUM dijalankan. Jalankan
+// STATUS EKSEKUSI: 10 test awal dijalankan di PHP 8.3.30 (Laragon, Cmder): suite penuh 670 passed (3842 assertions), baik baseline maupun dengan DB_DISABLE_PREPARES=true.
+// Dua test tambahan (port dan vercel.json, revisi dari review Orang 1) ditulis BELUM dijalankan. Jalankan
 // `php artisan test --filter=ImageFilesTest`.
 
 class ImageFilesTest extends TestCase
@@ -118,6 +121,54 @@ class ImageFilesTest extends TestCase
             $dockerfile,
             'Dockerfile.vercel tidak boleh memuat nilai rahasia'
         );
+    }
+
+    // ---------- port dan vercel.json (dokumentasi resmi Vercel, belum diuji di Vercel) ----------
+
+    /** @test */
+    public function port_mengikuti_dokumentasi_vercel_80_di_caddyfile_dan_dockerfile_tanpa_sisa_8080(): void
+    {
+        $caddyfile = $this->read('Caddyfile');
+        $dockerfile = $this->read('Dockerfile.vercel');
+
+        $this->assertStringContainsString(':{$PORT:80}', $caddyfile);
+
+        // Lipat baris lanjutan (\) supaya blok ENV multi-baris dibaca sebagai satu instruksi.
+        $folded = preg_replace('/\\\\\\s*\\n\\s*/', ' ', $dockerfile);
+        $this->assertMatchesRegularExpression('/^ENV\b[^\n]*\bPORT=80\b/m', (string) $folded, 'ENV PORT=80 tidak ada');
+        $this->assertMatchesRegularExpression('/^EXPOSE 80\s*$/m', $dockerfile);
+
+        $this->assertStringNotContainsString('8080', $caddyfile);
+        $this->assertStringNotContainsString('8080', $dockerfile);
+    }
+
+    /** @test */
+    public function vercel_json_valid_satu_service_container_dengan_rewrite_ke_app(): void
+    {
+        $raw = $this->read('vercel.json');
+        $config = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame('https://openapi.vercel.sh/vercel.json', $config['$schema']);
+
+        $app = $config['services']['app'];
+        $this->assertSame('container', $app['runtime']);
+        $this->assertSame('Dockerfile.vercel', $app['entrypoint']);
+        $this->assertSame('.', $app['root']);
+        $this->assertFileExists(base_path($app['entrypoint']), 'entrypoint vercel.json menunjuk berkas yang tidak ada');
+
+        $matching = array_values(array_filter(
+            $config['rewrites'],
+            fn (array $rewrite) => ($rewrite['source'] ?? null) === '/(.*)'
+        ));
+        $this->assertCount(1, $matching);
+        $this->assertSame('app', $matching[0]['destination']['service']);
+
+        // Tanpa rahasia dan tidak dikecualikan .dockerignore (tidak perlu masuk image, tetapi aman bila ikut tersalin).
+        $this->assertDoesNotMatchRegularExpression(
+            '/(password|secret|token|api[_-]?key|postgres(ql)?:\/\/)/i',
+            $raw
+        );
+        $this->assertNotContains('vercel.json', $this->activeLines('.dockerignore'));
     }
 
     // ---------- .dockerignore, Caddyfile, php.ini ----------

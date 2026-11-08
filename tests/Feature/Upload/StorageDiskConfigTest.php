@@ -17,7 +17,8 @@ use Tests\TestCase;
 // (composer require league/flysystem-aws-s3-v3). Tidak ada koneksi ke Supabase atau AWS; kegagalan put() disimulasikan
 // ke endpoint lokal yang menolak koneksi.
 //
-// STATUS EKSEKUSI: ditulis di sandbox tanpa PHP; jalankan `php artisan test --filter=StorageDiskConfigTest`.
+// STATUS EKSEKUSI: lulus dalam suite penuh 670 (PHP 8.3.30); jumlah dilewati tidak tercatat. Ulangi dengan
+// `php artisan test --filter=StorageDiskConfigTest`.
 
 class StorageDiskConfigTest extends TestCase
 {

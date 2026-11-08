@@ -113,6 +113,7 @@ return [
                 : []),
         ],
 
+        // Nama 'direct' TIDAK berarti koneksi langsung: isinya koneksi langkah rilis, direncanakan lewat pooler mode session (D-27).
         // DEPLOY-RUNTIME-001 (D-27): koneksi khusus langkah rilis (D-27: pooler mode SESSION port 5432,
         // karena koneksi langsung Supabase hanya IPv6; koneksi langsung tetap bisa dipakai bila jaringan mendukung):
         //   php artisan migrate --database=pgsql_direct --force

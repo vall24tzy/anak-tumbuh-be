@@ -27,11 +27,11 @@ Ekstensi (turunan statis dari `composer.lock`, bukan keluaran `composer check-pl
 | Berkas | Fungsi |
 |---|---|
 | `Dockerfile.vercel` | image FrankenPHP PHP 8.3: ekstensi, `composer install --no-dev`, autoload dioptimalkan, `package:discover` saat build, direktori tulis, `CMD` eksplisit |
-| `Caddyfile` | root `public/`, `php_server`, TLS dihentikan di platform, port `{$PORT:8080}`, log akses ke stderr |
+| `Caddyfile` | root `public/`, `php_server`, TLS dihentikan di platform, port `{$PORT:80}` (dokumentasi resmi Vercel), log akses ke stderr |
 | `docker/php/zz-vercel.ini` | `upload_max_filesize=5M`, `post_max_size=6M`, `upload_tmp_dir=/tmp`, produksi (tanpa display_errors) |
 | `.dockerignore` | mengecualikan `.env`, `.env.*` (kecuali `.env.example`), `.git`, `vendor`, `tests`, `docs` |
 | `config/excel.php` | file sementara Excel diarahkan lewat `EXCEL_TEMP_PATH` |
-| `vercel.json` | **BELUM dibuat** (lihat bagian 8, G1) |
+| `vercel.json` | satu service container (`entrypoint` `Dockerfile.vercel`) dan satu rewrite ke service itu; isi mengikuti dokumentasi resmi Vercel (bagian 8) dan **belum diuji di Vercel** |
 
 ## 3. Build dan pemeriksaan image (belum dijalankan)
 
@@ -95,7 +95,7 @@ Kolom "Nilai yang dimaksud" memuat pilihan nilai, bukan nilai rahasia. Rahasia h
 | `VITE_APP_NAME` | tidak | bawaan Laravel (tidak ada build frontend di image) |
 | `VIEW_COMPILED_PATH` | image | `/tmp/views` (diset di Dockerfile) |
 | `EXCEL_TEMP_PATH` | image | `/tmp/laravel-excel` (diset di Dockerfile) |
-| `PORT` | bergantung platform | port dalam container; default Caddyfile 8080 (belum diverifikasi, G2) |
+| `PORT` | image | `80`, diset di Dockerfile; sesuai dokumentasi resmi Vercel (bagian 8) |
 
 ## 5. Direktori tulis (butir 8)
 
@@ -122,14 +122,19 @@ Hanya `/tmp` yang diandalkan saat runtime. **Perilaku sistem berkas Vercel belum
 
 Container Runtime Vercel berstatus Beta; body request/response 4,5 MB; durasi default 300 detik; tanpa Static IP dan Secure Compute. Konsekuensinya: batas import aplikasi 4 MB (D-29), `TRUSTED_PROXIES=*`, dan akses database tidak bisa dibatasi per IP (bergantung kredensial dan SSL).
 
-## 8. Gap dan hal yang belum dikerjakan
+## 8. Sesuai dokumentasi resmi Vercel, dan gap
+
+**Sudah sesuai dokumentasi resmi Vercel (tetap belum diuji di Vercel).** Sumber: https://vercel.com/kb/guide/laravel-php-with-docker dan https://vercel.com/kb/guide/deploy-php-on-vercel-with-docker, dibaca Orang 1; ringkasannya dipakai apa adanya dan **belum dicocokkan oleh Orang 2** (sandbox tanpa jaringan).
+- Port: alamat situs Caddy `:{$PORT:80}`; port bawaan container Vercel 80; `EXPOSE` tidak mengatur port yang dirutekan, variabel `PORT` yang mengaturnya (Dockerfile memakai `ENV PORT=80`).
+- `vercel.json`: satu service container (`root` `.`, `entrypoint` `Dockerfile.vercel`, `runtime` `container`) dan rewrite `/(.*)` ke service itu.
+- Laravel: tidak menjalankan perintah cache konfigurasi saat build karena nilai env datang saat runtime (Dockerfile tidak memuat `config:cache`; dikunci `ImageFilesTest`).
+
+**Gap yang masih terbuka** (nomor G1 dan G2 sudah ditutup dan tidak dipakai ulang):
 
 | ID | Gap |
 |---|---|
-| G1 | `vercel.json` belum dibuat: skema konfigurasi Container Runtime (Beta) tidak diketahui dan tidak dapat diperiksa tanpa jaringan; tidak diisi dengan tebakan |
-| G2 | Port yang diharapkan Vercel untuk container belum diketahui; Caddyfile memakai `{$PORT:8080}` |
 | G3 | Tag base image `dunglas/frankenphp:1-php8.3` belum diverifikasi ke registry; kunci digest setelah verifikasi |
-| G4 | Container berjalan sebagai root (belum ada `USER` non-root); penguatan ini belum diuji dengan FrankenPHP |
+| G4 | **Risiko root:** container berjalan sebagai root (belum ada `USER` non-root). Panduan resmi Vercel memakai pengguna non-root dengan `setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp` dan `chown` untuk `/config/caddy` dan `/data/caddy`. Port 80 adalah port istimewa dan aman selama proses berjalan sebagai root. Keputusan: root dipertahankan untuk sementara dan ditinjau setelah PILOT; Dockerfile tidak diubah ke non-root sekarang karena menambah risiko build yang belum bisa diuji |
 | G5 | `composer.lock` perlu `composer update --lock` setelah `composer.json` dinaikkan, dan `composer require league/flysystem-aws-s3-v3` (STORAGE-001) belum dijalankan |
 | G6 | Tidak ada `HEALTHCHECK` di Dockerfile (route `/up` tersedia dan dikecualikan dari `EnforceHttps`) |
 | G7 | Image belum pernah dibangun atau dijalankan; seluruh butir acceptance criteria yang butuh image masih terbuka |

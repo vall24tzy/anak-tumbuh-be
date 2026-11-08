@@ -22,8 +22,8 @@ use Tests\TestCase;
 // TRUSTED_PROXIES diset SEBELUM aplikasi dibuat karena bootstrap/app.php membacanya saat boot; proxy tepercaya
 // disimpan Laravel di properti static, jadi di-flush sebelum dan sesudah test.
 //
-// STATUS EKSEKUSI: ditulis di sandbox tanpa PHP; BELUM dijalankan. Jalankan
-// `php artisan test --filter=TrustedProxies`.
+// STATUS EKSEKUSI: dijalankan di PHP 8.3.30 (Laragon, Cmder): suite penuh 670 passed (3842 assertions), baik baseline maupun dengan DB_DISABLE_PREPARES=true.
+// Ulangi dengan `php artisan test --filter=TrustedProxies`.
 
 class TrustedProxiesEnabledTest extends TestCase
 {
