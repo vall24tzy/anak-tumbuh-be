@@ -1,7 +1,7 @@
 # SoT Amendment — Keputusan deploy Vercel dan Supabase, mode gratis (D-26 sampai D-33)
 
 **Disusun:** 1 Nov 2026 · **Penyusun:** Orang 1 (task DEPLOY-DECISION-001) · **Yang memutuskan:** pemilik ANAKTUMBUH.ID
-**Status:** **USULAN, BELUM FINAL.** Baris persetujuan dan tanggal di bagian 10 sengaja dikosongkan untuk diisi pemilik. **Revisi 2 (review Orang 1):** menambah pemeriksaan perintah `SET` sesi di D-27 dan syarat batas durasi fungsi di D-31; tidak ada keputusan yang diubah. Berkas ini tidak mengedit `SoT-Amendment-INTEG-D01-D13.md` maupun `SoT-Amendment-INTEG-DOC-001.md`, dan tidak mengubah kode, test, atau dokumen lain.
+**Status (revisi 3, 7 Nov 2026): keputusan D-26 sampai D-35 SUDAH DIPUTUSKAN pemilik, tetapi hanya sebagai laporan.** Teks keputusan datang dari tabel pemilik yang diterima Orang 2 lalu diteruskan ke Orang 1; tabel aslinya **belum dilihat langsung** dan **belum ada tanda tangan di berkas ini**. Bagian 1 sampai 9 di bawah adalah **usulan awal (riwayat)**; bila berbeda dengan **bagian 11**, bagian 11 yang berlaku. **Revisi 2 (review Orang 1):** menambah pemeriksaan perintah `SET` sesi di D-27 dan syarat batas durasi fungsi di D-31; tidak ada keputusan yang diubah. Berkas ini tidak mengedit `SoT-Amendment-INTEG-D01-D13.md` maupun `SoT-Amendment-INTEG-DOC-001.md`, dan tidak mengubah kode, test, atau dokumen lain.
 
 **Batasan fase ini (arahan Orang 1):** hanya layanan **gratis** (Vercel Hobby, Supabase Free), tanpa biaya. Tujuannya membuktikan bahwa aplikasi bisa berjalan di Vercel dan Supabase; keterbatasan paket gratis diterima. Keputusan ini ditinjau ulang sebelum production (DEPLOY-PRODPREP-001). Semua usulan di bawah memakai batasan itu, dan hal yang berubah dibandingkan usulan awal di board ditandai.
 
@@ -82,11 +82,50 @@ Catatan: Vercel Container Runtime masih **Beta** (dokumentasi resmi, tersedia di
 
 | # | Keputusan final (isi atau coret usulan) | Disetujui pemilik | Tanggal |
 |---|---|---|---|
-| D-26 | | | |
-| D-27 | | | |
-| D-28 | | | |
-| D-29 | | | |
-| D-30 | | | |
-| D-31 | | | |
-| D-32 | | | |
-| D-33 | | | |
+| D-26 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-27 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-28 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-29 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-30 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-31 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-32 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-33 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-34 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+| D-35 | Lihat bagian 11 | Dilaporkan lewat Orang 2; belum tertanda di berkas | 7 Nov 2026 (laporan) |
+
+## 11. Keputusan final D-26 sampai D-35 (sebagaimana dilaporkan; berlaku bila berbeda dari bagian 1 sampai 9)
+
+**Sumber:** tabel pemilik yang diterima Orang 2 dan diteruskan ke Orang 1 (7 Nov 2026), disalin apa adanya di bawah. Bukan dokumen yang dilihat langsung oleh penyusun. Kolom persetujuan di bagian 10 tetap menunggu tanda tangan di berkas.
+
+| ID | Keputusan | Syarat atau catatan |
+|---|---|---|
+| D-26 | PHP 8.3 saja | `composer.json` `^8.3`, image di minor 8.3, suite lulus di 8.3.30 |
+| D-27 | Pooler mode transaksi untuk aplikasi dengan `DB_DISABLE_PREPARES` (bukan emulate prepares); migrate dan seed lewat pooler session (5432) | Final sebagai rencana. Bukti pooler nyata adalah syarat lulus DEPLOY-VERIFY-001. Jalan mundur: pooler session dengan batas koneksi |
+| D-28 | Supabase Storage lewat S3, foto privat, logo publik | Tanpa ACL (`x-amz-acl` tidak didukung Supabase). Wajib terbukti di VERIFY, termasuk di paket Free. Bila gagal: naikkan paket uji atau pakai penyedia S3 lain |
+| D-29 | Batas upload import 4 MB | Batas Vercel 4,5 MB sudah terkonfirmasi. Contract, Panduan, dan Koreksi FE diperbarui lewat DEPLOY-LIMIT-001 dan DEPLOY-DOC-001 |
+| D-30 | Dua project Supabase (uji dan production), satu project Vercel (Preview dan Production) | Region berdekatan dengan pengguna; periksa ketersediaan dan batas project paket Free; pertimbangkan perlindungan data pribadi |
+| D-31 | Kriteria lulus pilot: Postman lulus, upload/unduh dan import berhasil, tanpa error koneksi, latensi dan cold start dicatat | Angka batas ditetapkan setelah pengukuran. NO-GO: host Laravel konvensional |
+| D-32 | Paket Free untuk Supabase | Risiko diterima: tanpa backup otomatis, project terjeda setelah seminggu, hanya data uji; dump manual diuji di PRODPREP |
+| D-33 | Vercel Hobby, proyek non-komersial | Berlaku selama tidak ada yang mendapat uang dari proyek ini; pemilik memegang akun, 2FA aktif, kredensial tidak masuk repo; verifikasi pemicu deployment dua orang saat pilot |
+| D-34 | Task keamanan terpisah untuk 20 advisory `composer audit` (terutama phpspreadsheet) | Menahan go-live, bukan pilot. Advisory yang tidak diperbaiki dicatat sebagai risiko yang diterima pemilik |
+| D-35 | Repo dijadikan privat tanpa perubahan lain | Ganti password lokal yang pernah terbuka, pindai riwayat untuk rahasia lain, tambahkan collaborator, izinkan Vercel membaca repo privat |
+
+**Catatan Orang 2 atas D-35 (dilaporkan):** password lokal yang pernah terbuka di commit awal sudah berbeda dari password yang dipakai sekarang, jadi tidak ada yang perlu dirotasi; pemindaian riwayat tidak menemukan rahasia lain. Orang 1 belum memeriksa ini sendiri. **Status repo saat bagian ini ditulis: masih publik** (dapat diambil dari GitHub tanpa autentikasi pada 7 Nov 2026).
+
+### Perbedaan terhadap usulan awal (bagian 1 sampai 9)
+
+| ID | Usulan awal | Keputusan final |
+|---|---|---|
+| D-27 | Pooler transaction dengan **emulate prepares** | `DB_DISABLE_PREPARES`. Run suite dengan emulate prepares gagal total (611 test gagal, `boolean = integer`), dilaporkan Orang 2 di `docs/addendum/DEPLOY-RUNTIME-001.md` |
+| D-28 | Akses ACL tidak dibahas | **Tanpa ACL.** Lihat catatan di bawah |
+| D-29 | Batas 4,5 MB belum diverifikasi | Terkonfirmasi (menurut tabel) |
+| D-30 | Satu project Supabase untuk pilot, production ditunda | **Dua** project Supabase (uji dan production) |
+| D-33 | Pemegang akun Vercel Hobby, lokasi repo ditanyakan | Hobby, proyek non-komersial, syarat 2FA dan kredensial di luar repo |
+| D-34, D-35 | Belum ada | Baru |
+
+### Hal yang perlu dicatat, bukan keputusan baru
+
+1. **D-28 "tanpa ACL" belum dipenuhi kode.** Adapter `league/flysystem-aws-s3-v3` tetap mengirim `x-amz-acl: private` pada tiap unggah walau `visibility` tidak diset (ditemukan Orang 2 di `vendor/.../AwsS3V3Adapter.php`). Komentar di `config/filesystems.php` ("akses diatur lewat bucket, bukan ACL") menggambarkan maksud, bukan perilaku header. Dibuktikan di VERIFY; bila Supabase menolak header itu, task kode terpisah (mis. membuang header di klien AWS SDK) dan bukan tebakan sekarang.
+2. **D-30 dan D-32 tampak tidak sejalan:** dua project Supabase, sedangkan paket Free tidak boleh menyimpan data siswa nyata dan paket production baru diputuskan di PRODPREP. Project "production" pada paket Free hanya boleh berisi data uji sampai PRODPREP memutuskan paketnya. Diselesaikan di PRODPREP, tidak diubah di sini.
+3. **D-34 belum punya baris di Task Board Deployment v1.2.** Perlu task keamanan terpisah (menahan go-live, bukan pilot); penambahan ke board dilakukan oleh pemegang board.
+4. **D-31:** batas durasi fungsi Vercel Hobby dan angka cold start tetap dicatat saat PILOT.
