@@ -24,15 +24,15 @@
 
 | Butir | Status |
 |---|---|
-| (1) Dockerfile dan konfigurasi di repo tanpa `.env`/rahasia (dibuktikan dengan memeriksa isi image) | berkas ada; **image belum dibangun**, jadi pemeriksaan isi image belum dilakukan. Yang terbukti hanya pemeriksaan teks oleh `ImageFilesTest` (belum dijalankan) |
-| (2) Image berjalan lokal dan lolos smoke (endpoint infrastruktur, login Super Admin) | **belum dijalankan** |
+| (1) Dockerfile dan konfigurasi di repo tanpa `.env`/rahasia (dibuktikan dengan memeriksa isi image) | berkas ada; image dibangun Orang 1 dan di dalamnya hanya `.env.example` (tanpa `.env`), dilaporkan Orang 1; pemeriksaan riwayat layer (`docker history`) tidak dilaporkan; `ImageFilesTest` (12) lulus |
+| (2) Image berjalan lokal dan lolos smoke (endpoint infrastruktur, login Super Admin) | image dibangun dan smoke kontainer lokal lolos (dilaporkan Orang 1, 8 Nov 2026): `/up` 200, `/api/v1/auth/me` tanpa token 401 dengan envelope `unauthorized`, Caddy di `:80`. **Login Super Admin tidak diuji** (`APP_KEY` placeholder, tanpa database); dipindah ke VERIFY dan PILOT |
 | (3) `docs/ops/vercel-deploy.md` (env, versi PHP, ekstensi, langkah build, batasan, direktori tulis) | ada; semua isi berstatus belum diverifikasi terhadap image dan Vercel |
 | (4) `LOG_CHANNEL=stderr`; migrate sebagai langkah rilis terpisah | diset di Dockerfile; tidak ada migrate di image; langkah rilis ditulis di panduan bagian 6 |
-| (5) hasil `composer check-platform-reqs` dilampirkan | dijalankan di lingkungan lokal (Laragon, PHP 8.3.30): semua `success` (rincian di team-log); di dalam image dijalankan otomatis saat build, **belum dibangun** |
-| (6) ketidakcocokan versi PHP: suite dijalankan di versi image | suite dijalankan di PHP 8.3.30 (versi image 8.3.x), 670 passed; di dalam image **belum dijalankan** |
+| (5) hasil `composer check-platform-reqs` dilampirkan | lokal (Laragon, PHP 8.3.30): semua `success`; di dalam image: `composer check-platform-reqs --no-dev` semua `success` (dilaporkan Orang 1) |
+| (6) ketidakcocokan versi PHP: suite dijalankan di versi image | suite 670 passed di PHP 8.3.30 (laptop Orang 2) dan 672 lulus di laptop Orang 1 (versi minor tidak tercatat); image memakai PHP 8.3.36; suite di dalam image tidak dijalankan |
 | (7) PHP 8.3: `composer.json` `^8.3`, `composer.lock` konsisten, `check-platform-reqs` hijau, environment tim PHP 8.3 | `composer.json` `^8.3` dan `composer.lock` konsisten (`composer update --lock` dijalankan; `ImageFilesTest` lulus); `composer diagnose` di Cmder = PHP 8.3.30 Laragon; suite penuh lulus di 8.3.30 (670 passed). `composer check-platform-reqs --no-dev` hijau dan `composer validate` valid di lingkungan lokal; hijau di dalam image belum diuji |
 | (7) koreksi berkas hasil run yang menulis PHP 8.2.12 | berkas Orang 2 (`INTEG-O2-runner-result.md`, `INTEG-TEST-002.md`) dikoreksi (bagian 5); berkas Orang 1 dikoreksi menjadi "PHP 8.3" atas konfirmasi yang disampaikan Orang 2 (versi minor belum dicatat) |
-| (8) direktori tulis eksplisit (a sampai e) dan uji upload foto + import 200 baris di image | tabel ada di panduan bagian 5; pengaturannya ditulis; **uji di image belum dijalankan** |
+| (8) direktori tulis eksplisit (a sampai e) dan uji upload foto + import 200 baris di image | tabel ada di panduan bagian 5; pengaturannya ditulis; **uji di image belum dijalankan**; autosave Caddy menulis ke `/tmp/caddy` pada smoke lokal (dilaporkan Orang 1) |
 
 ## 3. Yang harus dilakukan setelah patch ini diterapkan
 

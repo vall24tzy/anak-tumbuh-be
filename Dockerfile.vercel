@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 # DEPLOY-IMAGE-001 (D-26: PHP 8.3 saja). Image Laravel untuk Vercel Container Runtime (Beta) dengan FrankenPHP.
 #
-# BELUM DIJALANKAN: berkas ini ditulis di sandbox tanpa Docker dan tanpa jaringan. Tag base image di bawah
-# belum diverifikasi ke registry; periksa di Docker Hub sebelum build pertama, dan pertimbangkan mengunci digest.
+# Status: image DIBANGUN dan smoke kontainer LOKAL lolos (Orang 1, 7-8 Nov 2026, laptop Orang 1; dilaporkan Orang 1):
+# docker build berhasil, tag base image di bawah terbukti ada, /up 200 dan /api/v1/auth/me tanpa token 401. BELUM
+# terbukti: berjalan di Vercel, koneksi Supabase, header X-Forwarded-*. Pertimbangkan mengunci digest base image.
 #
 # Build:  docker build -f Dockerfile.vercel -t anaktumbuh-be:vercel .
 # Prinsip: tanpa .env atau rahasia di layer image (semua rahasia lewat environment platform), tanpa migrate saat

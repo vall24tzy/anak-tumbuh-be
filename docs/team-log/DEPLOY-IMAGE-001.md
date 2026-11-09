@@ -1,6 +1,6 @@
 # DEPLOY-IMAGE-001 — Log
 
-**Status:** berkas image, konfigurasi, panduan, test, dan addendum selesai; `ImageFilesTest` (10) dan suite penuh lulus di PHP 8.3.30 (670 passed, dilaporkan Orang 2). **Image belum dibangun atau dijalankan** (kebutuhan Docker), `vercel.json` dan port mengikuti dokumentasi resmi Vercel tetapi **belum diuji di Vercel**, dan task **belum bisa DONE** (lihat "Belum selesai").
+**Status:** image dibangun dan smoke kontainer lokal lolos (dilaporkan Orang 1, 8 Nov 2026); sisanya (Vercel, koneksi Supabase, header `X-Forwarded-*`, login dan upload di dalam image) di PILOT dan VERIFY. Berkas, panduan, test, dan addendum selesai; `ImageFilesTest` (12) dan suite penuh lulus (Orang 2: 670 passed di PHP 8.3.30; Orang 1: 672 lulus). `vercel.json` dan port mengikuti dokumentasi resmi Vercel tetapi **belum diuji di Vercel**. Review silang Orang 1 dilakukan (statis). Dua butir acceptance criteria dipindah ke VERIFY dan PILOT atas permintaan Orang 1: login Super Admin di dalam image (butir 2) dan upload foto serta import 200 baris di image (butir 8).
 **PIC:** Orang 2 · **Tanggal:** 4 Nov 2026
 **Dasar:** Task Board Deployment Vercel dan Supabase v1.2; D-26 dan D-30 (diputuskan pemilik, tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026); `docs/addendum/DEPLOY-IMAGE-001.md`; `docs/ops/vercel-deploy.md`.
 **Catatan jujur:** tabel keputusan pemilik belum ada di repo; bagian 10 dokumen keputusan diisi pemilik.
@@ -16,7 +16,7 @@
 ## Yang diperiksa dan yang tidak
 - Diperiksa dengan membaca: `vendor/composer/platform_check.php` (mewajibkan PHP >= 8.3.0, sehingga catatan "PHP 8.2.12" pada hasil run lama kemungkinan dari terminal lain; inferensi), `composer.lock` (daftar `ext-*` per paket, batas PHP, `platform`, `content-hash`), config `maatwebsite/excel` di vendor (bagian `temporary_files`), `config/logging.php` (channel `stderr` ada), `config/filesystems.php` hasil STORAGE-001, pemakaian queue/session/mail/redis di `app/`, dan route `/` (satu-satunya pemakai view).
 - **Tidak dijalankan:** sandbox tanpa Docker, PHP, composer, dan jaringan. Image tidak dibangun; `composer check-platform-reqs`, `php -v`, smoke, dan test tidak dijalankan; sintaks PHP hanya diperiksa dengan menghitung kurung.
-- **Tidak dikerjakan (gap):** verifikasi tag base image; pengujian direktori tulis di image; upload foto dan import 200 baris di image; koreksi berkas hasil run yang menulis PHP 8.2.12 (butuh keterangan pemilik laptop).
+- **Tidak dikerjakan (gap):** pengujian direktori tulis di image; upload foto dan import 200 baris di image; koreksi berkas hasil run yang menulis PHP 8.2.12 (butuh keterangan pemilik laptop).
 - **Tidak dikerjakan:** pembaruan `composer.lock` (tidak boleh ditulis tanpa composer).
 
 ## Hasil yang dilaporkan Orang 2
@@ -26,13 +26,21 @@
 - `composer audit`: **20 advisory pada 8 paket** (`laravel/framework` 5, `league/commonmark` 2, `phpoffice/phpspreadsheet` 3, `symfony/http-foundation` 5, `symfony/http-kernel` 1, `symfony/mime` 1, `symfony/routing` 1, `symfony/yaml` 2). Penilaian keterjangkauan dan keputusan ada pada Orang 1 dan pemilik (task keamanan terpisah, di luar scope IMAGE); sengaja tidak diuraikan di repo publik ini.
 - Versi PHP pada hasil run lama: koreksi berkas Orang 2 dilakukan; berkas Orang 1 menunggu konfirmasi (addendum bagian 5).
 
+## Hasil run Orang 1 (dilaporkan Orang 1, 7 Nov 2026; laptop Orang 1, branch `deploy/vercel-orang2` @ `c3b97aa`)
+- `php artisan test --filter=ImageFilesTest`: 12 lulus.
+- Suite penuh: 672 lulus (670 + 2 test baru). Jumlah assertion dan versi PHP minor laptop Orang 1: **tidak tercatat**.
+- `docker build -f Dockerfile.vercel -t anaktumbuh-be:vercel .`: **berhasil**. Tag `dunglas/frankenphp:1-php8.3` terbukti ada (gap "tag base image belum diverifikasi" ditutup).
+- Di dalam image: PHP 8.3.36 (ZTS) dengan OPcache; modul `pdo_pgsql`, `gd`, `intl`, `zip`, `sodium`, `fileinfo`, `mbstring` terpasang; `composer check-platform-reqs --no-dev`: semua `success`; tidak ada `.env` (hanya `.env.example`); `post_max_size` 6M dan `upload_max_filesize` 5M.
+- **Smoke kontainer lokal (dilaporkan Orang 1, 8 Nov 2026):** `docker run -p 8080:80 anaktumbuh-be:vercel` dengan `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`. `curl /up`: 200 (request pertama 0,51 dtk, berikutnya 0,11 dtk; lokal, bukan cold start Vercel). `curl /api/v1/auth/me` tanpa token: 401 dengan `{"error":{"code":"unauthorized","message":"Token not provided","details":[]}}`. Caddy (FrankenPHP 8.3.36) berjalan di `:80`, `Caddyfile` terbaca, autosave Caddy menulis ke `/tmp/caddy`. `APP_KEY` placeholder, tidak dipakai kedua endpoint itu.
+- **Belum terbukti:** berjalan di Vercel, koneksi Supabase, header `X-Forwarded-*`, redaksi header `Authorization` pada log Caddy (sedang diperiksa Orang 1), login Super Admin dan upload di dalam image.
+
 ## Belum selesai (syarat DONE)
-1. Build image, periksa isinya (tanpa `.env`), smoke lokal, uji upload foto dan import 200 baris di image (butuh Docker).
+1. Di PILOT dan VERIFY: login Super Admin dan koneksi database di dalam image, upload foto dan import 200 baris di image, perilaku di Vercel, header `X-Forwarded-*`; konfirmasi hasil pemeriksaan redaksi `Authorization` pada log Caddy dari Orang 1.
 2. Review silang Orang 1.
 
 ## Temuan
-1. `composer.lock` `platform.php` masih `^8.2` (usang setelah `composer.json` dinaikkan).
-2. Base image tag dan lokasi Caddyfile bawaan FrankenPHP belum diverifikasi; karena itu `CMD` menyebut berkas konfigurasi secara eksplisit.
+1. `composer.lock` `platform.php` sempat `^8.2` (usang setelah `composer.json` dinaikkan); sudah diperbarui lewat `composer update --lock`.
+2. Tag base image `dunglas/frankenphp:1-php8.3` **terbukti ada** (build berhasil, dilaporkan Orang 1); `CMD` tetap menyebut berkas konfigurasi secara eksplisit karena lokasi Caddyfile bawaan berbeda antar versi. Digest belum dikunci.
 3. `intl` tidak diwajibkan oleh `composer.lock`; dipasang karena Task Board menyebutnya (opsional).
 4. **Repo GitHub berstatus publik; D-35 memutuskan dijadikan privat** (disampaikan Orang 2). Pemindaian seluruh riwayat (164 commit) dengan pola kunci AWS, JWT, kunci privat, URL database berpassword, dan nilai `JWT_SECRET`/`APP_KEY`/`AWS_SECRET_ACCESS_KEY`/`SEED_SUPER_ADMIN_PASSWORD`/`DB_PASSWORD` tidak menemukan rahasia, kecuali satu: commit pertama (`38df220`) memuat `DB_PASSWORD=` berisi password PostgreSQL lokal di `.env.example` (dihapus di `5918c61`). `.env`, `.env.testing`, `.env.production` tidak pernah masuk riwayat. Cocokan `SEED_SUPER_ADMIN_PASSWORD=` di `tests/Feature/Auth/SuperAdminSeedTest.php` adalah pola pemeriksaan regex, bukan nilai. Pemindaian terbatas pada pola itu; bukan jaminan riwayat bersih. Tindak lanjut D-35 (pemilik/Orang 2): ganti password lokal, jadikan repo privat, tambahkan collaborator, izinkan Vercel membaca repo privat; setelah privat, riwayat tetap terbawa ke siapa pun yang pernah meng-clone atau mem-fork saat publik.
 

@@ -33,7 +33,11 @@ Ekstensi (turunan statis dari `composer.lock`, bukan keluaran `composer check-pl
 | `config/excel.php` | file sementara Excel diarahkan lewat `EXCEL_TEMP_PATH` |
 | `vercel.json` | satu service container (`entrypoint` `Dockerfile.vercel`) dan satu rewrite ke service itu; isi mengikuti dokumentasi resmi Vercel (bagian 8) dan **belum diuji di Vercel** |
 
-## 3. Build dan pemeriksaan image (belum dijalankan)
+## 3. Build dan pemeriksaan image (build berhasil; smoke kontainer lokal lolos; Vercel belum)
+
+**Hasil build dilaporkan Orang 1 (7 Nov 2026, laptop Orang 1, branch `deploy/vercel-orang2` @ `c3b97aa`):** `docker build -f Dockerfile.vercel -t anaktumbuh-be:vercel .` **berhasil**; tag `dunglas/frankenphp:1-php8.3` terbukti ada. Di dalam image: PHP 8.3.36 (ZTS) dengan OPcache; modul `pdo_pgsql`, `gd`, `intl`, `zip`, `sodium`, `fileinfo`, `mbstring` terpasang; `composer check-platform-reqs --no-dev`: semua `success`; tidak ada `.env` (hanya `.env.example`); `post_max_size` 6M dan `upload_max_filesize` 5M. Smoke kontainer lokal (dilaporkan Orang 1, 8 Nov 2026; laptop Orang 1, branch `deploy/vercel-orang2` @ `c3b97aa`): `docker run -p 8080:80 anaktumbuh-be:vercel` dengan `APP_ENV=production`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`. `curl /up`: 200 (request pertama 0,51 dtk, berikutnya 0,11 dtk; lokal, **bukan** cold start Vercel). `curl /api/v1/auth/me` tanpa token: 401 dengan `{"error":{"code":"unauthorized","message":"Token not provided","details":[]}}`. Caddy (FrankenPHP 8.3.36) berjalan di `:80`, `Caddyfile` terbaca, autosave Caddy menulis ke `/tmp/caddy`. Catatan: `APP_KEY` pada run ini placeholder dan tidak dipakai kedua endpoint itu; login Super Admin dan koneksi database tidak diuji.
+
+**Belum terbukti:** berjalan di Vercel, koneksi Supabase, header `X-Forwarded-*`, dan redaksi header `Authorization` pada log Caddy (pemeriksaan sedang dijalankan Orang 1); sisanya di PILOT. Perintah di bawah adalah daftar pemeriksaan; tidak semuanya ada dalam laporan Orang 1.
 
 ```
 docker build -f Dockerfile.vercel -t anaktumbuh-be:vercel .
@@ -129,13 +133,12 @@ Container Runtime Vercel berstatus Beta; body request/response 4,5 MB; durasi de
 - `vercel.json`: satu service container (`root` `.`, `entrypoint` `Dockerfile.vercel`, `runtime` `container`) dan rewrite `/(.*)` ke service itu.
 - Laravel: tidak menjalankan perintah cache konfigurasi saat build karena nilai env datang saat runtime (Dockerfile tidak memuat `config:cache`; dikunci `ImageFilesTest`).
 
-**Gap yang masih terbuka** (nomor G1 dan G2 sudah ditutup dan tidak dipakai ulang):
+**Gap yang masih terbuka** (nomor G1, G2, dan G3 sudah ditutup (G3: tag base image terbukti ada lewat build berhasil, dilaporkan Orang 1) dan tidak dipakai ulang):
 
 | ID | Gap |
 |---|---|
-| G3 | Tag base image `dunglas/frankenphp:1-php8.3` belum diverifikasi ke registry; kunci digest setelah verifikasi |
 | G4 | **Risiko root:** container berjalan sebagai root (belum ada `USER` non-root). Panduan resmi Vercel memakai pengguna non-root dengan `setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp` dan `chown` untuk `/config/caddy` dan `/data/caddy`. Port 80 adalah port istimewa dan aman selama proses berjalan sebagai root. Keputusan: root dipertahankan untuk sementara dan ditinjau setelah PILOT; Dockerfile tidak diubah ke non-root sekarang karena menambah risiko build yang belum bisa diuji |
 | G5 | `composer.lock` perlu `composer update --lock` setelah `composer.json` dinaikkan, dan `composer require league/flysystem-aws-s3-v3` (STORAGE-001) belum dijalankan |
 | G6 | Tidak ada `HEALTHCHECK` di Dockerfile (route `/up` tersedia dan dikecualikan dari `EnforceHttps`) |
-| G7 | Image belum pernah dibangun atau dijalankan; seluruh butir acceptance criteria yang butuh image masih terbuka |
+| G7 | Image dibangun dan smoke kontainer lokal lolos (Orang 1); belum diuji: login Super Admin dan koneksi database di dalam image (butuh Supabase), upload foto dan import 200 baris di image, perilaku di Vercel, header `X-Forwarded-*`, redaksi `Authorization` pada log Caddy; dipindah ke VERIFY dan PILOT |
 | G8 | Catatan "PHP 8.2.12" pada hasil run lama berasal dari PowerShell (XAMPP); server di Cmder memakai Laragon 8.3.30 (dikonfirmasi Orang 2); berkas Orang 1 dikoreksi menjadi "PHP 8.3" atas konfirmasi yang disampaikan Orang 2 (`docs/addendum/DEPLOY-IMAGE-001.md` bagian 5). |

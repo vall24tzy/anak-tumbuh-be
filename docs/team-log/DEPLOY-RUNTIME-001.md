@@ -20,6 +20,11 @@
 - Pemeriksaan flag (`check-prepares.php`, skrip sekali pakai di luar repo, dijalankan Orang 2 di Cmder, PHP 8.3.30): **tanpa flag** opsi `PGSQL_ATTR_DISABLE_PREPARES` tidak ada di config dan server menahan **2** prepared statement bernama; **dengan `DB_DISABLE_PREPARES=true`** opsi itu bernilai `true` di config dan server menahan **0**. Jadi flag aktif dan benar-benar menghilangkan prepared statement bernama pada koneksi. (Perkiraan awal "1 tanpa flag" salah: hitungan ikut menghitung query pemeriksa itu sendiri.)
 - Lingkungan: PHP 8.3.30 (Laragon; `composer diagnose` di Cmder menunjukkan PHP yang sama), Cmder, PostgreSQL biasa (bukan pooler). Tidak ada baris dilewati pada ringkasan `Tests:`, sehingga `MailExposureGuardTest`, `FrameworkAdvisoryGuardTest`, dan `StorageDiskConfigTest` ikut lulus tanpa dilewati (diturunkan dari ringkasan, bukan dari daftar per test).
 
+## Hasil run Orang 1 (dilaporkan Orang 1, 7 Nov 2026; laptop Orang 1, branch `deploy/vercel-orang2` @ `c3b97aa`)
+- Suite penuh: 672 lulus (670 + 2 test baru di `ImageFilesTest`). Jumlah assertion, versi PHP minor, dan apakah dijalankan dengan `DB_DISABLE_PREPARES=true`: **tidak tercatat**.
+- Hasil Orang 2 (PHP 8.3.30, PostgreSQL biasa) tetap acuan untuk kedua mode: 670 passed baseline dan 670 passed dengan `DB_DISABLE_PREPARES=true`.
+- Perilaku terhadap pooler Supabase nyata belum terbukti; dikerjakan di DEPLOY-VERIFY-001.
+
 ## Yang diperiksa dan yang tidak
 - Diperiksa dengan membaca kode dan vendor: `bootstrap/app.php` dan `EnforceHttps` (SECURITY-001), limiter login (`AppServiceProvider`), `Connector::getOptions()` (opsi `options` PDO digabung dengan bawaan), `TrustProxies` (daftar proxy di properti static; ada `flushState()`), `PostgresConnector` (membaca `sslmode` dan `sslrootcert`), `config/jwt.php` (blacklist memakai cache), pemakaian queue/session/scheduler di `app/` dan `routes/`, dan fitur SQL yang rusak di pooler transaksi (tidak ditemukan; lihat addendum bagian 3).
 - **Tidak dijalankan:** sandbox tanpa PHP, composer, PostgreSQL, dan jaringan. Tidak ada test, `php -l`, atau suite yang dijalankan; sintaks hanya diperiksa dengan menghitung kurung. Sintaks dan perilaku 22 test baru belum terbukti.
