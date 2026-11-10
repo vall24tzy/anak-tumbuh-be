@@ -5,10 +5,10 @@
 ## 0. Gerbang (syarat sebelum VERIFY dimulai)
 Semua harus terpenuhi dan tercatat:
 1. Project Supabase uji ada, dengan **dua bucket** (privat untuk foto, publik untuk logo) dan **akses S3 aktif**.
-2. Akun pemegang jelas (D-33: Orang 2, email perusahaan) dan tanda tangan pemilik di bagian 10 dokumen keputusan tercatat (10 Nov 2026).
+2. Akun pemegang jelas (D-33: Orang 2, akun pribadi) dan tanda tangan pemilik di bagian 10 dokumen keputusan tercatat (10 Nov 2026).
 3. Acceptance criteria butir (0): paket Supabase uji dipastikan mendukung Storage S3 dan pooler (D-32, paket Free). **Bila tidak, VERIFY tidak dimulai.**
 4. DEPLOY-STORAGE-001, DEPLOY-RUNTIME-001, dan DEPLOY-LIMIT-001 lulus review silang (kode dan test).
-5. Pemilik mengonfirmasi **2FA aktif** pada akun Vercel dan Supabase (syarat D-33). Per 10 Nov 2026 status ini belum dijawab.
+5. Pemilik mengonfirmasi **2FA aktif** pada akun Vercel dan Supabase (syarat D-33). Per 10 Nov 2026 pemilik menyatakan 2FA aktif; bila akun pribadi dibuat baru, pastikan 2FA aktif juga di akun itu.
 
 ## 1. Persiapan lokal
 1. Branch yang memuat ketiga task di atas; di terminal yang akan dipakai: `php -v` harus 8.3.x (D-26), `composer diagnose` memakai PHP yang sama (hindari XAMPP 8.2 pada PATH), `composer install`.
