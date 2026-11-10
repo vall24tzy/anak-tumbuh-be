@@ -49,7 +49,7 @@ Daftar lengkap dan arti tiap variabel: `docs/ops/vercel-deploy.md` bagian 4.
 
 | Butir AC | Bukti | Status |
 |---|---|---|
-| (0) paket mendukung S3 dan pooler | tangkapan atau catatan ketentuan paket | belum dimulai |
+| (0) paket mendukung S3 dan pooler | tangkapan atau catatan ketentuan paket | dokumentasi vendor diperiksa (bagian 6) dan dikonfirmasi pemilik di dashboard project uji 10 Nov 2026 (bagian 8): kunci S3 dapat dibuat di paket Free, kedua string pooler tampil. **Dilaporkan pemilik; belum dibuktikan dengan operasi nyata (migrate, unggah)** |
 | (1) migrate dan seed | keluaran perintah (tanpa rahasia) | belum dimulai |
 | (2) aplikasi lewat pooler | konfigurasi dan hasil login | belum dimulai |
 | (3) hasil newman per folder | `DEPLOY-VERIFY-001-runner-result.md` | belum dimulai |
@@ -64,3 +64,37 @@ Daftar lengkap dan arti tiap variabel: `docs/ops/vercel-deploy.md` bagian 4.
 - Batas koneksi pooler: bila terlampaui, jalan mundur D-27 adalah pooler session dengan batas koneksi.
 - Vercel belum disentuh di VERIFY (hanya lokal); `vercel.json` dan port belum diuji di Vercel.
 - Jangan menjalankan VERIFY terhadap database production; jangan mengirim kunci atau password lewat chat; jangan menulis rahasia ke repo.
+
+## 6. Pemeriksaan ketentuan paket Free (butir 0), 10 Nov 2026
+**Sumber:** dokumentasi dan halaman harga resmi Supabase, dibaca penyusun pada 10 Nov 2026. Ini **catatan dari dokumentasi, bukan bukti uji**; Supabase bisa mengubahnya. Butir (0) baru terpenuhi setelah dikonfirmasi di dashboard project uji (langkah di bagian 7).
+
+| Hal | Yang tertulis di dokumentasi | Dampak |
+|---|---|---|
+| Pooler shared (Supavisor) pada paket Free | Tersedia mode session (port 5432) dan transaction (port 6543), keduanya IPv4, di host `aws-<indeks>-<region>.pooler.supabase.com`; username `postgres.<project-ref>` | Sesuai D-27. Koneksi langsung (`db.<ref>.supabase.co:5432`) di paket Free hanya IPv6, jadi migrate dan seed memakai pooler session, bukan koneksi langsung |
+| Prepared statements di mode transaction | Tidak didukung; dokumentasi menyarankan mematikannya di library klien | Sesuai `DB_DISABLE_PREPARES=true` |
+| Storage lewat S3 | Perlu diaktifkan di pengaturan Storage project; endpoint berbentuk `https://<ref>.supabase.co/storage/v1/s3`; kunci akses S3 dibuat di pengaturan yang sama. Halaman kompatibilitas yang dibaca tidak menyebut pembatasan paket, tetapi **ketersediaan di paket Free belum dikonfirmasi di dashboard** | Wajib dikonfirmasi (bagian 7) |
+| ACL | Halaman kompatibilitas menandai `x-amz-acl` sebagai tidak didukung. Yang tidak tertulis: apakah header itu **diabaikan atau ditolak** | Tetap hipotesis yang dibuktikan di langkah 3 bagian 3 |
+| Batas paket Free | 2 project aktif, 1 GB penyimpanan file, batas unggah 50 MB per berkas, project dijeda setelah 1 minggu tanpa aktivitas | Batas 4 MB import (D-29) jauh di bawah 50 MB. Pada paket Free hanya satu project uji yang dibuat sekarang; project "production" (D-30) dibuat saat PRODPREP agar tidak menghabiskan batas 2 project |
+
+## 7. Langkah penyiapan project uji (dikerjakan pemilik; tanpa rahasia di berkas ini)
+1. Buat project Supabase uji di akun pemegang (Orang 2) dengan region terdekat pengguna yang ditawarkan dashboard. Simpan password database di pengelola kata sandi, **bukan** di repo atau chat.
+2. Storage: aktifkan koneksi S3, buat dua bucket, satu **privat** (foto siswa) dan satu **publik** (logo sekolah), lalu buat kunci akses S3. Catat region yang tertera di pengaturan S3; nilai itu dipakai untuk `AWS_DEFAULT_REGION`.
+3. Database: ambil string koneksi **Session pooler** (5432) dan **Transaction pooler** (6543) lewat tombol Connect.
+4. Konfirmasi butir (0): pengaturan S3 dapat diaktifkan dan kunci dapat dibuat di project berpaket Free; kedua string pooler tampil. Catat hasilnya (ya atau tidak, dengan tanggal) di `docs/team-log/DEPLOY-VERIFY-001.md`.
+5. Kabari Orang 1 bahwa gerbang (bagian 0) terpenuhi, tanpa mengirim kunci atau password.
+
+## 8. Hasil penyiapan project uji (dilaporkan pemilik, 10 Nov 2026)
+Tanpa rahasia: kunci, password, dan project ref tidak ditulis di berkas ini; disimpan pemilik di pengelola kata sandi.
+
+| Hal | Hasil |
+|---|---|
+| Paket | Free |
+| Region | `ap-southeast-1` (host pooler `aws-1-ap-southeast-1.pooler.supabase.com`) |
+| Pooler | Session pooler (port 5432) dan Transaction pooler (port 6543) tampil di dashboard, user berbentuk `postgres.<project-ref>`, database `postgres` |
+| S3 | Koneksi S3 aktif dan kunci akses S3 berhasil dibuat |
+| Bucket | `anaktumbuh-foto-uji` (privat, foto siswa) dan `anaktumbuh-logo-uji` (publik, logo sekolah) |
+| Data API | **Dimatikan** saat project dibuat (Enable Data API dikosongkan; "Enable automatic RLS" kosong). Aplikasi hanya memakai koneksi database langsung lewat Laravel |
+
+**Gerbang bagian 0:** butir 1, 2, dan 3 terpenuhi per 10 Nov 2026 (berdasarkan laporan pemilik). Butir 4 mengikuti status board (STORAGE, RUNTIME, LIMIT: DONE kode dan test, lulus review silang). VERIFY dapat dimulai.
+
+**Yang belum terbukti dan dicatat di VERIFY:** migrate lewat pooler session, aplikasi lewat pooler transaksi, unggah dan unduh S3 (termasuk header `x-amz-acl`), dan bahwa Storage S3 tetap berfungsi dengan Data API mati. Tabel hasil migrate ada di schema `public`; dengan Data API mati tabel itu tidak terjangkau lewat API Supabase, tetapi pengaturan ini ditinjau ulang sebelum PRODPREP (khususnya untuk project production).

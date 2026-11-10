@@ -26,3 +26,7 @@ VERIFY, PILOT, PRODPREP, DEPLOYMENT-001, DOC. Smoke test kontainer, konfirmasi `
 
 ## Cara penandatanganan penerimaan risiko D-34 (dijawab 10 Nov 2026)
 Tanda tangan di repo berarti teks persetujuan yang ditulis dan di-commit oleh pemilik, sama seperti bagian 10. Tidak ada tanda tangan terpisah. Daftar advisory per item baru ada setelah `DEPLOY-SECURITY-001` selesai, sehingga penandatanganan dilakukan di akhir task itu dan **sebelum go-live**: Orang 2 menambah bagian "Persetujuan risiko diterima" di `docs/addendum/DEPLOY-SECURITY-001.md`, berisi tabel advisory yang tidak diperbaiki (paket, ID advisory, alasan tidak diperbaiki atau menunggu upgrade), satu kalimat seperti "Persetujuan risiko D-34. Pemilik = Orang 2. Disetujui oleh: Faisal Nisrina. Tanggal: [tanggal]", lalu commit atas nama Orang 2. Bagian 12 `SoT-Amendment-DEPLOY-D26-D33.md` sudah memuat penerimaan risiko yang berlaku umum; tanda tangan di akhir `DEPLOY-SECURITY-001` memuat daftar rincinya.
+
+## Hal terbuka baru (10 Nov 2026)
+1. **Pemilik repo bukan Orang 2.** Repo GitHub dimiliki akun teman Orang 2. Langkah D-35 (privat, collaborator, izin Vercel) perlu pemilik repo; gate (c) tidak berubah. Perlu pembicaraan Orang 2 dengan pemilik repo sebelum PILOT, dan keputusan cara deploy PILOT (integrasi Git atau CLI). Perilaku Vercel Hobby terhadap repo milik akun lain belum diverifikasi; diuji di PILOT.
+2. **Project Supabase uji siap** (dilaporkan pemilik; rincian di `docs/ops/verify-supabase.md` bagian 8). Gerbang VERIFY terpenuhi menurut laporan itu; belum ada bukti operasi nyata.
