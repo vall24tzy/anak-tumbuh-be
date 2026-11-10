@@ -25,7 +25,7 @@
 | Butir | Status |
 |---|---|
 | (1) Dockerfile dan konfigurasi di repo tanpa `.env`/rahasia (dibuktikan dengan memeriksa isi image) | berkas ada; image dibangun Orang 1 dan di dalamnya hanya `.env.example` (tanpa `.env`), dilaporkan Orang 1; pemeriksaan riwayat layer (`docker history`) tidak dilaporkan; `ImageFilesTest` (12) lulus |
-| (2) Image berjalan lokal dan lolos smoke (endpoint infrastruktur, login Super Admin) | image dibangun dan smoke kontainer lokal lolos (dilaporkan Orang 1, 8 Nov 2026): `/up` 200, `/api/v1/auth/me` tanpa token 401 dengan envelope `unauthorized`, Caddy di `:80`. **Login Super Admin tidak diuji** (`APP_KEY` placeholder, tanpa database); dipindah ke VERIFY dan PILOT |
+| (2) Image berjalan lokal dan lolos smoke untuk endpoint infrastruktur; login Super Admin tidak diklaim lolos dan diuji di VERIFY/PILOT | image dibangun dan smoke kontainer lokal lolos (dilaporkan Orang 1, 8 Nov 2026): `/up` 200, `/api/v1/auth/me` tanpa token 401 dengan envelope `unauthorized`, Caddy di `:80`. **Login Super Admin tidak diuji** (`APP_KEY` placeholder, tanpa database); dipindah ke VERIFY dan PILOT; redaksi header `Authorization` pada log akses Caddy terbukti lokal (Orang 1, 9 Nov 2026) |
 | (3) `docs/ops/vercel-deploy.md` (env, versi PHP, ekstensi, langkah build, batasan, direktori tulis) | ada; semua isi berstatus belum diverifikasi terhadap image dan Vercel |
 | (4) `LOG_CHANNEL=stderr`; migrate sebagai langkah rilis terpisah | diset di Dockerfile; tidak ada migrate di image; langkah rilis ditulis di panduan bagian 6 |
 | (5) hasil `composer check-platform-reqs` dilampirkan | lokal (Laragon, PHP 8.3.30): semua `success`; di dalam image: `composer check-platform-reqs --no-dev` semua `success` (dilaporkan Orang 1) |
