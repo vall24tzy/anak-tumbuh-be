@@ -3,7 +3,7 @@
 **Status:** kode (config), test, dan addendum selesai; suite penuh **lulus (670 passed) baik baseline maupun dengan `DB_DISABLE_PREPARES=true`** pada PostgreSQL biasa (dilaporkan Orang 2). **Belum bisa DONE:** perilaku terhadap pooler nyata belum terbukti, aktifnya flag **terbukti** lewat skrip pemeriksa, dan bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` diisi pemilik (lihat "Belum selesai").
 **PIC:** Orang 2 · **Tanggal:** 4 Nov 2026
 **Dasar:** Task Board Deployment Vercel dan Supabase v1.2; D-27 (final sebagai rencana, tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026); `docs/addendum/DEPLOY-RUNTIME-001.md`.
-**Dependency:** DEPLOY-DECISION-001. **Catatan jujur:** D-26 sampai D-35 diputuskan pemilik menurut tabel yang diterima Orang 2 (7 Nov 2026); tabel itu belum ada di repo dan bagian 10 dokumen keputusan diisi pemilik. Bila D-27 berubah, config dan addendum perlu disesuaikan.
+**Dependency:** DEPLOY-DECISION-001. **Catatan jujur:** D-26 sampai D-35 diputuskan pemilik menurut tabel yang diterima Orang 2 (7 Nov 2026); tabel itu belum ada di repo dan bagian 10 dokumen keputusan diisi pemilik (diperbarui 10 Nov 2026: sudah diisi pemilik; lihat `DEPLOY-ORANG2-sync.md`). Bila D-27 berubah, config dan addendum perlu disesuaikan.
 
 ## Yang dikerjakan
 1. `config/database.php`: koneksi `pgsql` membaca `DB_SSLMODE`, `DB_SSLROOTCERT`, dan dua flag opsi PDO yang default mati (`DB_DISABLE_PREPARES` disarankan, `DB_EMULATE_PREPARES` tidak disarankan); koneksi baru `pgsql_direct` (`DB_DIRECT_*`) untuk migrate dan seed.

@@ -1,13 +1,14 @@
 # Rencana DEPLOY-VERIFY-001 — validasi lokal terhadap Supabase uji
 
-**Status:** rencana langkah; **VERIFY belum dimulai**. Disusun Orang 2 dari Acceptance Criteria DEPLOY-VERIFY-001 di Task Board Deployment v1.2 dan keputusan D-26 sampai D-35 (dilaporkan pemilik; belum tertanda di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md`). Dokumen ini tanpa rahasia: hanya nama variabel, tidak ada nilai, kunci, atau URL project. Fakta tentang Supabase (port pooler, perilaku Storage) berasal dari dokumen keputusan dan README Task Board, belum diverifikasi, dan harus dicek ulang saat VERIFY.
+**Status:** rencana langkah; **VERIFY belum dimulai**. Disusun Orang 2 dari Acceptance Criteria DEPLOY-VERIFY-001 di Task Board Deployment v1.2 dan keputusan D-26 sampai D-35 (disetujui pemilik, tertanda di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` pada 10 Nov 2026). Dokumen ini tanpa rahasia: hanya nama variabel, tidak ada nilai, kunci, atau URL project. Fakta tentang Supabase (port pooler, perilaku Storage) berasal dari dokumen keputusan dan README Task Board, belum diverifikasi, dan harus dicek ulang saat VERIFY.
 
 ## 0. Gerbang (syarat sebelum VERIFY dimulai)
 Semua harus terpenuhi dan tercatat:
 1. Project Supabase uji ada, dengan **dua bucket** (privat untuk foto, publik untuk logo) dan **akses S3 aktif**.
-2. Akun pemegang jelas (D-33) dan tanda tangan pemilik di bagian 10 dokumen keputusan tercatat.
+2. Akun pemegang jelas (D-33: Orang 2, email perusahaan) dan tanda tangan pemilik di bagian 10 dokumen keputusan tercatat (10 Nov 2026).
 3. Acceptance criteria butir (0): paket Supabase uji dipastikan mendukung Storage S3 dan pooler (D-32, paket Free). **Bila tidak, VERIFY tidak dimulai.**
 4. DEPLOY-STORAGE-001, DEPLOY-RUNTIME-001, dan DEPLOY-LIMIT-001 lulus review silang (kode dan test).
+5. Pemilik mengonfirmasi **2FA aktif** pada akun Vercel dan Supabase (syarat D-33). Per 10 Nov 2026 status ini belum dijawab.
 
 ## 1. Persiapan lokal
 1. Branch yang memuat ketiga task di atas; di terminal yang akan dipakai: `php -v` harus 8.3.x (D-26), `composer diagnose` memakai PHP yang sama (hindari XAMPP 8.2 pada PATH), `composer install`.

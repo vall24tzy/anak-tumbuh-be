@@ -3,7 +3,7 @@
 **Status:** image dibangun dan smoke kontainer lokal lolos (dilaporkan Orang 1, 8 Nov 2026); sisanya (Vercel, koneksi Supabase, header `X-Forwarded-*`, login dan upload di dalam image) di PILOT dan VERIFY; redaksi `Authorization` pada log Caddy terbukti lokal (Orang 1, 9 Nov 2026). Pemilik menyetujui DONE (build dan smoke lokal) dengan dua syarat yang sudah dipenuhi: kalimat login Super Admin pada AC (2) tidak lagi mengklaim lolos, dan catatan PILOT di board memakai "sampai empat panggilan S3". Berkas, panduan, test, dan addendum selesai; `ImageFilesTest` (12) dan suite penuh lulus (Orang 2: 670 passed di PHP 8.3.30; Orang 1: 672 lulus). `vercel.json` dan port mengikuti dokumentasi resmi Vercel tetapi **belum diuji di Vercel**. Review silang Orang 1 dilakukan (statis). Dua butir acceptance criteria dipindah ke VERIFY dan PILOT atas permintaan Orang 1: login Super Admin di dalam image (butir 2) dan upload foto serta import 200 baris di image (butir 8).
 **PIC:** Orang 2 · **Tanggal:** 4 Nov 2026
 **Dasar:** Task Board Deployment Vercel dan Supabase v1.2; D-26 dan D-30 (diputuskan pemilik, tabel keputusan pemilik yang diterima Orang 2 pada 7 Nov 2026); `docs/addendum/DEPLOY-IMAGE-001.md`; `docs/ops/vercel-deploy.md`.
-**Catatan jujur:** tabel keputusan pemilik belum ada di repo; bagian 10 dokumen keputusan diisi pemilik.
+**Catatan jujur:** tabel keputusan pemilik belum ada di repo; bagian 10 dokumen keputusan diisi pemilik (diperbarui 10 Nov 2026: sudah diisi pemilik; lihat `DEPLOY-ORANG2-sync.md`).
 
 ## Yang dikerjakan
 1. `composer.json`: PHP `^8.3`.
