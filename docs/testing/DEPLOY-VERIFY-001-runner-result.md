@@ -51,7 +51,7 @@ Run 1, 2, dan 4 gagal karena kesalahan penyiapan di sisi penguji, bukan karena k
 | (2) aplikasi lewat pooler transaksi | `DB::select('select 1')` berhasil; `/up` 200; login Super Admin 200 | keluaran perintah |
 | (3) newman per folder | TEST-002 run 6: kegagalan hanya di folder 1, 2, 7, 13; folder lain 0 gagal. TEST-001: kegagalan hanya di folder 5; folder lain 0 gagal | bagian 4 |
 | (4) foto, logo, import | Folder 9 (logo dan foto, termasuk penggantian foto), folder 10 (import guru), folder 14 (import 200 baris) lulus pada run 6. TEST-001: folder 6 (import siswa, termasuk file lebih dari 5 MB) dan folder 8 (unduh foto lewat endpoint terautentikasi) lulus. Tulis, baca, hapus S3 `[true,true,true,true,true]`. URL logo publik: **200**, waktu ubah berkas berada di dalam jendela run 6 | keluaran perintah dan newman |
-| (5) koneksi dan error pooler | `laravel.log`: 0 baris `prepared statement` atau `08P01` di seluruh berkas. Puncak koneksi 11 dari pool 15; hitungan Level log Supabase tanpa Warning atau Error (bagian 6, dilaporkan Orang 2) | perintah di laptop, laporan Orang 2 |
+| (5) koneksi dan error pooler | `laravel.log`: 0 baris `prepared statement` atau `08P01` di seluruh berkas. Puncak koneksi total 11 (dasar sekitar 7 milik layanan Supabase, kenaikan akibat run sekitar 4; pool 15 hanya konteks); hitungan Level log Supabase tanpa Warning atau Error (bagian 6, dilaporkan Orang 2) | perintah di laptop, laporan Orang 2 |
 | (6) suite penuh | **672 lulus (3860 assertion)**, PHP 8.3.30, 163,31 detik, di jendela tanpa variabel Supabase dan `.env` tanpa Supabase (database lokal) | keluaran perintah |
 | (7) team-log | `docs/team-log/DEPLOY-VERIFY-001.md` | berkas ini |
 
@@ -88,7 +88,7 @@ Semua angka dibaca dari grafik dasbor, bukan diukur di aplikasi. Pada rentang se
 | Run 6 (11 Nov 08:21 sampai 08:37) | dasar sekitar 7, puncak sekitar 11 |
 | TEST-001 (11 Nov 10:37 sampai 11:33) | dasar sekitar 7 sampai 8, puncak 11 pada 11:16 |
 
-- Semua di bawah ukuran pool 15 dan jauh di bawah garis batas sekitar 60. Pengaturan pooler: pool 15 (default compute Nano), maksimum klien 200, berlaku bersama untuk semua pooler. Dasar sekitar 7 adalah proses Supabase sendiri.
+- Puncak total tertinggi 11: dasar sekitar 7 milik layanan Supabase sendiri, kenaikan akibat run sekitar 4, jauh di bawah garis batas sekitar 60 di dasbor. Angka pool 15 adalah batas pooler ke Postgres per user dan database, bukan ukuran yang sama dengan total koneksi, jadi hanya konteks. Pengaturan pooler: pool 15 (default compute Nano), maksimum klien 200, berlaku bersama untuk semua pooler. Dasar sekitar 7 adalah proses Supabase sendiri.
 - `pg_stat_activity` setelah semua run: 15 baris, tidak ada koneksi yang tampak dari aplikasi (tidak diketahui apakah aplikasi sedang berjalan saat itu).
 
 **Log pooler.** Filter teks di halaman Logs Supabase tidak berfungsi untuk keperluan ini: pencarian kontrol (`exposed_schemas`, yang jelas ada di log) juga menghasilkan "No results found". Karena itu hasil kosong untuk `prepared statement` dan `08P01` di sisi Supabase **tidak dipakai sebagai bukti**. Sebagai gantinya, hitungan Level tanpa filter teks:

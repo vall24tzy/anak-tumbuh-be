@@ -3,7 +3,7 @@
 **Status:** dijalankan oleh Orang 1 (10 sampai 11 Nov 2026); hasil di `docs/testing/DEPLOY-VERIFY-001-runner-result.md`. **Belum DONE**: lihat "Belum selesai".
 **PIC:** Orang 1 (dijalankan bersama Orang 2 untuk data dasbor Supabase) · **Tanggal:** 10 sampai 11 Nov 2026
 **Dasar:** Task Board Deployment Vercel dan Supabase; `docs/ops/verify-supabase.md`; keputusan D-26 sampai D-35.
-**Dependency:** DEPLOY-STORAGE-001, DEPLOY-LIMIT-001 (Orang 1), DEPLOY-RUNTIME-001, DEPLOY-IMAGE-001 (Orang 2). **Catatan jujur:** dependency dianggap terpenuhi berdasarkan jawaban di chat (keempatnya sudah di-push dan test lokal hijau), bukan karena sudah berstatus DONE; justru VERIFY inilah yang membuktikan bagian S3 dan pooler. Persetujuan pemilik atas D-26 sampai D-35 tercatat di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` (10 Nov 2026, dicatat Orang 2 sebagai pemilik).
+**Dependency:** DEPLOY-STORAGE-001, DEPLOY-LIMIT-001 (Orang 1), DEPLOY-RUNTIME-001, DEPLOY-IMAGE-001 (Orang 2). **Catatan jujur:** dependency dianggap terpenuhi berdasarkan jawaban di chat (keempatnya sudah di-push dan test lokal hijau; di board keempatnya berstatus DONE untuk kode dan test, belum DONE penuh); justru VERIFY inilah yang membuktikan bagian S3 dan pooler. Persetujuan pemilik atas D-26 sampai D-35 tercatat di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` (10 Nov 2026, dicatat Orang 2 sebagai pemilik).
 
 ## Yang dikerjakan
 1. Migrate dan seed ke Supabase uji lewat `pgsql_direct` (24 migrasi `Ran`).
@@ -23,13 +23,15 @@
 ## Belum selesai (syarat DONE)
 1. Review silang Orang 2 atas dokumen hasil dan team-log ini.
 2. Orang 2 mengganti sandi database dan kunci S3 setelah semua run selesai (belum dilakukan saat berkas ini ditulis). Nilai yang dipakai di sesi VERIFY juga pernah ditempel di percakapan Orang 1 dengan asisten, jadi semuanya perlu diganti, bukan hanya yang ada di berkas.
-3. Pembersihan data uji di database dan bucket Supabase uji oleh Orang 2.
-4. Keputusan Orang 2 atas empat request `await` (dijalankan manual di Postman atau skrip dibetulkan) dan atas pengecekan usang 1.10 dan 7.06.
+
+## Diputuskan dan dijadwalkan (bukan syarat DONE VERIFY)
+1. **Pembersihan data uji** (`php artisan migrate:fresh --seed` di project uji dan mengosongkan dua bucket) dijadwalkan di awal PILOT oleh Orang 2 dengan kredensial baru.
+2. **Keputusan Orang 2 (dilaporkan 11 Nov 2026):** empat endpoint daftar pada 13.10 (`/teachers`, `/academic-years`, `/rombels`, `/teacher-class-assignments`) dicatat "tidak diverifikasi ulang di Supabase" dan tidak dijalankan manual; pengecekan 1.10 dan 7.06 usang karena `PATCH /schools/{id}` dan `PATCH /teachers/{id}` sudah ada (Matrix #65 dan #66), dicatat usang dan tidak dihapus.
 
 ## Temuan
 1. **Header `x-amz-acl`:** adapter Flysystem tetap mengirim header itu (temuan Orang 2). Unggahan ke Supabase berhasil, jadi header tidak ditolak pada project uji berpaket Free. Komentar di `config/filesystems.php` ("akses diatur lewat bucket, bukan ACL") masih bisa disalahartikan dan belum diperjelas.
 2. **Latensi dari laptop ke Supabase Singapura:** import 200 baris sampai 128,8 detik, reset password siswa 40,6 detik, unduh template 24,6 detik, daftar School `per_page=100` 12,3 detik; rata-rata TEST-001 2,7 detik. Bukan angka di Vercel. Dicatat untuk PILOT (batas waktu fungsi dan wilayah Vercel belum diverifikasi). Tidak ada kode yang diubah.
-3. **Pembatas laju F-23 di newman:** dua assertion TEST-001 gagal (401, bukan 429), tetapi uji manual menunjukkan pembatas bekerja. Penyebab di newman belum dipastikan (dugaan: jeda 13 detik atau cara skrip mengisi penghitung).
+3. **Pembatas laju F-23 di newman:** dua assertion TEST-001 gagal (401, bukan 429), tetapi uji manual menunjukkan pembatas bekerja. Penyebabnya belum terjelaskan. Skrip request itu mengisi 5 percobaan lewat `pm.sendRequest` di skrip pra-request, lalu request utama menjadi yang ke-6, jadi jeda antar request tidak memisahkan keduanya (catatan review Orang 2; dugaan "jeda 13 detik" sebelumnya salah). Opsional: `console.log` status tiap percobaan pengisi pada salinan koleksi di luar repo.
 4. **Filter teks di Logs Supabase tidak berfungsi** untuk mencari `prepared statement` dan `08P01`, sehingga hasil kosong yang pertama kali dilaporkan dicabut; bukti pooler memakai `laravel.log`, 0 respons 5xx, dan hitungan Level (petunjuk, bukan bukti mutlak).
 5. **Berkas uji TEST-002** dibuat ulang oleh `generate_test_files.py` sebelum tiap run (NIP baru); skrip mengubah `TEST-002.postman_environment.json` secara lokal dan perubahan itu tidak di-commit.
 6. **`student_a_new_id`** dibuat oleh folder 4 TEST-001 (ditandai opsional), padahal folder 8 dan INTEG-O1 memakainya; karena itu seluruh koleksi dijalankan.
