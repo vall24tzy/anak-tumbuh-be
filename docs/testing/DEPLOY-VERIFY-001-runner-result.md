@@ -2,7 +2,7 @@
 
 **Tanggal:** 10 sampai 11 Nov 2026 · **Penyusun:** Orang 1 · **Koleksi:** TEST-002 (`docs/postman/`) dan TEST-001 (`docs/testing/`)
 **Isi:** nama request, kode HTTP, hasil assertion, dan angka. Tanpa token, password, kunci, atau alamat project. JSON mentah newman disimpan di luar repo karena memuat token.
-**Status:** dijalankan; **belum DONE** (lihat bagian 6).
+**Status:** dijalankan dan **ditutup DONE pada 12 Nov 2026** (rotasi dan review Orang 2 tercatat di `docs/team-log/DEPLOY-VERIFY-001.md`). Angka waktu di dokumen ini diukur dari laptop, bukan dari Vercel.
 
 ## Ringkasan
 
@@ -122,4 +122,4 @@ TEST-001: rata-rata 2,7 detik (min 285 ms, maks 2 menit 8,7 detik). Batas waktu 
 ## 8. Setelah VERIFY
 
 - Data uji (School, Headmaster, Guru, Siswa, logo, foto) tersisa di database dan bucket Supabase uji; pembersihan oleh Orang 2.
-- Sandi database dan kunci S3 diganti Orang 2 setelah semua run selesai (belum dilakukan saat berkas ini ditulis).
+- Sandi database dan kunci S3: **dilaporkan Orang 2 selesai pada 12 Nov 2026.** Sandi database diganti lewat Reset database password dan dua URL pooler di pengelola kata sandi diperbarui; semua access key S3 dicabut (tidak ada kunci aktif). **Tidak diuji dengan nilai lama**: Orang 1 menutup jendela VERIFY dan tidak lagi memegang nilai itu, jadi buktinya hanya laporan pemilik dari dasbor.

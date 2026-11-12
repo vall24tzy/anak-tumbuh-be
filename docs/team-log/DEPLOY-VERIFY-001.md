@@ -1,6 +1,6 @@
 # DEPLOY-VERIFY-001 — Log
 
-**Status:** dijalankan oleh Orang 1 (10 sampai 11 Nov 2026); hasil di `docs/testing/DEPLOY-VERIFY-001-runner-result.md`. **Belum DONE**: lihat "Belum selesai".
+**Status:** dijalankan oleh Orang 1 (10 sampai 11 Nov 2026); hasil di `docs/testing/DEPLOY-VERIFY-001-runner-result.md`. **DONE pada 12 Nov 2026**; syarat DONE di bawah terpenuhi.
 **PIC:** Orang 1 (dijalankan bersama Orang 2 untuk data dasbor Supabase) · **Tanggal:** 10 sampai 11 Nov 2026
 **Dasar:** Task Board Deployment Vercel dan Supabase; `docs/ops/verify-supabase.md`; keputusan D-26 sampai D-35.
 **Dependency:** DEPLOY-STORAGE-001, DEPLOY-LIMIT-001 (Orang 1), DEPLOY-RUNTIME-001, DEPLOY-IMAGE-001 (Orang 2). **Catatan jujur:** dependency dianggap terpenuhi berdasarkan jawaban di chat (keempatnya sudah di-push dan test lokal hijau; di board keempatnya berstatus DONE untuk kode dan test, belum DONE penuh); justru VERIFY inilah yang membuktikan bagian S3 dan pooler. Persetujuan pemilik atas D-26 sampai D-35 tercatat di bagian 10 `SoT-Amendment-DEPLOY-D26-D33.md` (10 Nov 2026, dicatat Orang 2 sebagai pemilik).
@@ -20,13 +20,18 @@
 - **Tidak diuji:** beban bersamaan. Semua run adalah satu klien berurutan.
 - **Run 1, 2, dan 4 tidak dipakai sebagai bukti** (kesalahan penyiapan: `DB_URL` berawalan ganda, lalu `SA_PW` kosong). Run 5 tidak dipakai sebagai bukti S3 karena status variabel S3 saat itu tidak terverifikasi. Rincian di runner-result.
 
-## Belum selesai (syarat DONE)
-1. Review silang Orang 2 atas dokumen hasil dan team-log ini.
-2. Orang 2 mengganti sandi database dan kunci S3 setelah semua run selesai (belum dilakukan saat berkas ini ditulis). Nilai yang dipakai di sesi VERIFY juga pernah ditempel di percakapan Orang 1 dengan asisten, jadi semuanya perlu diganti, bukan hanya yang ada di berkas.
+## Syarat DONE (terpenuhi 12 Nov 2026)
+1. **Review silang Orang 2** atas dokumen hasil dan team-log ini: selesai; koreksinya diterapkan di commit `dfdb804`.
+2. **Rotasi sandi dan kunci:** dilaporkan Orang 2 selesai (12 Nov 2026). Sandi database diganti dan dua URL pooler di pengelola kata sandi diperbarui; semua access key S3 dicabut (tidak ada kunci aktif). **Tidak diuji dengan nilai lama**: Orang 1 sudah tidak memegang nilai itu, jadi buktinya hanya laporan pemilik dari dasbor. Nilai lain dari sesi VERIFY (`APP_KEY`, `JWT_SECRET`, sandi Super Admin hasil seed) tidak dipakai ulang; semuanya dibuat baru saat PILOT dimulai.
 
 ## Diputuskan dan dijadwalkan (bukan syarat DONE VERIFY)
 1. **Pembersihan data uji** (`php artisan migrate:fresh --seed` di project uji dan mengosongkan dua bucket) dijadwalkan di awal PILOT oleh Orang 2 dengan kredensial baru.
 2. **Keputusan Orang 2 (dilaporkan 11 Nov 2026):** empat endpoint daftar pada 13.10 (`/teachers`, `/academic-years`, `/rombels`, `/teacher-class-assignments`) dicatat "tidak diverifikasi ulang di Supabase" dan tidak dijalankan manual; pengecekan 1.10 dan 7.06 usang karena `PATCH /schools/{id}` dan `PATCH /teachers/{id}` sudah ada (Matrix #65 dan #66), dicatat usang dan tidak dihapus.
+
+## Tetap terbuka (tidak menahan DONE)
+1. **Review silang kode DEPLOY-STORAGE-001, RUNTIME, LIMIT, dan IMAGE** (langkah 3 Urutan & Gate) tidak tercatat; VERIFY berjalan dengan dependency itu dianggap terpenuhi. Perlu ditetapkan kapan dikerjakan (paling lambat sebelum go-live).
+2. Komentar di `config/filesystems.php` soal ACL belum diperjelas (Temuan 1).
+3. Penyebab dua assertion F-23 di newman belum terjelaskan (Temuan 3).
 
 ## Temuan
 1. **Header `x-amz-acl`:** adapter Flysystem tetap mengirim header itu (temuan Orang 2). Unggahan ke Supabase berhasil, jadi header tidak ditolak pada project uji berpaket Free. Komentar di `config/filesystems.php` ("akses diatur lewat bucket, bukan ACL") masih bisa disalahartikan dan belum diperjelas.

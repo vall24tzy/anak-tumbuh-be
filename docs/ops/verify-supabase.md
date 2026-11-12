@@ -95,6 +95,14 @@ Tanpa rahasia: kunci, password, dan project ref tidak ditulis di berkas ini; dis
 | Bucket | `anaktumbuh-foto-uji` (privat, foto siswa) dan `anaktumbuh-logo-uji` (publik, logo sekolah) |
 | Data API | **Dimatikan** saat project dibuat (Enable Data API dikosongkan; "Enable automatic RLS" kosong). Aplikasi hanya memakai koneksi database langsung lewat Laravel |
 
-**Gerbang bagian 0:** butir 1, 2, dan 3 terpenuhi per 10 Nov 2026 (berdasarkan laporan pemilik). Butir 4 mengikuti status board (STORAGE, RUNTIME, LIMIT: DONE kode dan test, lulus review silang). VERIFY dapat dimulai.
+**Gerbang bagian 0:** butir 1, 2, dan 3 terpenuhi per 10 Nov 2026 (berdasarkan laporan pemilik). Butir 4: board mencatat STORAGE, RUNTIME, dan LIMIT DONE untuk kode dan test; **review silang kode (langkah 3 Urutan & Gate) tidak tercatat**. Klaim "lulus review silang" pada versi sebelumnya kalimat ini keliru dan dikoreksi pada 12 Nov 2026. VERIFY dijalankan dengan dependency itu dianggap terpenuhi.
 
 **Yang belum terbukti dan dicatat di VERIFY:** migrate lewat pooler session, aplikasi lewat pooler transaksi, unggah dan unduh S3 (termasuk header `x-amz-acl`), dan bahwa Storage S3 tetap berfungsi dengan Data API mati. Tabel hasil migrate ada di schema `public`; dengan Data API mati tabel itu tidak terjangkau lewat API Supabase, tetapi pengaturan ini ditinjau ulang sebelum PRODPREP (khususnya untuk project production).
+
+## 9. Penutupan (12 Nov 2026)
+`DEPLOY-VERIFY-001` ditutup DONE. Hasil rinci: `docs/testing/DEPLOY-VERIFY-001-runner-result.md`; log: `docs/team-log/DEPLOY-VERIFY-001.md`.
+
+- **Rotasi:** sandi database diganti dan semua access key S3 dicabut, dilaporkan pemilik dari dasbor pada 12 Nov 2026. Tidak diuji dengan nilai lama.
+- **Awal PILOT (dikerjakan Orang 2, kredensial baru):** buat kunci S3 baru; buat baru `APP_KEY`, `JWT_SECRET`, dan `SEED_SUPER_ADMIN_PASSWORD` (jangan memakai ulang nilai VERIFY); bersihkan data uji dengan `php artisan migrate:fresh --seed` di project uji lalu kosongkan dua bucket. Perintah `migrate:fresh` hanya untuk project uji ini.
+- **Cara deploy PILOT:** CLI dari komputer Orang 2 (keputusan pemilik, 12 Nov 2026).
+- **Dicatat untuk PILOT:** wilayah dan batas waktu fungsi Vercel belum diverifikasi; import 200 baris memakan sampai 128,8 detik dari laptop.
