@@ -19,7 +19,8 @@ Tidak ada perubahan di `app/` (`UploadService`, `StudentService`, `SchoolResourc
 |---|---|
 | `STORAGE_PRIVATE_DRIVER` | `local` (default) atau `s3`: tempat foto Student |
 | `STORAGE_PUBLIC_DRIVER` | `local` (default) atau `s3`: tempat logo School |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` | Kredensial dan region S3 (hanya di environment platform) |
+| `STORAGE_S3_KEY`, `STORAGE_S3_SECRET` | Kunci S3 (rahasia, hanya di environment platform); didahulukan atas `AWS_*` (koreksi DEPLOY-PILOT-001: di Vercel `AWS_*` dapat tertimpa kredensial platform) |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` | Cadangan kunci S3 bila `STORAGE_S3_*` kosong, dan region S3 |
 | `AWS_ENDPOINT` | `https://<project-ref>.supabase.co/storage/v1/s3` |
 | `AWS_USE_PATH_STYLE_ENDPOINT` | `true` untuk Supabase (default `true` pada disk S3 baru) |
 | `AWS_PRIVATE_BUCKET` | Bucket **privat** untuk foto Student |

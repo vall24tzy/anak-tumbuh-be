@@ -27,3 +27,8 @@ docs/postman/test-files/
 *.dump.sha256
 *.counts.tsv
 backup.log
+
+# Vercel CLI (DEPLOY-PILOT-001): folder tautan project dan berkas env lokal jangan pernah di-commit
+.vercel
+.env.*
+!.env.example

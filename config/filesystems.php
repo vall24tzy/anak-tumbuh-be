@@ -6,10 +6,13 @@
 // Storage::disk('private'|'public') tetap berlaku. Default tetap lokal (dev dan test).
 // Kunci 'throw' => false WAJIB tetap ada pada disk S3: UploadService memeriksa put() === false.
 // 'visibility' sengaja tidak diset pada disk S3 (akses diatur lewat bucket privat/publik, bukan ACL).
+// DEPLOY-PILOT-001: di runtime Vercel nama AWS_ACCESS_KEY_ID dan AWS_SECRET_ACCESS_KEY dapat tertimpa kredensial
+// milik platform, sehingga unggah ke Supabase gagal. Karena itu kunci dibaca lebih dulu dari STORAGE_S3_KEY dan
+// STORAGE_S3_SECRET; bila keduanya tidak ada, perilaku lama (AWS_*) tetap berlaku.
 $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_merge([
     'driver'                  => 's3',
-    'key'                     => env('AWS_ACCESS_KEY_ID'),
-    'secret'                  => env('AWS_SECRET_ACCESS_KEY'),
+    'key'                     => env('STORAGE_S3_KEY', env('AWS_ACCESS_KEY_ID')),
+    'secret'                  => env('STORAGE_S3_SECRET', env('AWS_SECRET_ACCESS_KEY')),
     'region'                  => env('AWS_DEFAULT_REGION'),
     'bucket'                  => env($bucketEnv),
     'endpoint'                => env('AWS_ENDPOINT'),

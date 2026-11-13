@@ -87,8 +87,9 @@ Kolom "Nilai yang dimaksud" memuat pilihan nilai, bukan nilai rahasia. Rahasia h
 | `CACHE_STORE` | ya, wajib | `database` (blacklist JWT dan rate limit login) |
 | `CACHE_PREFIX` | opsional | prefiks kunci cache |
 | `STORAGE_PRIVATE_DRIVER`, `STORAGE_PUBLIC_DRIVER` | ya | `s3` di Vercel (disk lokal tidak awet) |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | ya | kunci S3 Supabase Storage (rahasia) |
-| `AWS_DEFAULT_REGION`, `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT` | ya | region, endpoint S3 Supabase, `true` |
+| `STORAGE_S3_KEY`, `STORAGE_S3_SECRET` | ya di Vercel | kunci S3 Supabase Storage (rahasia). **Dipakai lebih dulu**: di runtime Vercel `AWS_*` dapat tertimpa kredensial platform (ditemukan di PILOT, unggah gagal tanpa ini) |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | tidak di Vercel | cadangan bila `STORAGE_S3_*` tidak diisi (dev lokal); jangan diandalkan di Vercel |
+| `AWS_DEFAULT_REGION`, `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT` | ya | region, endpoint S3 Supabase, `true`. Catatan: `AWS_DEFAULT_REGION` juga nama milik platform; di PILOT (wilayah `sin1`) nilainya sama dengan region Supabase (`ap-southeast-1`), belum diverifikasi bila wilayah berbeda |
 | `AWS_PRIVATE_BUCKET`, `AWS_PUBLIC_BUCKET`, `AWS_PUBLIC_URL` | ya | bucket privat (foto), bucket publik (logo), URL dasar objek publik |
 | `AWS_BUCKET` | tidak | disk `s3` bawaan, tidak dipakai aplikasi |
 | `FILESYSTEM_DISK` | tidak | bawaan; aplikasi memakai disk bernama `private` dan `public` |

@@ -24,6 +24,7 @@ class StorageDiskConfigTest extends TestCase
 {
     private const KEYS = [
         'STORAGE_PRIVATE_DRIVER', 'STORAGE_PUBLIC_DRIVER', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
+        'STORAGE_S3_KEY', 'STORAGE_S3_SECRET',
         'AWS_DEFAULT_REGION', 'AWS_ENDPOINT', 'AWS_USE_PATH_STYLE_ENDPOINT', 'AWS_PRIVATE_BUCKET',
         'AWS_PUBLIC_BUCKET', 'AWS_PUBLIC_URL',
     ];
@@ -92,6 +93,41 @@ class StorageDiskConfigTest extends TestCase
     {
         if (!class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class)) {
             $this->markTestSkipped('league/flysystem-aws-s3-v3 belum terpasang (composer require league/flysystem-aws-s3-v3).');
+        }
+    }
+
+    /** @test */
+    public function kunci_storage_s3_didahulukan_atas_kunci_aws_bawaan_platform(): void
+    {
+        $this->requireS3Adapter();
+
+        // DEPLOY-PILOT-001: AWS_* di Vercel dapat tertimpa kredensial platform; STORAGE_S3_* harus menang.
+        $disks = $this->disks($this->s3Env([
+            'STORAGE_PRIVATE_DRIVER' => 's3',
+            'STORAGE_PUBLIC_DRIVER'  => 's3',
+            'STORAGE_S3_KEY'         => 'kunci-storage',
+            'STORAGE_S3_SECRET'      => 'rahasia-storage',
+        ]));
+
+        foreach (['private', 'public'] as $disk) {
+            $this->assertSame('kunci-storage', $disks[$disk]['key'], "disk {$disk}");
+            $this->assertSame('rahasia-storage', $disks[$disk]['secret'], "disk {$disk}");
+        }
+    }
+
+    /** @test */
+    public function tanpa_storage_s3_kunci_tetap_dibaca_dari_aws_seperti_sebelumnya(): void
+    {
+        $this->requireS3Adapter();
+
+        $disks = $this->disks($this->s3Env([
+            'STORAGE_PRIVATE_DRIVER' => 's3',
+            'STORAGE_PUBLIC_DRIVER'  => 's3',
+        ]));
+
+        foreach (['private', 'public'] as $disk) {
+            $this->assertSame('kunci-uji', $disks[$disk]['key'], "disk {$disk}");
+            $this->assertSame('rahasia-uji', $disks[$disk]['secret'], "disk {$disk}");
         }
     }
 
