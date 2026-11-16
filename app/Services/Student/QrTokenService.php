@@ -16,8 +16,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 // TIDAK ada konsep "expired" berbasis waktu untuk QR token (beda dari JWT).
 //
 // qr_payload = base64(json{student_id, token}) + "." + HMAC-SHA256(payload,
-// APP_KEY). DB hanya menyimpan Hash::make(token) — raw token/qr_payload
-// HANYA dikembalikan sekali, saat regenerate.
+// APP_KEY). DB hanya menyimpan hash token (RandomSecretHasher, round rendah:
+// DEPLOY-IMPORT-001/D-36) — raw token/qr_payload HANYA dikembalikan sekali, saat regenerate.
 
 class QrTokenService
 {
@@ -60,7 +60,7 @@ class QrTokenService
         QrToken::updateOrCreate(
             ['student_id' => $student->id],
             [
-                'token_hash'     => Hash::make($rawToken),
+                'token_hash'     => RandomSecretHasher::make($rawToken),
                 'regenerated_at' => now(),
             ],
         );
