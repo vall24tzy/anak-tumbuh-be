@@ -4,6 +4,7 @@ namespace App\Services\Upload;
 
 use App\Exceptions\ApiException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -57,6 +58,10 @@ class UploadService
         // saat gagal. Nilai itu harus diperiksa; kalau tidak, path ke file yang tidak ada akan
         // dikembalikan dan file lama sudah (atau akan) hilang.
         if (Storage::disk($disk)->put($relativePath, (string) $encoded) === false) {
+            // Review silang Orang 2, S-2: catat disk dan path saja (tanpa isi file, tanpa kredensial) agar kegagalan
+            // storage bisa didiagnosis. Penyebab asli dari S3 dilaporkan oleh disk S3 ('report' => true).
+            Log::error('Gagal menyimpan file upload ke storage', ['disk' => $disk, 'path' => $relativePath]);
+
             throw new \RuntimeException("Gagal menyimpan file upload: {$relativePath}");
         }
 

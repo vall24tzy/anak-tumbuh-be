@@ -3,6 +3,8 @@
 namespace Tests\Feature\Upload;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -17,8 +19,12 @@ use Tests\TestCase;
 // (composer require league/flysystem-aws-s3-v3). Tidak ada koneksi ke Supabase atau AWS; kegagalan put() disimulasikan
 // ke endpoint lokal yang menolak koneksi.
 //
-// STATUS EKSEKUSI: lulus dalam suite penuh 670 (PHP 8.3.30); jumlah dilewati tidak tercatat. Ulangi dengan
-// `php artisan test --filter=StorageDiskConfigTest`.
+// Review silang Orang 2 atas DEPLOY-STORAGE-001 (S-2, S-3): disk S3 'report' => true supaya galat dasar S3 tetap
+// terlapor walau throw=false; UploadService mencatat disk dan path saat put() gagal (tanpa isi file/kredensial);
+// kasus AWS_PUBLIC_URL kosong didokumentasikan lewat test karakterisasi.
+//
+// STATUS EKSEKUSI: 9 test awal lulus tanpa dilewati (php artisan test --filter=StorageDiskConfigTest, Orang 1, 16 Nov 2026);
+// 12 test (termasuk 3 baru S-2/S-3) lulus dengan PHPUnit 10.5 di PHP 8.3.6, 59 assertion.
 
 class StorageDiskConfigTest extends TestCase
 {
@@ -241,5 +247,101 @@ class StorageDiskConfigTest extends TestCase
             null,
             'private'
         );
+    }
+
+    /** @test */
+    public function semua_disk_s3_melaporkan_exception_flysystem_walau_throw_false(): void
+    {
+        // Review silang Orang 2, S-2: 'throw' => false menelan galat dasar S3; 'report' => true membuatnya tetap masuk log.
+        $disks = $this->disks($this->s3Env(['STORAGE_PRIVATE_DRIVER' => 's3', 'STORAGE_PUBLIC_DRIVER' => 's3']));
+
+        foreach (['private', 'public'] as $disk) {
+            $this->assertTrue($disks[$disk]['report'], "disk {$disk}");
+            $this->assertFalse($disks[$disk]['throw'], "disk {$disk}: throw tetap false (respons API tidak berubah)");
+        }
+    }
+
+    /** @test */
+    public function kegagalan_put_dicatat_dengan_disk_dan_path_dan_galat_s3_dilaporkan_tanpa_membocorkan_kunci(): void
+    {
+        $this->requireS3Adapter();
+
+        $disks = $this->disks($this->s3Env(['STORAGE_PRIVATE_DRIVER' => 's3']));
+        $disks['private']['endpoint'] = 'http://127.0.0.1:9';
+        $disks['private']['retries'] = 0;
+        $disks['private']['http'] = ['connect_timeout' => 1, 'timeout' => 2];
+        config(['filesystems.disks.private' => $disks['private']]);
+        Storage::purge('private');
+
+        /** @var list<MessageLogged> $logs */
+        $logs = [];
+        Event::listen(MessageLogged::class, function (MessageLogged $event) use (&$logs) {
+            $logs[] = $event;
+        });
+
+        try {
+            app(\App\Services\Upload\UploadService::class)->upload(
+                UploadedFile::fake()->image('foto.png', 20, 20),
+                'students',
+                1,
+                null,
+                'private'
+            );
+            $this->fail('RuntimeException diharapkan saat put() gagal.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Gagal menyimpan file upload', $e->getMessage());
+        }
+
+        // 1) Log dari UploadService: hanya disk dan path.
+        $uploadLogs = array_values(array_filter(
+            $logs,
+            fn (MessageLogged $log) => $log->message === 'Gagal menyimpan file upload ke storage'
+        ));
+        $this->assertCount(1, $uploadLogs);
+        $this->assertSame('error', $uploadLogs[0]->level);
+        $this->assertSame(['disk' => 'private', 'path' => 'students/1.png'], $uploadLogs[0]->context);
+
+        // 2) Galat dasar S3 dilaporkan berkat 'report' => true (exception Flysystem tidak dilempar ke pemanggil).
+        $reported = array_values(array_filter(
+            $logs,
+            fn (MessageLogged $log) => ($log->context['exception'] ?? null) instanceof \League\Flysystem\UnableToWriteFile
+        ));
+        $this->assertNotEmpty($reported, "exception Flysystem harus ikut dilaporkan ('report' => true)");
+
+        // 3) Tidak ada log, pesan, maupun exception berantai yang memuat kunci atau rahasia.
+        foreach ($logs as $log) {
+            $text = $log->message . json_encode($log->context, JSON_PARTIAL_OUTPUT_ON_ERROR);
+            $exception = $log->context['exception'] ?? null;
+            while ($exception instanceof \Throwable) {
+                $text .= $exception->getMessage();
+                $exception = $exception->getPrevious();
+            }
+
+            foreach (['rahasia-uji', 'kunci-uji'] as $secret) {
+                $this->assertStringNotContainsString($secret, $text, 'kredensial tidak boleh muncul di log');
+            }
+        }
+    }
+
+    /** @test */
+    public function public_s3_tanpa_aws_public_url_membentuk_url_dari_endpoint_s3_yang_bukan_url_publik(): void
+    {
+        $this->requireS3Adapter();
+
+        // Review silang Orang 2, S-3, test karakterisasi: bila STORAGE_PUBLIC_DRIVER=s3 tetapi AWS_PUBLIC_URL kosong,
+        // 'url' bernilai null sehingga SchoolResource membentuk URL logo dari ENDPOINT S3 API (tidak bisa dibuka publik),
+        // dan responsnya tetap 200. Karena itu AWS_PUBLIC_URL WAJIB diisi bersama STORAGE_PUBLIC_DRIVER=s3 (dicatat di
+        // DEPLOY-DOC-001). Tidak ada penjaga saat boot (keputusan: cukup test + dokumentasi). Bila suatu saat penjaga
+        // ditambahkan, test ini harus diubah menjadi pengujian penjaganya.
+        $disks = $this->disks($this->s3Env(['STORAGE_PUBLIC_DRIVER' => 's3', 'AWS_PUBLIC_URL' => null]));
+        $this->assertNull($disks['public']['url']);
+
+        config(['filesystems.disks.public' => $disks['public']]);
+        Storage::purge('public');
+
+        $url = Storage::disk('public')->url('logos/1.png');
+
+        $this->assertStringStartsWith('https://proyek-uji.supabase.co/storage/v1/s3/', $url);
+        $this->assertStringNotContainsString('/object/public/', $url, 'bukan URL publik Supabase');
     }
 }
