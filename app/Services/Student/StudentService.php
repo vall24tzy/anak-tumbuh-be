@@ -17,7 +17,6 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -230,9 +229,10 @@ class StudentService
                 // QR token SYSTEM-generated saat create (DB Design v1.5 §5.15).
                 // Raw token TIDAK di-expose di response ini (NOTE-04) — hanya
                 // hash yang disimpan; raw token didapat lewat regenerate (QR-001).
+                // DEPLOY-IMPORT-001 (D-36): placeholder acak (UUID) di-hash round rendah via RandomSecretHasher.
                 QrToken::create([
                     'student_id' => $student->id,
-                    'token_hash' => Hash::make((string) Str::uuid()),
+                    'token_hash' => RandomSecretHasher::make((string) Str::uuid()),
                 ]);
             }
 
