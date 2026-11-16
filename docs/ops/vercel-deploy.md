@@ -131,6 +131,15 @@ Hanya `/tmp` yang diandalkan saat runtime. **Perilaku sistem berkas Vercel belum
 
 Container Runtime Vercel berstatus Beta; body request/response 4,5 MB; durasi default 300 detik; tanpa Static IP dan Secure Compute. Konsekuensinya: batas import aplikasi 4 MB (D-29), `TRUSTED_PROXIES=*`, dan akses database tidak bisa dibatasi per IP (bergantung kredensial dan SSL).
 
+## 7a. Region fungsi Vercel dan Supabase
+
+- **Function Region project Vercel = Singapore (`sin1`)**. Bawaan project baru adalah `iad1` (Washington D.C.), jadi **project baru wajib diubah** di dashboard Vercel (Project Settings, bagian Functions). Pengaturan ini tidak ikut ter-commit karena tidak ada di `vercel.json`. Paket Hobby hanya mengizinkan satu region.
+- Perubahan region berlaku untuk deployment berikutnya (lakukan redeploy).
+- Satu project Vercel dipakai untuk Preview dan Production (D-30), jadi satu pengaturan berlaku untuk keduanya.
+- Supabase uji (`anaktumbuh-uji`) berada di `ap-southeast-1` (Singapura), sejajar dengan `sin1` sehingga latensi antar-layanan rendah.
+- Terbukti pada PILOT lewat header respons `x-vercel-id` berbentuk `sin1::sin1::...` (lihat `docs/testing/DEPLOY-PILOT-001-result.md`). Gunakan header yang sama untuk memeriksa ulang setelah mengubah region.
+- **Untuk production (DEPLOY-PRODPREP-001):** buat project Supabase production di region yang sama dengan Function Region (saat ini `ap-southeast-1`), kecuali ada keputusan lain, dan catat region final di `docs/ops/prod-readiness.md`.
+
 ## 8. Sesuai dokumentasi resmi Vercel, dan gap
 
 **Sudah sesuai dokumentasi resmi Vercel (tetap belum diuji di Vercel).** Sumber: https://vercel.com/kb/guide/laravel-php-with-docker dan https://vercel.com/kb/guide/deploy-php-on-vercel-with-docker, dibaca Orang 1; ringkasannya dipakai apa adanya dan **belum dicocokkan oleh Orang 2** (sandbox tanpa jaringan).
