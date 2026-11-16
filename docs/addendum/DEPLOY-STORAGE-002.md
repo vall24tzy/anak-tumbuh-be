@@ -1,7 +1,7 @@
-# DEPLOY-STORAGE-001 — Tindak lanjut review silang S-2 dan S-3
+# DEPLOY-STORAGE-002 — Catat galat S3 dan lengkapi test URL logo (S-2, S-3)
 
 **Tanggal:** 16 Nov 2026 · **PIC:** Orang 1 · **Cabang:** `deploy/vercel-storage-log` (dari `deploy/vercel-pilot` @ 28f4800)
-**Dasar:** review silang Orang 2 atas STORAGE/LIMIT/RUNTIME/IMAGE; tanggapan Pemilik: S-2 setuju (`Log::error` disk+path, ditambah `'report' => true`), S-3 cukup test, S-1 menjadi task terpisah (D-38), S-4 hanya catatan.
+**Dasar:** Task Board Deployment v1.11 (DEPLOY-STORAGE-002); review silang Orang 2 atas DEPLOY-STORAGE-001; tanggapan Pemilik: S-2 setuju (`Log::error` disk+path, ditambah `'report' => true`), S-3 cukup test, S-1 menjadi task terpisah (D-38), S-4 hanya catatan.
 **Sifat perubahan:** konfigurasi dan logging saja. Respons, endpoint, kode error, dan skema tidak berubah (disk S3 tetap `'throw' => false`).
 
 ## Perubahan

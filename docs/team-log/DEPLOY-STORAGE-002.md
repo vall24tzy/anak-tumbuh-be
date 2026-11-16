@@ -1,10 +1,10 @@
-# DEPLOY-STORAGE-001 S-2/S-3 — Log
+# DEPLOY-STORAGE-002 (S-2, S-3) — Log
 
 **Status:** kode, test, addendum selesai; test lokal hijau (suite penuh 677 passed, 3.886 assertion); menunggu review silang Orang 2.
 **PIC:** Orang 1 · **Tanggal:** 16 Nov 2026 · **Cabang:** `deploy/vercel-storage-log` dari 28f4800.
 
 ## Dikerjakan
-`'report' => true` di disk S3, `Log::error` (disk, path) di `UploadService`, 3 test baru (report, log dan tanpa kebocoran kunci, `AWS_PUBLIC_URL` kosong), addendum `docs/addendum/DEPLOY-STORAGE-001-S2-S3.md`.
+`'report' => true` di disk S3, `Log::error` (disk, path) di `UploadService`, 3 test baru (report, log dan tanpa kebocoran kunci, `AWS_PUBLIC_URL` kosong), addendum `docs/addendum/DEPLOY-STORAGE-002.md`.
 
 ## Diperiksa
 - `report` didukung Laravel 11.56.1 (`FilesystemAdapter::shouldReport` membaca `config['report']`).
@@ -18,3 +18,12 @@
 
 ## Temuan
 Pengujian kebocoran kunci hanya mencakup galat koneksi; galat S3 jenis lain belum dibangkitkan (lihat addendum).
+
+## Pemetaan syarat selesai (Task Board v1.11)
+1. `Log::error` disk dan path saat `put()` false: selesai (`UploadService`).
+2. `'report' => true` pada disk S3; pesan exception tidak membocorkan kunci: selesai; terbukti untuk galat koneksi saja (lihat Temuan). Pengujian 403 `SignatureDoesNotMatch` dikerjakan Orang 2 secara lokal.
+3. Test `AWS_PUBLIC_URL` kosong: selesai (test karakterisasi).
+4. Tidak ada perubahan bentuk respons atau endpoint: terpenuhi.
+5. `php artisan test` penuh hijau: 677 passed (3.886 assertion) di commit `2ca8269`; dijalankan ulang setelah merge `deploy/vercel-pilot`.
+6. Test S3 tidak dilewati: `StorageDiskConfigTest` 12 passed (59 assertion), tanpa skipped.
+7. Team-log: berkas ini.
