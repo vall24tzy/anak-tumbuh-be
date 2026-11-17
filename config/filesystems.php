@@ -9,6 +9,11 @@
 // DEPLOY-PILOT-001: di runtime Vercel nama AWS_ACCESS_KEY_ID dan AWS_SECRET_ACCESS_KEY dapat tertimpa kredensial
 // milik platform, sehingga unggah ke Supabase gagal. Karena itu kunci dibaca lebih dulu dari STORAGE_S3_KEY dan
 // STORAGE_S3_SECRET; bila keduanya tidak ada, perilaku lama (AWS_*) tetap berlaku.
+// Review silang Orang 2, S-2: 'throw' => false menelan galat dasar S3 (put() hanya mengembalikan false). 'report' => true
+// (didukung Laravel 11.56.1: FilesystemAdapter::shouldReport) membuat exception Flysystem tetap dilaporkan ke log tanpa
+// dilempar ke pemanggil, jadi respons API tidak berubah. Pesan exception memuat path dan penyebab (mis. cURL/HTTP),
+// bukan nilai kunci/rahasia; terbukti untuk galat koneksi (StorageDiskConfigTest) dan galat 403 SignatureDoesNotMatch
+// dari gateway Supabase (uji lokal Orang 2, 16 Nov 2026); jenis galat lain belum dibangkitkan.
 $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_merge([
     'driver'                  => 's3',
     'key'                     => env('STORAGE_S3_KEY', env('AWS_ACCESS_KEY_ID')),
@@ -18,6 +23,7 @@ $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_me
     'endpoint'                => env('AWS_ENDPOINT'),
     'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
     'throw'                   => false,
+    'report'                  => true,
 ], $extra);
 
 return [
