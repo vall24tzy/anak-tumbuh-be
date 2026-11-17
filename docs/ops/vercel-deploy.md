@@ -29,7 +29,8 @@ Ekstensi (turunan statis dari `composer.lock`, bukan keluaran `composer check-pl
 | `Dockerfile.vercel` | image FrankenPHP PHP 8.3: ekstensi, `composer install --no-dev`, autoload dioptimalkan, `package:discover` saat build, direktori tulis, `CMD` eksplisit |
 | `Caddyfile` | root `public/`, `php_server`, TLS dihentikan di platform, port `{$PORT:80}` (dokumentasi resmi Vercel), log akses ke stderr |
 | `docker/php/zz-vercel.ini` | `upload_max_filesize=5M`, `post_max_size=6M`, `upload_tmp_dir=/tmp`, produksi (tanpa display_errors) |
-| `.dockerignore` | mengecualikan `.env`, `.env.*` (kecuali `.env.example`), `.git`, `vendor`, `tests`, `docs` |
+| `.dockerignore` | mengecualikan `.env`, `.env.*` (kecuali `.env.example`), `.git`, `vendor`, `tests`, `docs`; berlaku untuk `docker build`, **tidak** untuk `vercel deploy` (CLI tidak mengunggah berkas ini sebagai aturan), lihat `.vercelignore` |
+| `.vercelignore` | berkas yang tidak diunggah oleh `vercel deploy` (selaras dengan `.dockerignore`: `.env*`, `vendor`, `node_modules`, `tests`, `docs`, `bootstrap/cache/*.php`, isi `storage`); tanpa ini `vendor` lokal (paket dev) ikut tersalin dan `package:discover` gagal di build (`SailServiceProvider` not found). Verifikasi: jumlah berkas pada baris "Downloading N deployment files" di log build turun dari belasan ribu |
 | `config/excel.php` | file sementara Excel diarahkan lewat `EXCEL_TEMP_PATH` |
 | `vercel.json` | satu service container (`entrypoint` `Dockerfile.vercel`) dan satu rewrite ke service itu; isi mengikuti dokumentasi resmi Vercel (bagian 8) dan **belum diuji di Vercel** |
 

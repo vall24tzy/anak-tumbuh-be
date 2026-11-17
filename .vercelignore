@@ -1,0 +1,25 @@
+# DEPLOY-IMAGE-002: berkas yang TIDAK diunggah oleh `vercel deploy`.
+# `vercel deploy` (CLI) tidak memakai .gitignore atau .dockerignore sebagai aturan unggah, jadi tanpa berkas ini folder
+# lokal ikut terunggah lalu tersalin oleh `COPY . .`. Contoh dampaknya: vendor lokal berisi paket dev membuat
+# `package:discover` gagal (Class "Laravel\Sail\SailServiceProvider" not found), dan .env lokal bisa masuk layer image.
+# Daftar ini harus selaras dengan .dockerignore. Pola diberi awalan / agar hanya berlaku di akar proyek.
+/.env
+/.env.*
+!/.env.example
+/vendor
+/node_modules
+/tests
+/docs
+/phpunit.xml
+/.phpunit.result.cache
+/bootstrap/cache/*.php
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/private/*
+/storage/app/public/*
+/public/storage
+/public/hot
+*.patch
+*.log
