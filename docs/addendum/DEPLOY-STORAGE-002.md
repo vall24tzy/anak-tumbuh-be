@@ -18,7 +18,7 @@
 3. S-3, test karakterisasi: `STORAGE_PUBLIC_DRIVER=s3` dengan `AWS_PUBLIC_URL` kosong membuat `url` null, sehingga URL logo dibentuk dari endpoint S3 API (bukan URL publik). Ini kasus yang harus dihindari lewat konfigurasi: `AWS_PUBLIC_URL` wajib diisi bersama `STORAGE_PUBLIC_DRIVER=s3` (catat di DEPLOY-DOC-001). Tidak ada penjaga saat boot (keputusan: cukup test dan dokumentasi); bila penjaga ditambahkan, test ini diganti dengan pengujian penjaganya.
 
 ## Batas bukti (kebocoran kunci)
-Test 2 membuktikan tidak ada kebocoran pada galat koneksi. Galat S3 jenis lain (mis. `SignatureDoesNotMatch`, 403) belum dibangkitkan di test. Rahasia (secret key) tidak pernah dikirim dalam request sehingga tidak muncul di pesan galat; access key ID dapat muncul pada sebagian badan respons galat S3, dan Guzzle memotong ringkasan badan respons. Bila ingin kepastian untuk jenis galat itu, cek log di Preview pada kegagalan unggah yang disengaja.
+Test 2 membuktikan tidak ada kebocoran pada galat koneksi. Uji lokal Orang 2 (16 Nov 2026; kunci S3 sengaja salah terhadap endpoint Supabase, log ke stderr) menunjukkan galat 403 `SignatureDoesNotMatch` dari gateway Supabase tercatat di log (`report => true` bekerja pada galat HTTP), dan secret maupun access key ID (dicari lewat awalan 6 karakter) tidak muncul. Batasnya: satu jenis galat 403; jenis galat lain belum dibangkitkan. Rahasia tidak pernah dikirim dalam request. Tidak ada scrubbing khusus (keputusan Orang 2, tanpa keberatan).
 
 ## Tidak berubah
 `throw => false`, bentuk respons, `RuntimeException` dan pesannya, disk lokal, S-1 (task terpisah), S-4 (catatan).

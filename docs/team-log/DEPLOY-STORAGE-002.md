@@ -17,11 +17,11 @@
 3. Catat di DEPLOY-DOC-001: `AWS_PUBLIC_URL` wajib bersama `STORAGE_PUBLIC_DRIVER=s3`; S-1 (D-38, DEPLOY-STORAGE-003) dan S-4 sebagai catatan.
 
 ## Temuan
-Pengujian kebocoran kunci hanya mencakup galat koneksi; galat S3 jenis lain belum dibangkitkan (lihat addendum).
+Kebocoran kunci terbukti untuk galat koneksi (test) dan galat 403 `SignatureDoesNotMatch` dari gateway Supabase (uji lokal Orang 2); jenis galat lain belum dibangkitkan (lihat addendum).
 
 ## Pemetaan syarat selesai (Task Board v1.11)
 1. `Log::error` disk dan path saat `put()` false: selesai (`UploadService`).
-2. `'report' => true` pada disk S3; pesan exception tidak membocorkan kunci: selesai; terbukti untuk galat koneksi saja (lihat Temuan). Pengujian 403 `SignatureDoesNotMatch` dikerjakan Orang 2 secara lokal.
+2. `'report' => true` pada disk S3; pesan exception tidak membocorkan kunci: selesai; terbukti untuk galat koneksi (test) dan 403 `SignatureDoesNotMatch` (uji lokal Orang 2).
 3. Test `AWS_PUBLIC_URL` kosong: selesai (test karakterisasi).
 4. Tidak ada perubahan bentuk respons atau endpoint: terpenuhi.
 5. `php artisan test` penuh hijau: 677 passed (3.886 assertion) di commit `2ca8269`; dijalankan ulang setelah merge `deploy/vercel-pilot`.

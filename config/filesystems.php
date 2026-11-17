@@ -12,7 +12,8 @@
 // Review silang Orang 2, S-2: 'throw' => false menelan galat dasar S3 (put() hanya mengembalikan false). 'report' => true
 // (didukung Laravel 11.56.1: FilesystemAdapter::shouldReport) membuat exception Flysystem tetap dilaporkan ke log tanpa
 // dilempar ke pemanggil, jadi respons API tidak berubah. Pesan exception memuat path dan penyebab (mis. cURL/HTTP),
-// bukan nilai kunci/rahasia; dikunci oleh StorageDiskConfigTest.
+// bukan nilai kunci/rahasia; terbukti untuk galat koneksi (StorageDiskConfigTest) dan galat 403 SignatureDoesNotMatch
+// dari gateway Supabase (uji lokal Orang 2, 16 Nov 2026); jenis galat lain belum dibangkitkan.
 $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_merge([
     'driver'                  => 's3',
     'key'                     => env('STORAGE_S3_KEY', env('AWS_ACCESS_KEY_ID')),
