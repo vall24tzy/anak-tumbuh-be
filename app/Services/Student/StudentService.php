@@ -19,6 +19,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -200,7 +201,16 @@ class StudentService
             $this->assertNisnNotStaffUsername($data['nisn']);
         }
 
-        $student = $this->guardStaffUsernameRace($data['nisn'], fn () => DB::transaction(function () use ($data, $assignment, $existing) {
+        // DEPLOY-STORAGE-003 (D-38, S-1): foto diunggah DI DALAM transaksi create ini (langkah TERAKHIR, sesudah assignment
+        // lolos). Bila S3 gagal, seluruh transaksi (User, Student, QrToken, assignment) ikut rollback, jadi retry tidak
+        // kena 409 NISN/assignment. Jalur re-enrollment (Student sudah ada): file lama TIDAK dihapus di dalam transaksi
+        // (oldPath null); penghapusan file lama baru dilakukan SETELAH commit, supaya rollback tidak meninggalkan
+        // photo_path yang menunjuk file yang sudah terhapus. Jalur update() tidak diubah.
+        // $photo berupa objek (handle) karena arrow fn menangkap variabel biasa per nilai: perubahan di dalam transaksi
+        // harus terlihat setelah commit.
+        $photo = (object) ['old' => null, 'new' => null];
+
+        $student = $this->guardStaffUsernameRace($data['nisn'], fn () => DB::transaction(function () use ($data, $assignment, $existing, $logoFile, $photo) {
             if ($existing) {
                 // Reuse — identity permanent, field administratif TIDAK ditimpa
                 // diam-diam (mencegah data loss dari kesamaan NISN yang tidak
@@ -246,17 +256,40 @@ class StudentService
                 $assignment->academic_year_id,
             );
 
+            if ($logoFile instanceof UploadedFile) {
+                $photo->old = $student->photo_path;
+
+                try {
+                    $photo->new = $this->uploadService->upload($logoFile, 'students', $student->id, null, self::PHOTO_DISK);
+                    $student->update(['photo_path' => $photo->new]);
+                } catch (Throwable $e) {
+                    // Kompensasi hanya untuk Student BARU: file itu milik transaksi ini. Pada re-enrollment file bisa saja
+                    // sudah menimpa foto lama di path yang sama, jadi tidak dihapus (orphan lebih aman daripada hilang).
+                    if (!$existing && $photo->new !== null) {
+                        try {
+                            $this->uploadService->delete($photo->new, self::PHOTO_DISK);
+                        } catch (Throwable) {
+                            // kompensasi best-effort; exception asli yang dilempar ulang.
+                        }
+                    }
+
+                    throw $e;
+                }
+            }
+
             return $student;
         }));
 
         if ($logoFile instanceof UploadedFile) {
-            $oldPhotoPath = $student->photo_path;
-            $path = $this->uploadService->upload($logoFile, 'students', $student->id, $oldPhotoPath, self::PHOTO_DISK);
-            $student->update(['photo_path' => $path]);
+            // Sesudah COMMIT: hapus file lama di disk foto bila path-nya berbeda dari yang baru (path sama sudah
+            // tertimpa put()); upload() sebelumnya melakukan ini sendiri lewat $oldPath.
+            if ($photo->old && $photo->old !== $photo->new) {
+                $this->uploadService->delete($photo->old, self::PHOTO_DISK);
+            }
 
             // F-06: sisa foto lama di disk publik (sebelum relokasi) ikut dihapus setelah
             // upload baru sukses, supaya tidak ada salinan publik yang tertinggal.
-            $this->uploadService->delete($oldPhotoPath, 'public');
+            $this->uploadService->delete($photo->old, 'public');
         }
 
         return $student->fresh()->load(['school', 'user']);

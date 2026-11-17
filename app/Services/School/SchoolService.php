@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class SchoolService
 {
@@ -52,16 +53,38 @@ class SchoolService
         // Dua POST konkuren dengan nama sama sama-sama lolos validasi, lalu yang kedua menabrak
         // constraint DB schools_name_unique -> dulu 500 (atau, tanpa constraint, duplikat tersimpan).
         // Sekarang jadi 422 validation_failed pada field `name`, bentuk yang sama dengan duplikat biasa.
-        $school = $this->convertUniqueViolation(fn () => DB::transaction(fn () => School::create($data)), [
+        // DEPLOY-STORAGE-003 (D-38, S-1): logo diunggah DI DALAM transaksi create yang sama. Bila S3 gagal, baris sekolah
+        // ikut rollback, jadi retry tidak kena 422 (nama duplikat) dan sekolah tidak tersimpan tanpa logo yang diminta
+        // (logo tidak bisa diunggah ulang lewat PATCH /schools, D-09). Nama file memakai id, jadi unggah baru bisa terjadi
+        // setelah INSERT. Bila langkah setelah unggah gagal, file yang baru ditulis dihapus (kompensasi).
+        $school = $this->convertUniqueViolation(fn () => DB::transaction(function () use ($data, $logoFile) {
+            $school = School::create($data);
+
+            if ($logoFile instanceof UploadedFile) {
+                $path = null;
+
+                try {
+                    $path = $this->uploadService->upload($logoFile, 'logos', $school->id);
+                    $school->update(['logo_path' => $path]);
+                } catch (Throwable $e) {
+                    if ($path !== null) {
+                        try {
+                            $this->uploadService->delete($path);
+                        } catch (Throwable) {
+                            // kompensasi best-effort; exception asli yang dilempar ulang.
+                        }
+                    }
+
+                    throw $e;
+                }
+            }
+
+            return $school;
+        }), [
             'schools_name_unique' => fn () => ValidationException::withMessages([
                 'name' => [trans('validation.unique', ['attribute' => 'name'])],
             ]),
         ]);
-
-        if ($logoFile instanceof UploadedFile) {
-            $path = $this->uploadService->upload($logoFile, 'logos', $school->id);
-            $school->update(['logo_path' => $path]);
-        }
 
         return $school->fresh();
     }

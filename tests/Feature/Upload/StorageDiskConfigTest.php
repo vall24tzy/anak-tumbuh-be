@@ -33,6 +33,7 @@ class StorageDiskConfigTest extends TestCase
         'STORAGE_S3_KEY', 'STORAGE_S3_SECRET',
         'AWS_DEFAULT_REGION', 'AWS_ENDPOINT', 'AWS_USE_PATH_STYLE_ENDPOINT', 'AWS_PRIVATE_BUCKET',
         'AWS_PUBLIC_BUCKET', 'AWS_PUBLIC_URL',
+        'STORAGE_S3_CONNECT_TIMEOUT', 'STORAGE_S3_TIMEOUT', 'STORAGE_S3_RETRIES',
     ];
 
     /** @var array<string, array{0: string|false, 1: mixed, 2: mixed}> */
@@ -343,5 +344,52 @@ class StorageDiskConfigTest extends TestCase
 
         $this->assertStringStartsWith('https://proyek-uji.supabase.co/storage/v1/s3/', $url);
         $this->assertStringNotContainsString('/object/public/', $url, 'bukan URL publik Supabase');
+    }
+
+    /** @test */
+    public function disk_s3_punya_timeout_dan_retry_eksplisit_yang_dapat_diubah_lewat_env(): void
+    {
+        // DEPLOY-STORAGE-003 (D-38): unggah berjalan di dalam transaksi DB, jadi S3 yang menggantung tidak boleh menahan
+        // koneksi DB lama di pooler. Nilai awal: connect 3 dtk, total 10 dtk, 1 percobaan ulang.
+        $default = $this->disks($this->s3Env(['STORAGE_PRIVATE_DRIVER' => 's3', 'STORAGE_PUBLIC_DRIVER' => 's3']));
+
+        foreach (['private', 'public'] as $disk) {
+            $this->assertSame(3.0, $default[$disk]['http']['connect_timeout'], "disk {$disk}");
+            $this->assertSame(10.0, $default[$disk]['http']['timeout'], "disk {$disk}");
+            $this->assertSame(1, $default[$disk]['retries'], "disk {$disk}");
+        }
+
+        $override = $this->disks($this->s3Env([
+            'STORAGE_PRIVATE_DRIVER'     => 's3',
+            'STORAGE_S3_CONNECT_TIMEOUT' => '2',
+            'STORAGE_S3_TIMEOUT'         => '7',
+            'STORAGE_S3_RETRIES'         => '0',
+        ]));
+
+        $this->assertSame(2.0, $override['private']['http']['connect_timeout']);
+        $this->assertSame(7.0, $override['private']['http']['timeout']);
+        $this->assertSame(0, $override['private']['retries']);
+    }
+
+    /** @test */
+    public function timeout_s3_kosong_nol_atau_bukan_angka_jatuh_ke_nilai_awal_dan_retries_nol_diizinkan(): void
+    {
+        // Catatan 1 review silang Orang 2: (float) '' = 0 dan Guzzle memakai 0 sebagai "tanpa timeout".
+        foreach ([['', '', ''], ['0', '0', '-1'], ['abc', 'x', 'y']] as [$connect, $timeout, $retries]) {
+            $disks = $this->disks($this->s3Env([
+                'STORAGE_PRIVATE_DRIVER'     => 's3',
+                'STORAGE_S3_CONNECT_TIMEOUT' => $connect,
+                'STORAGE_S3_TIMEOUT'         => $timeout,
+                'STORAGE_S3_RETRIES'         => $retries,
+            ]));
+
+            $label = "connect='{$connect}' timeout='{$timeout}' retries='{$retries}'";
+            $this->assertSame(3.0, $disks['private']['http']['connect_timeout'], $label);
+            $this->assertSame(10.0, $disks['private']['http']['timeout'], $label);
+            $this->assertSame(1, $disks['private']['retries'], $label);
+        }
+
+        $disks = $this->disks($this->s3Env(['STORAGE_PRIVATE_DRIVER' => 's3', 'STORAGE_S3_RETRIES' => '0']));
+        $this->assertSame(0, $disks['private']['retries'], 'retries 0 sah (tanpa percobaan ulang)');
     }
 }
