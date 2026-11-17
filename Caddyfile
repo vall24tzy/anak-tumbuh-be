@@ -15,6 +15,9 @@
 	encode zstd gzip
 
 	# Log akses ke stderr (tidak ada berkas log di disk).
+	# Header Authorization dan Cookie disamarkan di log akses oleh perilaku BAWAAN Caddy (bergantung versi Caddy,
+	# tidak ada konfigurasi eksplisit di berkas ini). Jangan aktifkan opsi global log_credentials, dan periksa
+	# ulang perilaku ini saat tag image dinaikkan.
 	log {
 		output stderr
 	}
