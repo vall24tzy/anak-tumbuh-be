@@ -33,6 +33,7 @@ class StorageDiskConfigTest extends TestCase
         'STORAGE_S3_KEY', 'STORAGE_S3_SECRET',
         'AWS_DEFAULT_REGION', 'AWS_ENDPOINT', 'AWS_USE_PATH_STYLE_ENDPOINT', 'AWS_PRIVATE_BUCKET',
         'AWS_PUBLIC_BUCKET', 'AWS_PUBLIC_URL',
+        'STORAGE_S3_CONNECT_TIMEOUT', 'STORAGE_S3_TIMEOUT', 'STORAGE_S3_RETRIES',
     ];
 
     /** @var array<string, array{0: string|false, 1: mixed, 2: mixed}> */
@@ -343,5 +344,30 @@ class StorageDiskConfigTest extends TestCase
 
         $this->assertStringStartsWith('https://proyek-uji.supabase.co/storage/v1/s3/', $url);
         $this->assertStringNotContainsString('/object/public/', $url, 'bukan URL publik Supabase');
+    }
+
+    /** @test */
+    public function disk_s3_punya_timeout_dan_retry_eksplisit_yang_dapat_diubah_lewat_env(): void
+    {
+        // DEPLOY-STORAGE-003 (D-38): unggah berjalan di dalam transaksi DB, jadi S3 yang menggantung tidak boleh menahan
+        // koneksi DB lama di pooler. Nilai awal: connect 3 dtk, total 10 dtk, 1 percobaan ulang.
+        $default = $this->disks($this->s3Env(['STORAGE_PRIVATE_DRIVER' => 's3', 'STORAGE_PUBLIC_DRIVER' => 's3']));
+
+        foreach (['private', 'public'] as $disk) {
+            $this->assertSame(3.0, $default[$disk]['http']['connect_timeout'], "disk {$disk}");
+            $this->assertSame(10.0, $default[$disk]['http']['timeout'], "disk {$disk}");
+            $this->assertSame(1, $default[$disk]['retries'], "disk {$disk}");
+        }
+
+        $override = $this->disks($this->s3Env([
+            'STORAGE_PRIVATE_DRIVER'     => 's3',
+            'STORAGE_S3_CONNECT_TIMEOUT' => '2',
+            'STORAGE_S3_TIMEOUT'         => '7',
+            'STORAGE_S3_RETRIES'         => '0',
+        ]));
+
+        $this->assertSame(2.0, $override['private']['http']['connect_timeout']);
+        $this->assertSame(7.0, $override['private']['http']['timeout']);
+        $this->assertSame(0, $override['private']['retries']);
     }
 }

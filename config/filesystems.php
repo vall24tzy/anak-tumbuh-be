@@ -24,6 +24,14 @@ $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_me
     'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
     'throw'                   => false,
     'report'                  => true,
+    // DEPLOY-STORAGE-003 (D-38): unggah foto/logo kini berjalan DI DALAM transaksi DB create (siswa dan sekolah), jadi S3
+    // yang menggantung menahan koneksi DB di pooler. Timeout eksplisit (nilai awal, dapat diubah lewat env): connect 3 dtk,
+    // total 10 dtk per percobaan, 1 percobaan ulang (bawaan SDK 3 kali); terburuk sekitar 2 x 10 dtk.
+    'http'                    => [
+        'connect_timeout' => (float) env('STORAGE_S3_CONNECT_TIMEOUT', 3),
+        'timeout'         => (float) env('STORAGE_S3_TIMEOUT', 10),
+    ],
+    'retries'                 => (int) env('STORAGE_S3_RETRIES', 1),
 ], $extra);
 
 return [
