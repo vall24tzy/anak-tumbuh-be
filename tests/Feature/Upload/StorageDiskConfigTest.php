@@ -370,4 +370,26 @@ class StorageDiskConfigTest extends TestCase
         $this->assertSame(7.0, $override['private']['http']['timeout']);
         $this->assertSame(0, $override['private']['retries']);
     }
+
+    /** @test */
+    public function timeout_s3_kosong_nol_atau_bukan_angka_jatuh_ke_nilai_awal_dan_retries_nol_diizinkan(): void
+    {
+        // Catatan 1 review silang Orang 2: (float) '' = 0 dan Guzzle memakai 0 sebagai "tanpa timeout".
+        foreach ([['', '', ''], ['0', '0', '-1'], ['abc', 'x', 'y']] as [$connect, $timeout, $retries]) {
+            $disks = $this->disks($this->s3Env([
+                'STORAGE_PRIVATE_DRIVER'     => 's3',
+                'STORAGE_S3_CONNECT_TIMEOUT' => $connect,
+                'STORAGE_S3_TIMEOUT'         => $timeout,
+                'STORAGE_S3_RETRIES'         => $retries,
+            ]));
+
+            $label = "connect='{$connect}' timeout='{$timeout}' retries='{$retries}'";
+            $this->assertSame(3.0, $disks['private']['http']['connect_timeout'], $label);
+            $this->assertSame(10.0, $disks['private']['http']['timeout'], $label);
+            $this->assertSame(1, $disks['private']['retries'], $label);
+        }
+
+        $disks = $this->disks($this->s3Env(['STORAGE_PRIVATE_DRIVER' => 's3', 'STORAGE_S3_RETRIES' => '0']));
+        $this->assertSame(0, $disks['private']['retries'], 'retries 0 sah (tanpa percobaan ulang)');
+    }
 }

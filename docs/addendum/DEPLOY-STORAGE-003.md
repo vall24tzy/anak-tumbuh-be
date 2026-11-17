@@ -1,6 +1,6 @@
 # DEPLOY-STORAGE-003 — Unggah foto dan logo di dalam transaksi DB untuk create (S-1, D-38)
 
-**Tanggal:** 17 Nov 2026 · **PIC:** Orang 1 · **Cabang:** `deploy/vercel-storage-tx` (dari `deploy/vercel-storage-log` @ bd3b165)
+**Tanggal:** 17 Nov 2026 · **PIC:** Orang 1 · **Cabang:** `deploy/vercel-storage-tx` (dari `deploy/vercel-storage-log` @ 75fa274, sudah memuat IMPORT-001 dan STORAGE-002)
 **Dasar:** Task Board Deployment v1.11 (DEPLOY-STORAGE-003), keputusan D-38 (Pemilik, 16 Nov 2026), review silang Orang 2 temuan S-1.
 **Sifat perubahan:** perilaku create saat S3 gagal dan konfigurasi timeout S3. Endpoint, bentuk respons, kode error sukses, dan skema DB tidak berubah.
 
@@ -13,11 +13,11 @@
 |---|---|
 | `app/Services/School/SchoolService.php` | `store()`: `School::create` dan unggah logo di dalam satu `DB::transaction`. Gagal unggah: baris sekolah rollback. Bila `logo_path` gagal diperbarui setelah file tertulis, file baru dihapus (kompensasi, best-effort). Penanganan nama duplikat (422) tidak berubah. |
 | `app/Services/Student/StudentService.php` | `store()`: unggah foto menjadi langkah TERAKHIR di dalam transaksi create (sesudah assignment lolos). Gagal unggah: User, Student, QrToken, dan assignment ikut rollback. Student baru: file baru dihapus bila langkah sesudah unggah gagal. **Re-enrollment** (NISN sudah ada): file lama tidak dihapus di dalam transaksi; dihapus sesudah commit bila path-nya beda dari yang baru. |
-| `config/filesystems.php` | Disk S3: `http.connect_timeout` 3 dtk, `http.timeout` 10 dtk, `retries` 1 (bawaan SDK 3). Dapat diubah lewat `STORAGE_S3_CONNECT_TIMEOUT`, `STORAGE_S3_TIMEOUT`, `STORAGE_S3_RETRIES`. |
+| `config/filesystems.php` | Disk S3 (nilai dibaca lewat penolong `$s3Number` yang menolak kosong, nol, atau bukan angka): `http.connect_timeout` 3 dtk, `http.timeout` 10 dtk, `retries` 1 (bawaan SDK 3). Dapat diubah lewat `STORAGE_S3_CONNECT_TIMEOUT`, `STORAGE_S3_TIMEOUT`, `STORAGE_S3_RETRIES`. |
 | `.env.example` | Tiga variabel timeout di atas (dikomentari). |
 | `docs/ops/vercel-deploy.md` | Tiga variabel timeout masuk tabel variabel (dipaksa oleh `ImageFilesTest`: setiap variabel `.env.example` harus disebut di dokumen ini). |
 | `tests/Feature/Upload/CreateUploadTransactionTest.php` | **Baru**, 9 test. |
-| `tests/Feature/Upload/StorageDiskConfigTest.php` | 1 test baru (timeout dan retry). |
+| `tests/Feature/Upload/StorageDiskConfigTest.php` | 2 test baru (timeout dan retry; env kosong, nol, atau bukan angka jatuh ke nilai awal). |
 
 ## 3. Syarat D-38 dan pemenuhannya
 1. **Hanya create siswa dan sekolah; jalur update tidak diubah:** `update()` di `StudentService` dan `UploadService::upload` tidak disentuh; `UploadReplaceOrderTest` dan `StudentUpdatePhotoMultipartTest` tetap hijau.
@@ -45,7 +45,9 @@ Tujuh dari sepuluh test terkait (9 baru ditambah 1 test timeout) gagal pada kode
 - **Penangkapan variabel:** `store()` memakai objek `$photo` untuk path lama dan baru, karena arrow function menangkap variabel biasa per nilai (ditemukan oleh test re-enrollment).
 - **Kompensasi file** hanya untuk Student baru dan sekolah baru. Pada re-enrollment file baru bisa saja sudah menimpa foto lama di path yang sama; orphan dianggap lebih aman daripada kehilangan foto.
 - **Koneksi DB ditahan selama unggah** (decode, resize, kirim ke S3). Dibatasi timeout di atas. Decode gambar besar di dalam transaksi tidak dipisah dari unggah (tidak diminta D-38); bila terbukti lambat di Preview, kandidat perbaikan berikutnya.
-- **Orphan tersisa:** bila rollback terjadi setelah file di path berbeda tertulis pada re-enrollment (kasus langka), file baru tertinggal sebagai yatim. Dicatat, tidak dipatch.
+- **Orphan tersisa (dicatat, tidak dipatch):** (a) bila rollback terjadi setelah file di path berbeda tertulis pada re-enrollment, file baru tertinggal sebagai yatim; (b) bila COMMIT sendiri gagal (sesudah closure selesai), file siswa atau sekolah baru tertinggal karena kompensasi hanya ada di dalam closure; (c) re-enrollment dengan path sama: file lama sudah tertimpa di dalam transaksi, sehingga bila commit gagal foto berubah tanpa assignment. Peluang ketiganya sangat kecil.
+- **Penguncian baris:** koneksi DB dan kunci unik (NISN atau nama sekolah) tertahan selama decode dan unggah, terburuk sekitar 2 x 10 detik plus decode; request lain dengan NISN atau nama sama menunggu. Wajar untuk skala pilot; diukur di Preview.
+- **Env timeout kosong:** `STORAGE_S3_*` yang dikosongkan, bukan angka, atau (timeout) nol jatuh ke nilai awal; `STORAGE_S3_RETRIES=0` sah (catatan 1 review silang Orang 2).
 - Respons 500 saat S3 gagal tidak berubah; yang berubah hanya keadaan data (kini tidak tersimpan).
 
 ## 6. Tidak berubah

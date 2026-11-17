@@ -14,6 +14,21 @@
 // dilempar ke pemanggil, jadi respons API tidak berubah. Pesan exception memuat path dan penyebab (mis. cURL/HTTP),
 // bukan nilai kunci/rahasia; terbukti untuk galat koneksi (StorageDiskConfigTest) dan galat 403 SignatureDoesNotMatch
 // dari gateway Supabase (uji lokal Orang 2, 16 Nov 2026); jenis galat lain belum dibangkitkan.
+// DEPLOY-STORAGE-003 (catatan 1 review silang Orang 2): variabel timeout yang dikosongkan (STORAGE_S3_TIMEOUT=) atau bukan
+// angka tidak boleh menjadi 0 (Guzzle: 0 = tanpa timeout). Kosong, bukan angka, atau (untuk timeout) nol atau negatif
+// jatuh ke nilai awal; retries boleh 0 (tanpa percobaan ulang) tetapi tidak negatif.
+$s3Number = static function (string $key, float $default, bool $allowZero = false): float {
+    $value = env($key);
+
+    if ($value === null || $value === '' || !is_numeric($value)) {
+        return $default;
+    }
+
+    $number = (float) $value;
+
+    return ($number < 0 || (!$allowZero && $number == 0)) ? $default : $number;
+};
+
 $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_merge([
     'driver'                  => 's3',
     'key'                     => env('STORAGE_S3_KEY', env('AWS_ACCESS_KEY_ID')),
@@ -28,10 +43,10 @@ $storageS3 = static fn (string $bucketEnv, array $extra = []): array => array_me
     // yang menggantung menahan koneksi DB di pooler. Timeout eksplisit (nilai awal, dapat diubah lewat env): connect 3 dtk,
     // total 10 dtk per percobaan, 1 percobaan ulang (bawaan SDK 3 kali); terburuk sekitar 2 x 10 dtk.
     'http'                    => [
-        'connect_timeout' => (float) env('STORAGE_S3_CONNECT_TIMEOUT', 3),
-        'timeout'         => (float) env('STORAGE_S3_TIMEOUT', 10),
+        'connect_timeout' => $s3Number('STORAGE_S3_CONNECT_TIMEOUT', 3),
+        'timeout'         => $s3Number('STORAGE_S3_TIMEOUT', 10),
     ],
-    'retries'                 => (int) env('STORAGE_S3_RETRIES', 1),
+    'retries'                 => (int) $s3Number('STORAGE_S3_RETRIES', 1, true),
 ], $extra);
 
 return [
